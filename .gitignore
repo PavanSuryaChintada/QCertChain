@@ -25,3 +25,4 @@ data/ipasn.dat
 data/evidence/
 data/allowlist.txt
 reports/*.tmp
+.superpowers/
