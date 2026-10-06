@@ -253,3 +253,25 @@ Format: **AI did** · **Owner decided** · **Verified by** · **Rulings** (AI ju
   - weak infrastructure (registrar) is still listed as campaign infrastructure
   - 500 domains cluster in under 2 s
   - DB test: a stable campaign id on re-run, plus the label, kit hash and a 64-hex IOC root
+
+## Task 15 — enrich worker, evidence pipeline, labelled seed
+
+- **AI did:**
+  - `pipeline.py`: `persist_result` (verdict → enrichment → edges → known kit → recluster → bundle → unsent report → anchor queue), with bundle prep split from the bulk insert.
+  - `enrich_worker.py`:
+    - per-host rate limit through a Redis `SET NX EX` lock
+    - a rate-limited fetch is re-queued with a delay, never recorded as a verdict
+    - forced re-confirm via a `force:` prefix
+    - one bad domain never stops the worker
+  - `seed.py` plus a kit template.
+- **Verified by:** `test_pipeline` (3), `test_seed` (6) and `test_enrich_worker` (3): RED, then GREEN. Service suite all green. Covered:
+  - all 400 seed domains confirmed **by the real gate** with ≥ 2 strong signals; one campaign; 12 IPs, 4 nameservers, 3 registrars, 1 kit
+  - the shared DNS provider is never a node
+  - the seed is deterministic
+  - only `.example` names and documentation IPs are used
+- **Found by measuring, fixed test-first:**
+  - The Supabase round trip from this machine is **109 ms** (local Docker: 17 ms).
+  - The first seed issued **10,341 SQL statements**, which would be about 19 minutes on Supabase.
+  - Rewritten with `jsonb_to_recordset` bulk writes: **19 statements**, 19 s in total, most of it Python file I/O and HTML parsing.
+  - The test asserts fewer than 40 statements for 400 domains, independent of network speed.
+- **Ruling (safety):** the seed uses the reserved `.example` TLD, RFC 5737 IPs and RFC 5398 ASNs, rather than realistic `.top` names. A seed labelled "confirmed phishing" must never be able to name a real registrant.

