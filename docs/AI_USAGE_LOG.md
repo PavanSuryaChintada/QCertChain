@@ -178,3 +178,17 @@ Format: **AI did** · **Owner decided** · **Verified by** · **Rulings** (AI ju
 - **Rulings:**
   - Leaves bind the artifact name (not just the content hash), so swapping two files' names is detected.
   - Expected hashes come from the database, never from the bundle directory itself.
+
+## Task 11 — page fingerprints
+
+- **AI did:** wrote `fingerprint.py` with the stdlib HTML parser:
+  - `dom_structure_hash`: tag names and nesting only; text, attributes, comments and script/style bodies are dropped; void tags are normalised
+  - form extraction, with the action resolved against the page URL and the method
+  - page title
+  - favicon mmh3 hash (Shodan convention)
+  - JS bundle hashes
+  Fixture: a realistic cloned bank login page.
+- **Verified by:** `test_fingerprint.py`: RED, then GREEN 12/12.
+  - **The hash does not move** when every string, colour, image URL and class/id/style/alt attribute is changed, or when the brand name is swapped.
+  - **It does move** when one wrapper `<div>` is added.
+  - Malformed HTML doesn't crash.
