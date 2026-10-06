@@ -38,6 +38,8 @@ A working phishing-campaign interdiction system that satisfies the challenge bri
 | D5 | Triage = **rules first, then train** | Ship TRD §2 hand-set weights labelled `provenance: rules`; then train LR on OpenPhish + Tranco (no PhishTank key). Stop and report if positives < 5,000 after campaign dedup (MODELS §8). |
 | D6 | **Deploy** to Railway + Vercel | Configs built; actual deploy only after explicit go-ahead (outward-facing, needs tokens). |
 | D7 | **Database = Supabase** (project `obyexvvwlirnijucyiob`, ap-southeast-1) | Replaces the `postgres` service in docker-compose. See §5. |
+| D8 | **Self-hosted certstream-server-go v1.10.1** (public `certstream.calidog.io` verified dead 2026-10-06: connects, sends 0 certs in 30 s) | Docker service; same certstream protocol, only `CERTSTREAM_URL` changes. `recovery.enabled: false`; ingest dedups on leaf fingerprint; `excluded_logs` trimmed only after measuring volume, with owner sign-off. |
+| D9 | **Takedown targets = `ip`, `nameserver`, `registrar`** | NPHARD's "all infra nodes" makes plans trivial (one kit hash or 3 ASNs cover everything). New node kind `registrar` (from RDAP; route `registrar` = one bulk abuse report per registrar). ASN, cert issuer, kit hash, favicon hash remain clustering evidence only. Registrar clustering weight 0.15. |
 
 ---
 
