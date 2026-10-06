@@ -13,7 +13,7 @@ class Settings:
     database_url: str = ""
     test_database_url: str = "postgresql+psycopg://qcertchain:qcertchain@localhost:5433/qcertchain_test"
     redis_url: str = "redis://localhost:6379"
-    certstream_url: str = "ws://localhost:8080/full-stream"
+    certstream_url: str = "ws://localhost:8080/"  # lite stream: has sha256 + issuer, no DER/chain
     stream_mode: str = "live"
     replay_file: str = "data/capture.jsonl"
     replay_speed: float = 1.0
