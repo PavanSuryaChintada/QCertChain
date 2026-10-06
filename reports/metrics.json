@@ -203,7 +203,7 @@
   "caveat": "a 30-minute window: only phishing certificates issued in that window can match; lead time is bounded by when PhishTank was downloaded",
   "measured_at": "2026-10-06T18:44:00.339709+00:00"
  },
- "generated_at": "2026-10-06T18:50:32.166398+00:00",
+ "generated_at": "2026-10-06T19:18:24.150444+00:00",
  "triage_threshold_options": {
   "options": [
    {
@@ -246,22 +246,35 @@
  },
  "response_time": {
   "ct_seen_to_candidate_s": {
-   "p50": 22.565,
-   "p95": 41.002,
-   "max": 64.669991,
-   "n": 88
+   "p50": 23.654,
+   "p95": 32.122,
+   "max": 37.160917,
+   "n": 114
+  },
+  "upstream_aggregator_delay_s": {
+   "p50": 20.994,
+   "p95": 30.233,
+   "n": 114,
+   "what": "certstream-server-go 'seen' stamp -> our ingest receipt"
+  },
+  "our_receipt_to_candidate_s": {
+   "p50": 2.053,
+   "p95": 5.443,
+   "max": 11.921054,
+   "n": 114,
+   "what": "ingest receipt -> triage -> candidate row in Supabase"
   },
   "candidate_to_verdict_s": {
-   "p50": 1.338,
-   "p95": 44.718,
-   "max": 59.590914,
-   "n": 84,
+   "p50": 1.552,
+   "p95": 22.653,
+   "max": 34.451336,
+   "n": 106,
    "target": "< 20 s (CLAUDE.md \u00a75)"
   },
   "verdicts_from_live_candidates": {
-   "unreachable": 76,
-   "dismissed": 7,
-   "candidate": 5
+   "unreachable": 102,
+   "candidate": 10,
+   "dismissed": 2
   },
   "evidence_created_to_anchored_s": {
    "p50": "2044.784",
@@ -274,9 +287,9 @@
    "max": 4544,
    "n": 5
   },
-  "window_since": "2026-10-06T18:27:51Z",
+  "window_since": "2026-10-06T19:00:00Z",
   "dataset": "Supabase domains with source certstream/replay (seed excluded)",
-  "measured_at": "2026-10-06T18:48:39.753981+00:00"
+  "measured_at": "2026-10-06T19:16:44.199524+00:00"
  },
  "interdiction": {
   "campaign": "d91961ec-b138-480f-b1a7-45028c896f35",
@@ -422,5 +435,18 @@
   },
   "method": "interdict.benchmark, 3 repetitions per k, in a standalone process, seeded campaign (synthetic, source=seed)",
   "measured_at": "2026-10-06T18:50:32.163388+00:00"
+ },
+ "evidence_ledger": {
+  "bundles_reverified_valid": "25/25",
+  "one_byte_tamper_detected_and_file_named": "25/25",
+  "bundles_total": 400,
+  "bundles_anchored_on_chain": 400,
+  "campaigns_published": 1,
+  "anchor_roots_matching_chain": "10/10",
+  "abuse_reports_generated": 400,
+  "abuse_reports_sent": 0,
+  "dataset": "Supabase evidence bundles (seeded campaign) and the local permissioned chain",
+  "method": "verify_bundle on the stored files; tamper = flip one byte of dom.html in a copy",
+  "measured_at": "2026-10-06T19:18:24.150444+00:00"
  }
 }

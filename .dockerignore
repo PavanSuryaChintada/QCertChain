@@ -1,0 +1,16 @@
+.venv
+.git
+.superpowers
+**/node_modules
+**/__pycache__
+.env
+.env.*
+data/capture.jsonl
+data/capture_full.jsonl
+data/probe.jsonl
+data/ml
+data/evidence
+reports/ct_capture/*.log
+apps/console/dist
+contracts/artifacts
+contracts/cache

@@ -470,3 +470,16 @@ Format: **AI did** · **Owner decided** · **Verified by** · **Rulings** (AI ju
 - **Findings reported to the owner, NOT changed:**
   - **Triage recall on real phishing naming our brands is 0/9 at the TRD threshold 0.45.** At 0.35 it's 8/9, for 11.5 candidates/min vs 1.5. Recommendation: 0.35; awaiting a decision.
   - **No CT-first lead-time case exists in a 30-minute capture** (11 exact-host matches, all listed earlier). The "hours ahead" headline cannot be claimed from our data.
+
+## Task 25 — technical report (`docs/REPORT.md`)
+
+- **AI did:**
+  - Wrote `scripts/build_report.py`. It renders the report only from `reports/metrics.json`; an unmeasured section reads "not measured — <reason>".
+  - Added a measured evidence/ledger section:
+    - 25/25 stored bundles re-verify
+    - 25/25 one-byte tampers caught, with the file named
+    - 400/400 anchored on chain, 10/10 roots match the chain
+    - 400 reports generated, 0 sent
+  - Re-measured the live response times in a steady-state window (114 candidates).
+- **Verified by:** `test_build_report.py` (8): unmeasured → "not measured"; numbers come from the metrics; quantum framing verbatim and never a heading; "never sent" stated; proper nouns keep their case; missed targets said plainly; no precision number shown where recall is zero.
+- **Corrected in review before shipping:** misleading "precision 0.0" (undefined at zero recall), "0.0 false-positive rate" (now "0 of 60,000"), lower-cased proper nouns, build-log phrasing in the email section, "tens of milliseconds" (measured 58–228 ms), and a claim about mean latency that was never measured (replaced by the measured median).

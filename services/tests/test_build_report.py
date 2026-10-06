@@ -1,0 +1,55 @@
+import json
+
+from scripts.build_report import render
+
+
+def metrics(**over):
+    m = json.load(open("reports/metrics.json", encoding="utf-8"))
+    m.update(over)
+    return m
+
+
+def test_unavailable_section_says_not_measured_never_a_number():
+    md = render(metrics(lead_time={"unavailable": "ConnectionError: crt.sh unreachable"}))
+    assert "not measured — ConnectionError: crt.sh unreachable" in md
+
+
+def test_numbers_come_from_metrics():
+    m = metrics()
+    md = render(m)
+    assert str(m["triage_rules"]["latency_us_per_name"]["p50"]) in md
+    assert str(m["confirmation"]["precision"]["value"]) in md
+
+
+def test_quantum_framing_verbatim_and_never_a_heading():
+    md = render(metrics())
+    assert ("Takedown-set selection is formulated as a QUBO. It runs on OR-Tools CP-SAT in production; the same "
+            "formulation runs on QAOA. Quantum is not in the critical path.") in md
+    assert not any(line.startswith("#") and "quantum" in line.lower() for line in md.splitlines())
+
+
+def test_no_stale_name_and_states_reports_never_sent():
+    md = render(metrics())
+    assert "SEVER" not in md and "never sent" in md.lower()
+
+
+def test_evidence_and_ledger_results_are_reported():
+    md = render(metrics())
+    assert "Evidence and ledger" in md and "tamper" in md.lower()
+
+
+def test_precision_with_zero_recall_is_not_reported_as_a_number():
+    m = metrics()
+    m["triage_rules"]["recall_all_global_phishing"]["value"] = 0.0
+    md = render(m)
+    assert "Precision at the real 1:1000 base rate is 0.0" not in md
+
+
+def test_proper_nouns_keep_their_case():
+    md = render(metrics())
+    assert "bradesco" not in md and "phishtank was" not in md
+
+
+def test_missed_targets_are_said_plainly():
+    md = render(metrics())
+    assert "misses the 20 s target" in md and "5 ms" in md

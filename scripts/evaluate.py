@@ -355,7 +355,57 @@ def triage_threshold_options():
             "measured_at": NOW()}
 
 
-SECTIONS = {"triage_threshold_options": triage_threshold_options, "triage_rules": triage_rules, "triage_model": triage_model, "ingest": ingest,
+@section
+def evidence_ledger():
+    """Re-verify real bundles from Supabase, tamper a COPY of each, and count what reached the ledger."""
+    import random as _r
+    import shutil
+    import tempfile
+
+    import sqlalchemy as sa
+
+    from evidence.bundle import verify_bundle
+    from services.api.db import engine
+    from services.api.ledger_service import Ledger
+    with engine().connect() as c:
+        bundles = c.execute(sa.text("""select id::text, bundle_root, signature, collector_pk, artifact_dir
+                                       from evidence_bundles""")).mappings().all()
+        arts = {}
+        for r in c.execute(sa.text("select bundle_id::text, name, sha256 from evidence_artifacts")).mappings():
+            arts.setdefault(r["bundle_id"], {})[r["name"]] = r["sha256"]
+        anchored = c.execute(sa.text("select count(*) from evidence_bundles where anchored_tx is not null")).scalar()
+        published = c.execute(sa.text("select count(*) from campaigns where published_tx is not null")).scalar()
+        sent = c.execute(sa.text("select count(*) from abuse_reports where sent")).scalar()
+        reports = c.execute(sa.text("select count(*) from abuse_reports")).scalar()
+    sample = _r.Random(3).sample(list(bundles), min(25, len(bundles)))
+    ok = named = 0
+    for b in sample:
+        exp = arts[b["id"]]
+        r = verify_bundle(Path(b["artifact_dir"]), b["bundle_root"], b["signature"], b["collector_pk"], exp)
+        ok += r.valid
+        with tempfile.TemporaryDirectory() as td:
+            cp = Path(td) / "b"
+            shutil.copytree(b["artifact_dir"], cp)
+            f = cp / "dom.html"
+            data = bytearray(f.read_bytes())
+            data[len(data) // 2] ^= 1
+            f.write_bytes(bytes(data))
+            t = verify_bundle(cp, b["bundle_root"], b["signature"], b["collector_pk"], exp)
+            named += (not t.valid) and [x.artifact for x in t.failures] == ["dom.html"]
+    led = Ledger.from_settings(SETTINGS)
+    chain_ok = led.available()
+    onchain = sum(led.verify_anchor(b["id"], b["bundle_root"]) for b in sample[:10]) if chain_ok else None
+    return {"bundles_reverified_valid": f"{ok}/{len(sample)}",
+            "one_byte_tamper_detected_and_file_named": f"{named}/{len(sample)}",
+            "bundles_total": len(bundles), "bundles_anchored_on_chain": anchored, "campaigns_published": published,
+            "anchor_roots_matching_chain": f"{onchain}/10" if onchain is not None else "chain not reachable",
+            "abuse_reports_generated": reports, "abuse_reports_sent": sent,
+            "dataset": "Supabase evidence bundles (seeded campaign) and the local permissioned chain",
+            "method": "verify_bundle on the stored files; tamper = flip one byte of dom.html in a copy",
+            "measured_at": NOW()}
+
+
+SECTIONS = {"evidence_ledger": evidence_ledger, "triage_threshold_options": triage_threshold_options, "triage_rules": triage_rules, "triage_model": triage_model, "ingest": ingest,
             "confirmation": confirmation, "email": email, "response_time": response_time,
             "interdiction": interdiction, "lead_time": lead_time}
 
