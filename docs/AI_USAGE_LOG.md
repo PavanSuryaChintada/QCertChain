@@ -275,3 +275,20 @@ Format: **AI did** · **Owner decided** · **Verified by** · **Rulings** (AI ju
   - Rewritten with `jsonb_to_recordset` bulk writes: **19 statements**, 19 s in total, most of it Python file I/O and HTML parsing.
   - The test asserts fewer than 40 statements for 400 domains, independent of network speed.
 - **Ruling (safety):** the seed uses the reserved `.example` TLD, RFC 5737 IPs and RFC 5398 ASNs, rather than realistic `.top` names. A seed labelled "confirmed phishing" must never be able to name a real registrant.
+
+## Task 16 — API
+
+- **AI did:**
+  - Updated `API_CONTRACT.md` first: registrar targets, marginal `kills`, `notes`, email §9, sources.
+  - Wrote the FastAPI app:
+    - RFC 7807 problem+json on every error
+    - warm-up at startup
+    - Pydantic v2 models field-for-field with the contract
+    - routes for stream state and mode, SSE live feed (token bucket of 20/s; a candidate waits for a slot instead of being dropped), candidates, domain detail (one joined query), force re-confirm, campaigns, the Cytoscape graph (1,000-node cap), interdiction (409/422/404 per contract), plans, the benchmark (every row persisted), evidence (artifact download only for recorded names, verify, report with `sent: false`), metrics, ops log, seed
+  - Plan `killed_domain_ids` and `notes` are stored as columns, not in the ops log.
+- **Verified by:**
+  - `test_api.py`: RED (modules missing), then GREEN 18/18.
+  - Full repo suite green.
+  - Live smoke against **Supabase** through the session pooler: `/health`, `/metrics`, `/candidates`, `/stream/state`, and a 404 problem+json.
+- **Found by running it, fixed test-first:** `/stream/state` reported `connected` from a heartbeat hours old (my earlier smoke run left it in Redis). The console would have shown LIVE for a dead stream. Now three missed heartbeats (15 s) read as `down` with rate 0, in both `/stream/state` and `/metrics`.
+- **Incident:** the Supabase direct host (IPv6) stopped resolving from this network. Schema changes are now applied through the IPv4 session pooler, which supports DDL.

@@ -27,3 +27,37 @@ def db(db_engine):
     yield conn
     tx.rollback()
     conn.close()
+
+
+@pytest.fixture
+def api(db, tmp_path):
+    """FastAPI TestClient bound to the rolled-back test transaction, fake Redis, temp evidence dir."""
+    import fakeredis
+    import fakeredis.aioredis
+    import nacl.signing
+    from fastapi.testclient import TestClient
+
+    from services.api import deps, main
+
+    server = fakeredis.FakeServer()
+    key = nacl.signing.SigningKey.generate().encode().hex()
+
+    def conn():
+        yield db
+
+    main.app.dependency_overrides[deps.get_conn] = conn
+    main.app.dependency_overrides[deps.get_redis] = lambda: fakeredis.aioredis.FakeRedis(server=server,
+                                                                                         decode_responses=True)
+    main.app.dependency_overrides[deps.get_evidence_dir] = lambda: tmp_path
+    main.app.dependency_overrides[deps.get_signing_key] = lambda: key
+    with TestClient(main.app) as c:
+        c.fake_redis_server = server
+        yield c
+    main.app.dependency_overrides.clear()
+
+
+@pytest.fixture
+def seeded(api):
+    r = api.post("/seed/campaign", json={"label": "smoke", "domains": 60, "ips": 12, "asns": 3, "nameservers": 4})
+    assert r.status_code == 200, r.text
+    return r.json()["id"]

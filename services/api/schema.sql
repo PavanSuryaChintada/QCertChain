@@ -170,6 +170,8 @@ create table if not exists interdiction_plans (
   created_at      timestamptz default now()
 );
 create index if not exists plans_campaign_idx on interdiction_plans (campaign_id, created_at desc);
+alter table interdiction_plans add column if not exists killed_domain_ids bigint[];
+alter table interdiction_plans add column if not exists notes text[];   -- e.g. 'cp-sat feasible (time limit; gap 2.2%)'
 
 create table if not exists plan_targets (
   id        bigserial primary key,

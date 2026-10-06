@@ -32,10 +32,10 @@ DomainStatus  = Literal["candidate", "confirmed", "dismissed", "unreachable"]
 StreamMode    = Literal["live", "replay"]
 ConnState     = Literal["connected", "reconnecting", "down", "replay"]
 Backend       = Literal["cpsat", "qaoa", "annealing", "greedy"]
-NodeKind      = Literal["ip","asn","nameserver","cert_issuer","kit_hash","favicon_hash"]
+NodeKind      = Literal["ip","asn","nameserver","cert_issuer","kit_hash","favicon_hash","registrar"]
 SignalStrength= Literal["strong", "moderate", "weak"]
 Provenance    = Literal["model", "rules"]
-Source        = Literal["certstream", "replay", "seed"]
+Source        = Literal["certstream", "replay", "seed", "email", "sample"]
 Verdict       = Literal["confirmed", "dismissed", "disputed"]
 ```
 
@@ -263,6 +263,13 @@ Response:
 
 **`qubit_count` is `null` for classical backends.** The UI shows `n_variables` always, `qubit_count` only when present.
 
+**Changes (2026-10-06, owner decisions D9 + implementation rulings):**
+- Targets are only `ip` (route `hosting`), `nameserver` (`dns`) and `registrar` (`registrar`).
+- `kills` is the **marginal** kill count in rank order, so the column sums to `domains_killed` (as in the example above).
+- `n_variables` = candidate nodes after reduction = qubits for the x-only QUBO (see NPHARD.md §6 correction).
+- Plans also carry `"notes": [...]` — e.g. `"cp-sat feasible (time limit; gap 2.2%)"` when the time limit hit, or the
+  reduction log. A FEASIBLE CP-SAT plan is valid but not proven optimal and the UI must say so.
+
 **`fell_back: true` must be surfaced as text**, e.g. `qaoa timed out → cpsat`. `DESIGN.md` §9.
 
 ### `POST /plans/{id}/benchmark`
@@ -411,6 +418,31 @@ On success: `{"valid": true, "root_matches": true, "signature_valid": true, "fai
 {"label":"titli-kit","domains":400,"ips":12,"asns":3,"nameservers":4,"brands":["ICICI Bank"]}
 ```
 Returns a campaign object with `"source": "seed"` on every created domain. **The UI must display the source.**
+
+---
+
+## 9. Email-header analysis (owner decision D1/D2 — paste or upload only)
+
+### `POST /email/analyze`
+JSON `{"raw": "<headers or full .eml>", "source": "analyst" | "sample"}` or multipart with file field `eml` (max 2 MB → 413).
+
+```json
+{
+  "id": "5b0e...", "source": "analyst", "verdict": "malicious", "strong_count": 2,
+  "from_addr": "alerts@sbi-kyc-update.top", "from_etld1": "sbi-kyc-update.top",
+  "reply_to_etld1": "sbi-support.click", "return_path_etld1": "mailer.example",
+  "auth": {"spf": "fail", "dkim": "none", "dmarc": "fail"},
+  "received": [{"from_host": "mailer.example", "ip": "203.0.113.9", "at": "2026-10-05T03:00:00Z"}],
+  "urls": ["https://sbi-kyc-update.top/login"],
+  "signals": [{"name": "display_name_brand_spoof", "strength": "strong", "detail": "..."}],
+  "linked_campaigns": [{"id": "3f2a91c8-...", "label": "CAMP-0042"}],
+  "linked_domain_ids": [88213], "new_candidate_ids": [88990], "absent": ["DKIM-Signature"]
+}
+```
+`verdict` ∈ `malicious | suspicious | clean`. **`malicious` requires `strong_count >= 2`** (DB-enforced). `suspicious`
+renders grey, exactly like a domain candidate. Email never confirms a domain; it can only create candidates.
+
+### `GET /email/analyses?verdict=&limit=&offset=` → `Page` of the above. `GET /email/analyses/{id}`.
 
 ---
 
