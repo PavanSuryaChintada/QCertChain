@@ -12,6 +12,12 @@ export function Num({ v, digits = 0, suffix = "" }: { v: number | null | undefin
   return <span className="num">{v.toLocaleString("en-US", { maximumFractionDigits: digits, minimumFractionDigits: digits })}{suffix}</span>;
 }
 
+export function Bytes({ n }: { n: number | null | undefined }) {
+  if (n === null || n === undefined) return <span className="num">—</span>;
+  const [v, u] = n < 1024 ? [n, "B"] : n < 1024 * 1024 ? [n / 1024, "KB"] : [n / 1024 / 1024, "MB"];
+  return <span className="num">{v.toLocaleString("en-US", { maximumFractionDigits: u === "B" ? 0 : 1 })} {u}</span>;
+}
+
 export function Hash({ v, n = 12 }: { v: string | null | undefined; n?: number }) {
   if (!v) return <span className="mono">—</span>;
   return <span className="mono" title={v} style={{ fontSize: 12 }}>{v.length > n ? `${v.slice(0, n)}…` : v}</span>;

@@ -32,7 +32,7 @@ def candidates(status: DomainStatus | None = None, min_score: float | None = Que
 def domain_detail(domain_id: int, c=Depends(get_conn)):
     r = c.execute(sa.text("""
         select d.*, d.campaign_id::text as campaign_id_s, e.domain_id as has_enrichment,
-               e.ip_addresses::text[] as ips, e.asn, e.asn_name, e.country, e.nameservers, e.cert_issuer, e.registrar,
+               array(select host(x) from unnest(e.ip_addresses) x) as ips, e.asn, e.asn_name, e.country, e.nameservers, e.cert_issuer, e.registrar,
                e.registered_at, e.dom_hash, e.favicon_hash, e.partial, e.errors,
                b.id::text as bundle_id,
                exists(select 1 from evidence_artifacts a where a.bundle_id = b.id and a.name = 'screenshot.png') as shot

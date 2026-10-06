@@ -369,3 +369,29 @@ Format: **AI did** · **Owner decided** · **Verified by** · **Rulings** (AI ju
   - `tsc --noEmit` + `vite build` pass.
   - Screenshot review of the running console against the live API showed no console errors, and the mode correctly showed STREAM DOWN because no ingest was running.
 - **Incident:** port 5173 belongs to another local project (its dev server answered my first screenshot). The console now runs on 5180, which is in the API CORS default.
+
+## Task 21 — domain detail, evidence viewer, campaign graph
+
+- **AI did:**
+  - `DomainDetail`:
+    - verdict chip with every signal (strength + detail)
+    - triage reasons with provenance and threshold
+    - infrastructure, with partial-collection errors
+    - screenshot when present
+    - the full domain name in mono, wrapped, never truncated
+  - `EvidenceViewer`: verify (the failing row turns red with both hashes), and the report labelled "Report generated — not sent". Moved here from Task 22 because the domain view embeds it.
+  - `CampaignGraph` + `cyto.ts`: stylesheet only from tokens; targets ringed 2px `--ink-000`; no dragging.
+- **Verified by:**
+  - vitest RED, then GREEN 22/22, including the tamper display, layout settle-and-stop, and "every graph colour is a token" checked against the real `tokens.css`.
+  - The demo campaign seeded on **Supabase** (400 domains, 24 infrastructure nodes, 14.5 s).
+  - Screenshots of the campaign and domain views reviewed.
+- **Found by running it, fixed test-first:**
+  - **The campaign graph froze the tab for 46 s.** Headless benchmark on the real graph: cose-bilkent 17–18 s, cose 21–23 s, with or without the all-domain hub edges.
+    - Replaced with a deterministic O(n) radial layout: IP hubs on an outer ring, sized so no domain sits nearer a foreign IP; each IP's domains in a golden-angle sunflower; shared infrastructure on an inner ring; then one 400 ms preset settle.
+    - Tests on the real 400-domain graph: positions computed fast, each domain nearest its own IP, no overlaps, deterministic.
+  - From the screenshot review:
+    - an `inet` showed as `x/32` (API now returns `host()`, with a test)
+    - "[object Object]" appeared as a triage value
+    - small files showed "0 KB"
+    - the header domain name was truncated
+- **Ruling:** the graph does not use cose-bilkent (DESIGN.md names it). Measured 17–22 s on the demo campaign; the intent (one settle, then static, readable) is kept.

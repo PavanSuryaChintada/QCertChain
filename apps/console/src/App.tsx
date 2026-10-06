@@ -2,6 +2,8 @@ import { Route, Routes, useSearchParams } from "react-router-dom";
 import { Header } from "./layout/Header";
 import { LeftRail } from "./layout/LeftRail";
 import { StreamRail } from "./layout/StreamRail";
+import { CampaignView } from "./views/CampaignView";
+import { DomainDetail } from "./views/DomainDetail";
 
 function ConsoleMain() {
   const [params] = useSearchParams();
@@ -18,7 +20,7 @@ function ConsoleMain() {
       </div>
     );
   }
-  return <div className="p-6 secondary">Loading…</div>;
+  return campaign ? <CampaignView id={campaign} /> : <DomainDetail id={Number(domain)} />;
 }
 
 export default function App() {

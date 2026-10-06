@@ -88,6 +88,7 @@ def test_domain_detail_has_reasons_and_bundle(api, seeded):
     assert full["confirmation"]["strong_count"] >= 2 and full["confirmation"]["signals"]
     assert full["triage"]["provenance"] == "rules" and full["triage"]["reasons"]
     assert full["enrichment"]["ip_addresses"] and bid and full["source"] == "seed"
+    assert all("/" not in ip for ip in full["enrichment"]["ip_addresses"])  # host form, not inet "x/32"
 
 
 def test_tamper_demo_names_the_file(api, seeded, db):
