@@ -18,11 +18,31 @@ EDGE_WEIGHTS = {"kit_hash": 1.0, "favicon_hash": 0.85, "ip": 0.80, "nameserver":
 # Takedown targets are ip / nameserver / registrar only (spec D9).
 TAKEDOWN_ROUTE = {"ip": "hosting", "nameserver": "dns", "registrar": "registrar"}
 
+# Shared infrastructure (review I6): millions of unrelated sites sit behind these. Sharing one says nothing
+# about the operator, so it never becomes an edge — otherwise every Cloudflare-fronted kit is one "campaign".
+# CDN / large-cloud ASNs: Cloudflare, Amazon, Amazon (AS14618), Google, Fastly, Akamai x2, Microsoft.
+SHARED_ASNS = frozenset({13335, 16509, 14618, 15169, 54113, 20940, 16625, 8075})
+# Managed-DNS providers, matched on the nameserver's registrable domain (or a suffix of it).
+SHARED_DNS_SUFFIXES = ("cloudflare.com", "awsdns-", "domaincontrol.com", "registrar-servers.com",
+                       "googledomains.com", "google.com", "nsone.net", "azure-dns.com", "azure-dns.net",
+                       "azure-dns.org", "azure-dns.info", "dnsmadeeasy.com", "ultradns.net", "akam.net",
+                       "dynect.net", "name-services.com", "hostinger.com", "dns-parking.com", "digitalocean.com",
+                       "vercel-dns.com", "netlify.com", "wixdns.net", "squarespacedns.com")
+
+
+def is_shared_dns(ns: str) -> bool:
+    labels = ns.lower().rstrip(".").split(".")
+    tail = ".".join(labels[-2:])
+    return any(tail == s or (s.endswith("-") and any(lab.startswith(s) for lab in labels))
+               for s in SHARED_DNS_SUFFIXES)
+
 
 def edges_for(e: Enrichment) -> list[tuple[str, str, float]]:
-    out: list[tuple[str, str, float]] = [("ip", ip, EDGE_WEIGHTS["ip"]) for ip in e.ip_addresses]
-    out += [("nameserver", ns.lower().rstrip("."), EDGE_WEIGHTS["nameserver"]) for ns in e.nameservers]
-    if e.asn is not None:
+    shared_net = e.asn in SHARED_ASNS
+    out: list[tuple[str, str, float]] = [] if shared_net else [("ip", ip, EDGE_WEIGHTS["ip"]) for ip in e.ip_addresses]
+    out += [("nameserver", ns.lower().rstrip("."), EDGE_WEIGHTS["nameserver"]) for ns in e.nameservers
+            if not is_shared_dns(ns)]
+    if e.asn is not None and not shared_net:
         out.append(("asn", str(e.asn), EDGE_WEIGHTS["asn"]))
     for kind, val in (("cert_issuer", e.cert_issuer), ("registrar", e.registrar), ("kit_hash", e.dom_hash),
                       ("favicon_hash", e.favicon_hash)):

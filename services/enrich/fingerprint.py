@@ -47,6 +47,26 @@ def dom_structure_hash(html: str) -> str:
     return hashlib.sha256("".join(p.out).encode("utf-8")).hexdigest()
 
 
+# Complexity floor (review I7): below it the tag tree is one that countless unrelated pages share
+# (blank, parked, a bare login form), so its hash identifies no kit.
+KIT_MIN_TAGS = 20
+KIT_MIN_DISTINCT_TAGS = 8
+
+
+def kit_hash(html: str) -> str | None:
+    """dom_structure_hash, or None when the page is too simple to fingerprint a kit."""
+    p = _Structure()
+    try:
+        p.feed(html or "")
+        p.close()
+    except Exception:
+        pass
+    opens = [t for t in p.out if not t.startswith("</")]
+    if len(opens) < KIT_MIN_TAGS or len({t.strip("</>") for t in opens}) < KIT_MIN_DISTINCT_TAGS:
+        return None
+    return hashlib.sha256("".join(p.out).encode("utf-8")).hexdigest()
+
+
 @dataclass
 class Form:
     action_url: str

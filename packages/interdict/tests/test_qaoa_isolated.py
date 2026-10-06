@@ -64,3 +64,18 @@ def test_router_uses_isolated_process_when_enabled(monkeypatch):
     monkeypatch.setattr(r, "ISOLATE_QAOA", True)
     plan = r.solve(P, backend="qaoa", timeout_s=30)
     assert calls == [30] and plan.backend == "qaoa" and plan.qubit_count == 3 and plan.valid
+
+
+def test_background_rewarm_failure_is_not_an_unhandled_thread_error(monkeypatch):
+    """A rewarm racing a later shutdown (API stop, test teardown) breaks the pool. That is expected and must
+    not surface as an unhandled exception in a thread: the next solve warms a fresh pool anyway."""
+    import threading
+    from concurrent.futures.process import BrokenProcessPool
+
+    from interdict.solvers import qaoa_isolated as qi
+    seen = []
+    monkeypatch.setattr(threading, "excepthook", lambda args: seen.append(args.exc_type))
+    monkeypatch.setattr(qi, "warm", lambda: (_ for _ in ()).throw(BrokenProcessPool("killed")))
+    t = qi._rewarm_in_background()
+    t.join(5)
+    assert seen == []

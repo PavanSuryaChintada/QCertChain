@@ -68,7 +68,13 @@ def test_legit_never_malicious_even_warm():
 
 
 @pytest.mark.parametrize("raw", [b"", b"\xff\xfe\x00junk", "just a body with https://x.example",
-                                 b"From: =?bad?=\n\nhello", b"From: <<<>>>\nAuthentication-Results: ;;;\n\n"])
+                                 b"From: =?bad?=\n\nhello", b"From: <<<>>>\nAuthentication-Results: ;;;\n\n",
+                                 # review findings, reproduced: naive vs aware Received dates, broken Message-ID
+                                 b"From: a@b.example\nReceived: from x by y; Mon, 05 Oct 2026 03:00:00 +0000\n"
+                                 b"Received: from p by q; Mon, 05 Oct 2026 02:00:00 -0000\n\nx",
+                                 b"From: a@b.example\nReceived: from x by y; Mon, 05 Oct 2026 03:00:00\n"
+                                 b"Received: from p by q; Mon, 05 Oct 2026 02:00:00 +0530\n\nx",
+                                 b"From: a@b.example\nMessage-ID: <@@@>\n\nx"])
 def test_garbage_and_body_only_never_raise(raw):
     v = analyze(raw, brands=BR, lookup=NONE)
     assert v.verdict in {"clean", "suspicious"}
@@ -126,3 +132,28 @@ def test_display_name_matching_ignores_spacing_and_punctuation():
     assert _brand_in_display("H.D.F.C. Bank Alerts", BR).name == "HDFC Bank"
     assert _brand_in_display("Priya", BR) is None
     assert _brand_in_display("Service desk", BR) is None  # 'vi' inside a word is not Vodafone Idea
+
+
+@pytest.mark.db
+def test_api_rejects_non_object_json_with_422(api):
+    for body in ("[]", '"x"', "42"):
+        r = api.post("/email/analyze", content=body, headers={"content-type": "application/json"})
+        assert r.status_code == 422, (body, r.status_code)
+
+
+def test_fuzzed_headers_never_raise():
+    """5,000 malformed messages (fixed seed). Found 86 stdlib structured-parser crashes before the fix."""
+    import random
+    rng = random.Random(1)
+    heads = ["From", "Reply-To", "Return-Path", "Message-ID", "Authentication-Results", "Received",
+             "Received-SPF", "Date", "Subject", "DKIM-Signature", "Content-Type"]
+    vals = ["<@@@>", "", "=?utf-8?B?????=", "a@", "@b", "<<>>", "x" * 3000, "Mon, 99 Foo 2026 25:61:61 +9999",
+            "multipart/mixed; boundary=", "\x00\x01", "é漢字", "a@b.example (c) <d@e>", "; ; ;", "spf=",
+            "from [999.1.1.1] by ;", "\t\tfolded\n continued"]
+    for _ in range(5000):
+        lines = [f"{rng.choice(heads)}: {rng.choice(vals)}{rng.choice(vals)}" for _ in range(rng.randint(0, 8))]
+        raw = ("\n".join(lines) + "\n\n" + rng.choice(["https://x.example/a", "", "<a href='http://y.example'>"])
+               ).encode("utf-8", "replace")
+        if rng.random() < 0.3:
+            raw = bytes(rng.randrange(256) for _ in range(rng.randint(0, 200))) + raw
+        analyze(raw, brands=BR, lookup=NONE)

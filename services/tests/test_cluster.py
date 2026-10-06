@@ -84,3 +84,22 @@ def test_recluster_creates_stable_labelled_campaign_with_ioc_root(db):
     members = db.execute(sa.text("select count(*) from domains where campaign_id is not null and campaign_joined_at is not null")).scalar()
     assert members == 2
     assert recluster(db) == first  # stable id on re-run
+
+
+def test_shared_cdn_and_dns_infrastructure_makes_no_edges():
+    """Review I6: two unrelated sites behind Cloudflare share anycast IPs, the ASN and the NS provider.
+    None of that implies one operator, so none of it becomes a clustering edge."""
+    e = Enrichment(ip_addresses=["104.21.5.6"], asn=13335, nameservers=["lara.ns.cloudflare.com",
+                   "ns-123.awsdns-15.com", "ns1.x.top"], registrar="NameSilo, LLC", dom_hash="abc")
+    got = set(edges_for(e))
+    assert not {k for k, *_ in got} & {"ip", "asn"}
+    assert {v for k, v, _ in got if k == "nameserver"} == {"ns1.x.top"}
+    assert ("kit_hash", "abc", 1.0) in got
+
+
+def test_two_unrelated_cloudflare_sites_never_merge():
+    a = Enrichment(ip_addresses=["104.21.5.6"], asn=13335, nameservers=["lara.ns.cloudflare.com"], dom_hash="k1")
+    b = Enrichment(ip_addresses=["104.21.5.6"], asn=13335, nameservers=["lara.ns.cloudflare.com"], dom_hash="k2")
+    ids: dict[tuple, int] = {}
+    edges = [(d, ids.setdefault((k, v), len(ids) + 100), w) for d, e in ((1, a), (2, b)) for k, v, w in edges_for(e)]
+    assert cluster(edges) == []

@@ -19,7 +19,7 @@ from services.config import SETTINGS
 from services.enrich.confirm import analyze_page
 from services.enrich.enrichers import Enrichment
 from services.enrich.fetch import FetchedPage
-from services.enrich.fingerprint import dom_structure_hash
+from services.enrich.fingerprint import kit_hash as page_kit_hash
 from services.graph.build import edges_for, recluster
 from services.ingest.brands import load_brands
 from services.ingest.triage import triage
@@ -55,7 +55,8 @@ def seed_campaign(c: sa.Connection, *, label: str, domains: int = 400, ips: int 
     kit_label = f"{slug} (seed kit)"
 
     sample = TEMPLATE.format(brand="X", bg="#fff", accent="#000", slug="x", tagline="x", collector=COLLECTOR, ref="x")
-    kit_hash = dom_structure_hash(sample)
+    kit_hash = page_kit_hash(sample)
+    assert kit_hash, "seed kit template must clear the kit complexity floor"
     repo.add_known_kit(c, kit_hash, kit_label, "seed")
     known = repo.known_kits(c)
     now = datetime.now(timezone.utc)
@@ -79,7 +80,7 @@ def seed_campaign(c: sa.Connection, *, label: str, domains: int = 400, ips: int 
         reg_at = now - timedelta(days=rng.randint(1, 20))
         e = Enrichment(ip_addresses=[ip], asn=asn_of[ip], asn_name=f"DOC-AS{asn_of[ip]} (seed)", country="ZZ",
                        nameservers=ns or [SHARED_DNS], registrar=_zipf(rng, reg_list),
-                       abuse_email=None, registered_at=reg_at, dom_hash=dom_structure_hash(html),
+                       abuse_email=None, registered_at=reg_at, dom_hash=page_kit_hash(html),
                        cert_issuer="Let's Encrypt", partial=True, errors={"seed": "synthetic: no screenshot, no TLS"})
         result = analyze_page(page, name, brand, known, {}, reg_at, "Let's Encrypt", now=now)
         t = triage(name)

@@ -102,7 +102,7 @@ Seeded campaign (400 synthetic domains, 19 takedown candidates; 3 repetitions pe
 | 4 | 400 in 87 ms | 400 in 6381 ms | 400 in 164 ms | 400 in 1 ms |
 | 5 | 400 in 58 ms | 400 in 6069 ms | 400 in 191 ms | 400 in 1 ms |
 
-All backends reach the same coverage on this campaign; CP-SAT is the fastest exact method and greedy carries the (1 − 1/e) guarantee. The seed assigns each domain one of three registrars, so three registrar reports cover every domain — a property of this synthetic campaign, not of the method.
+All backends reach the same coverage on this campaign; CP-SAT is the fastest exact method and greedy carries the (1 − 1/e) guarantee. QAOA uses a warm start: its initial state is biased toward the greedy plan (ε = 0.25) and it returns the best sampled bitstring, so matching greedy here is not independent evidence of the quantum search. The seed assigns each domain one of three registrars, so three registrar reports cover every domain — a property of this synthetic campaign, not of the method.
 
 ### Evidence and ledger
 
@@ -132,7 +132,7 @@ The second-organisation view queries the ledger by kit fingerprint and receives 
 
 ## Corrections made to the original specification
 
-- QUBO (NPHARD §6): the specified coverage penalty rewards redundant coverage; replaced by an exact x-only formulation (≤ 12 qubits instead of 26), verified by brute force.
+- QUBO (NPHARD §6): the specified coverage penalty rewards redundant coverage; replaced by an x-only inclusion–exclusion formulation (≤ 12 qubits instead of 26). It is exact up to second order: exact when no domain depends on more than two selected targets, an approximation beyond that. The ground state was checked by brute force against true coverage on 25 random instances with at most two dependencies per domain.
 - Attestation contract: the specified logic recorded only the first attesting organisation; fixed and proven by a test that fails on the original.
 - Organisation keys: the specified admin account would have been rejected as an organisation; orgs use accounts #1 and #2.
 - Lookalike matching uses tokens of five or more characters; a flat edit distance of 2 on 3-letter tokens matches ordinary words.

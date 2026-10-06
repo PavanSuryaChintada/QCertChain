@@ -73,3 +73,14 @@ def test_favicon_hash_shodan_convention():
 
 def test_js_bundle_hashes_sorted_and_deterministic():
     assert js_bundle_hashes([b"b", b"a"]) == js_bundle_hashes([b"a", b"b"]) and len(js_bundle_hashes([b"a"])[0]) == 64
+
+
+def test_trivial_pages_get_no_kit_hash():
+    """Review I7: a blank, parked or bare-form page has a structure thousands of unrelated sites share.
+    Hashing it would merge them all into one 'kit', so below the complexity floor there is no kit hash."""
+    from services.enrich.fingerprint import kit_hash
+    trivial = ["", "<html><body></body></html>", "<html><head><title>x</title></head><body><h1>Parked</h1></body></html>",
+               "<form method=post><input name=u><input type=password><button>Go</button></form>"]
+    for html in trivial:
+        assert kit_hash(html) is None, html
+    assert kit_hash(KIT) == dom_structure_hash(KIT)

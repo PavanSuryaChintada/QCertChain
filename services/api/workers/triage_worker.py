@@ -10,6 +10,7 @@ import asyncio
 import json
 import os
 import socket
+from dataclasses import dataclass, field
 
 import redis.asyncio as aioredis
 import sqlalchemy as sa
@@ -22,16 +23,31 @@ from services.ingest.triage import triage, warm
 
 STREAM, GROUP, ENRICH_QUEUE = "certs:raw", "triage", "enrich:queue"
 LIVE_CHANNEL = "certs:live"
+DEAD_LETTER = "certs:dead"
 BATCH = 500
 FEED_SOURCE = {"certstream": "live", "replay": "replay", "seed": "seed", "email": "email", "sample": "sample"}
 
 
-async def process_batch(raw_certs: list[str], *, redis, conn: sa.Connection) -> dict:
-    stats = {"certs": 0, "names": 0, "candidates": 0, "new_candidates": 0}
-    feed: list[str] = []
-    new_ids: list[int] = []
+@dataclass
+class Batch:
+    stats: dict
+    feed: list[str] = field(default_factory=list)
+    new_ids: list[int] = field(default_factory=list)
+    dead: list[str] = field(default_factory=list)
+
+
+async def process_batch(raw_certs: list[str], *, redis, conn: sa.Connection) -> Batch:
+    """Database writes only. Redis effects are returned and published by `publish` AFTER the caller commits:
+    pushing an id before the commit let an enrich worker look for a row that did not exist yet."""
+    b = Batch({"certs": 0, "names": 0, "candidates": 0, "new_candidates": 0, "dead_lettered": 0})
+    stats = b.stats
     for raw in raw_certs:
-        rec = CertRecord.from_json(raw)
+        try:
+            rec = CertRecord.from_json(raw)
+        except Exception:  # a poison record is kept for inspection, never allowed to kill the batch
+            b.dead.append(raw if isinstance(raw, str) else repr(raw))
+            stats["dead_lettered"] += 1
+            continue
         stats["certs"] += 1
         cert_id = None
         for name in rec.names:
@@ -47,21 +63,49 @@ async def process_batch(raw_certs: list[str], *, redis, conn: sa.Connection) -> 
                                                           received_at=rec.received_at)
                 if created:
                     stats["new_candidates"] += 1
-                    new_ids.append(domain_id)
-            feed.append(json.dumps({"ts": rec.seen_at.isoformat(), "name": name, "etld1": t.etld1,
-                                    "score": t.score, "is_candidate": t.is_candidate, "domain_id": domain_id,
-                                    "issuer": rec.issuer, "source": FEED_SOURCE.get(rec.source, rec.source)},
-                                   ensure_ascii=False))
+                    b.new_ids.append(domain_id)
+            b.feed.append(json.dumps({"ts": rec.seen_at.isoformat(), "name": name, "etld1": t.etld1,
+                                      "score": t.score, "is_candidate": t.is_candidate, "domain_id": domain_id,
+                                      "issuer": rec.issuer, "source": FEED_SOURCE.get(rec.source, rec.source)},
+                                     ensure_ascii=False))
     if stats["new_candidates"]:
         repo.log(conn, "triage", f"{stats['new_candidates']} new candidates from {stats['certs']} certificates",
-                 context={"domain_ids": new_ids[:50]})
+                 context={"domain_ids": b.new_ids[:50]})
+    return b
+
+
+async def publish(redis, b: Batch) -> None:
     async with redis.pipeline(transaction=False) as p:
-        for f in feed:
+        for f in b.feed:
             p.publish(LIVE_CHANNEL, f)
-        for d in new_ids:
+        for d in b.new_ids:
             p.lpush(ENRICH_QUEUE, d)
+        for raw in b.dead:
+            p.lpush(DEAD_LETTER, raw[:10_000])
         await p.execute()
-    return stats
+
+
+async def reclaim_stale(r, consumer: str, min_idle_ms: int = 60_000) -> list[tuple[str, dict]]:
+    """Entries delivered to a worker that died before XACK stay pending forever unless claimed."""
+    claimed: dict[str, dict] = {}
+    start = "0-0"
+    for _ in range(10_000):  # bounded: never spin forever
+        res = await r.xautoclaim(STREAM, GROUP, consumer, min_idle_time=min_idle_ms, start_id=start, count=500)
+        nxt, entries = res[0], res[1]
+        fresh = [(eid, f) for eid, f in entries if f and eid not in claimed]
+        claimed.update(fresh)
+        # Redis signals completion with cursor 0-0; also stop if the cursor repeats or nothing new arrives
+        if not fresh or nxt in ("0-0", b"0-0") or nxt == start:
+            break
+        start = nxt
+    return list(claimed.items())
+
+
+async def _handle(r, conn_factory, ids: list[str], raws: list[str]) -> None:
+    with conn_factory() as conn:
+        b = await process_batch(raws, redis=r, conn=conn)
+    await publish(r, b)  # after commit
+    await r.xack(STREAM, GROUP, *ids)
 
 
 async def main() -> None:
@@ -73,6 +117,9 @@ async def main() -> None:
         if "BUSYGROUP" not in str(e):
             raise
     consumer = f"{socket.gethostname()}-{os.getpid()}"
+    stale = await reclaim_stale(r, consumer)
+    if stale:
+        await _handle(r, engine().begin, [e for e, _ in stale], [f.get("cert", "") for _, f in stale])
     while True:
         resp = await r.xreadgroup(GROUP, consumer, {STREAM: ">"}, count=BATCH, block=5000)
         if not resp:
@@ -81,10 +128,21 @@ async def main() -> None:
         for _, entries in resp:
             for eid, fields in entries:
                 ids.append(eid)
-                raws.append(fields["cert"])
-        with engine().begin() as conn:
-            await process_batch(raws, redis=r, conn=conn)
-        await r.xack(STREAM, GROUP, *ids)
+                raws.append(fields.get("cert", ""))
+        try:
+            await _handle(r, engine().begin, ids, raws)
+        except Exception as e:  # database blip: leave the batch un-acked; it is reclaimed and retried
+            print(f"triage worker: batch failed, will be retried: {type(e).__name__}: {e}", flush=True)
+            await asyncio.sleep(2)
+            for eid, f in await reclaim_stale(r, consumer, min_idle_ms=0):
+                pass  # claimed back to this consumer; the next loop re-reads pending below
+            pending = await r.xreadgroup(GROUP, consumer, {STREAM: "0"}, count=BATCH)
+            for _, entries in pending or []:
+                if entries:
+                    try:
+                        await _handle(r, engine().begin, [e for e, _ in entries], [f.get("cert", "") for _, f in entries])
+                    except Exception as e2:
+                        print(f"triage worker: retry failed: {type(e2).__name__}: {e2}", flush=True)
 
 
 if __name__ == "__main__":

@@ -1,5 +1,6 @@
 # One image for the API and every worker (the command differs per service).
-FROM python:3.11-slim
+# bookworm pinned: Playwright 1.49 cannot install its deps on Debian trixie (python:3.11-slim since 2026)
+FROM python:3.11-slim-bookworm
 
 ENV PYTHONDONTWRITEBYTECODE=1 PYTHONUNBUFFERED=1 PIP_NO_CACHE_DIR=1 PIP_DISABLE_PIP_VERSION_CHECK=1
 WORKDIR /app

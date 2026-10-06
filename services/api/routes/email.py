@@ -46,6 +46,8 @@ async def analyze_email(request: Request, c=Depends(get_conn), r=Depends(get_red
             data = await request.json()
         except Exception:
             raise HTTPException(422, "send JSON {\"raw\": ..., \"source\": ...} or multipart field 'eml'") from None
+        if not isinstance(data, dict):
+            raise HTTPException(422, "send a JSON object {\"raw\": ..., \"source\": ...}")
         raw = data.get("raw")
         if not isinstance(raw, str):
             raise HTTPException(422, "raw: a string with headers or a full .eml is required")

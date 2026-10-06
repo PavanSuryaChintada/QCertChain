@@ -24,10 +24,19 @@ def test_confirmed_without_reasons_rejected(db):
         db.execute(sa.text("insert into domains(name, etld1, status) values ('a.top','a.top','confirmed')"))
 
 
-def test_confirmed_with_reasons_accepted(db):
+def test_confirmed_with_two_strong_accepted(db):
     db.execute(sa.text(
-        "insert into domains(name, etld1, status, confirm_reasons) values "
-        "('b.top','b.top','confirmed', '{\"signals\":[{\"name\":\"x\",\"strength\":\"strong\"}]}')"))
+        "insert into domains(name, etld1, status, confirm_reasons) values ('b.top','b.top','confirmed', "
+        "'{\"signals\":[{\"name\":\"x\",\"strength\":\"strong\"},{\"name\":\"y\",\"strength\":\"strong\"}]}')"))
+
+
+def test_confirmed_on_one_strong_signal_rejected_by_db(db):
+    """CLAUDE.md non-negotiable, enforced in code AND database: confirmed needs >= 2 strong signals."""
+    reasons = ('{"signals":[{"name":"a","strength":"strong"},{"name":"b","strength":"moderate"},'
+               '{"name":"c","strength":"moderate"},{"name":"d","strength":"moderate"}]}')
+    with pytest.raises(sa.exc.IntegrityError):
+        db.execute(sa.text("insert into domains(name, etld1, status, confirm_reasons) "
+                           "values ('c.top','c.top','confirmed', cast(:r as jsonb))"), {"r": reasons})
 
 
 def test_email_malicious_needs_two_strong(db):

@@ -156,7 +156,7 @@ def confirmation():
 
     from services.enrich.confirm import analyze_page
     from services.enrich.fetch import FetchedPage
-    from services.enrich.fingerprint import dom_structure_hash
+    from services.enrich.fingerprint import kit_hash as dom_structure_hash
     from services.ingest.brands import load_brands
     pages = _pages()
 

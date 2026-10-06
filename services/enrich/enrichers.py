@@ -16,7 +16,7 @@ import httpx
 
 from services.config import SETTINGS
 from services.enrich.fetch import FetchedPage
-from services.enrich.fingerprint import dom_structure_hash, favicon_hash, js_bundle_hashes, page_title
+from services.enrich.fingerprint import favicon_hash, js_bundle_hashes, kit_hash, page_title
 from services.ingest.brands import etld1
 
 RESOLVERS = ["1.1.1.1", "8.8.8.8"]
@@ -163,7 +163,7 @@ async def enrich(domain: str, page: FetchedPage | None) -> Enrichment:
             e.asn, e.asn_name, e.country = asn_r.get("asn"), asn_r.get("asn_name"), asn_r.get("country")
             e.raw["asn"] = asn_r
     if page is not None:
-        e.dom_hash = dom_structure_hash(page.html)
+        e.dom_hash = kit_hash(page.html)
         e.favicon_hash = favicon_hash(page.favicon) if page.favicon else None
         e.js_hashes = js_bundle_hashes(page.scripts)
         e.page_title = page_title(page.html)

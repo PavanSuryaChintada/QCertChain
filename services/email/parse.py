@@ -6,8 +6,10 @@ from __future__ import annotations
 
 import re
 from dataclasses import dataclass, field
+from datetime import timezone
 from email import message_from_bytes, policy
-from email.utils import parsedate_to_datetime
+from email.header import decode_header, make_header
+from email.utils import parseaddr, parsedate_to_datetime
 
 from services.ingest.brands import etld1
 
@@ -43,20 +45,43 @@ def _domain_of(text: str | None) -> str | None:
     return etld1(m.group(1).lower().rstrip(".")) if m else None
 
 
-def _first_addr(msg, name: str) -> tuple[str | None, str | None]:
-    """(display name, addr-spec), tolerant of malformed encoded words and garbage."""
+def _decode_words(text: str) -> str:
     try:
-        h = msg[name]
-        if h is None:
-            return None, None
-        addrs = getattr(h, "addresses", None)
-        if addrs:
-            return (addrs[0].display_name or None), (addrs[0].addr_spec or None)
-        raw = str(h)
+        return str(make_header(decode_header(text)))
+    except Exception:  # malformed encoded word: keep the raw text
+        return text
+
+
+def _first_addr(msg, name: str) -> tuple[str | None, str | None]:
+    """(display name, addr-spec) from the RAW header (compat32: no structured parsing, which raises on
+    malformed groups/addresses — 86 crashes in a 5,000-message fuzz). parseaddr is tolerant."""
+    raw = _raw(msg, name)
+    if not raw:
+        return None, None
+    raw = " ".join(raw.split())
+    try:
+        display, addr = parseaddr(raw)
     except Exception:
-        raw = msg.get_all(name, [""])[0] if msg.get_all(name) else ""
-    m = _ADDR.search(raw or "")
-    return None, (m.group(0) if m else None)
+        display, addr = "", ""
+    if not addr or "@" not in addr:
+        m = _ADDR.search(raw)
+        addr = m.group(0) if m else ""
+    return (_decode_words(display) or None) if display else None, (addr or None)
+
+
+def _items(msg) -> list[tuple[str, str]]:
+    try:
+        return [(str(k), str(v)) for k, v in msg.raw_items()]
+    except Exception:
+        return []
+
+
+def _raw(msg, name: str) -> str | None:
+    """Header value as a raw string, never through the stdlib's structured header parser."""
+    for k, val in _items(msg):
+        if k.lower() == name.lower():
+            return val
+    return None
 
 
 def _parse_received(values: list[str]) -> list[dict]:
@@ -66,7 +91,10 @@ def _parse_received(values: list[str]) -> list[dict]:
         body, _, date = v.rpartition(";")
         at = None
         try:
-            at = parsedate_to_datetime(date.strip()).isoformat() if date.strip() else None
+            dt = parsedate_to_datetime(date.strip()) if date.strip() else None
+            if dt is not None and dt.tzinfo is None:  # "-0000" or no zone (RFC 5322 §3.3): read as UTC
+                dt = dt.replace(tzinfo=timezone.utc)
+            at = dt.isoformat() if dt else None
         except (TypeError, ValueError):
             pass
         ip = _IP.search(body or v)
@@ -99,7 +127,7 @@ def parse_email(raw: str | bytes) -> ParsedEmail:
     p = ParsedEmail()
     data = raw.encode("utf-8", errors="replace") if isinstance(raw, str) else (raw or b"")
     try:
-        msg = message_from_bytes(data, policy=policy.default)
+        msg = message_from_bytes(data, policy=policy.compat32)
     except Exception:
         p.absent = list(TRACKED)
         p.urls = list(dict.fromkeys(_URL.findall(data.decode("utf-8", "replace"))))[:MAX_URLS]
@@ -110,17 +138,18 @@ def parse_email(raw: str | bytes) -> ParsedEmail:
     p.from_display, p.from_addr = _first_addr(msg, "From")
     p.from_etld1 = _domain_of(p.from_addr)
     p.reply_to_etld1 = _domain_of(_first_addr(msg, "Reply-To")[1])
-    p.return_path_etld1 = _domain_of(msg.get("Return-Path"))
-    p.message_id_domain = _domain_of(msg.get("Message-ID"))
+    p.return_path_etld1 = _domain_of(_raw(msg, "Return-Path"))
+    p.message_id_domain = _domain_of(_raw(msg, "Message-ID"))
 
-    ar = msg.get_all("Authentication-Results") or []
+    ar = [str(v) for k, v in _items(msg) if k.lower() == "authentication-results"]
     if ar:  # the top-most header was added by the receiving MX: trust that one
         found = {k.lower(): v.lower() for k, v in _AUTH.findall(" ".join(str(ar[0]).split()))}
         p.auth = {k: found.get(k, "none") for k in ("spf", "dkim", "dmarc")}
-    rspf = msg.get("Received-SPF")
+    rspf = _raw(msg, "Received-SPF")
     if rspf and p.auth["spf"] in ("absent", "none"):
         p.auth["spf"] = str(rspf).split()[0].lower()
-    p.received = _parse_received(msg.get_all("Received") or [])
+    received = [str(v) for k, v in _items(msg) if k.lower() == "received"]
+    p.received = _parse_received(received)
 
     p.urls = _urls(msg)
     if not p.urls and not present:  # body-only paste: the whole text is the body

@@ -55,3 +55,42 @@ async def test_already_decided_domain_skipped(db, tmp_path):
     db.execute(sa.text("update domains set status='dismissed' where id=:d"), {"d": d})
     r = fr.FakeRedis(decode_responses=True)
     assert await enrich_worker.handle_one(d, conn=db, redis=r, evidence_dir=tmp_path, signing_key_hex="00" * 32) == "skipped"
+
+
+async def test_row_not_yet_committed_is_requeued_not_dropped(db, tmp_path):
+    """Producers push the id before their transaction commits: the worker may see no row yet."""
+    r = fr.FakeRedis(decode_responses=True)
+    v = await enrich_worker.handle_one(987654321, conn=db, redis=r, evidence_dir=tmp_path, signing_key_hex="00" * 32)
+    assert v == "requeued" and await r.zcard(enrich_worker.RETRY_ZSET) == 1
+
+
+async def test_missing_row_gives_up_after_a_few_attempts(db, tmp_path):
+    r = fr.FakeRedis(decode_responses=True)
+    for _ in range(enrich_worker.MISSING_ROW_ATTEMPTS):
+        await enrich_worker.handle_one(55, conn=db, redis=r, evidence_dir=tmp_path, signing_key_hex="00" * 32)
+    assert await enrich_worker.handle_one(55, conn=db, redis=r, evidence_dir=tmp_path,
+                                          signing_key_hex="00" * 32) == "skipped"
+
+
+async def test_unreachable_is_rechecked_later_with_backoff(db, tmp_path, monkeypatch):
+    """TRD: unreachable stays a candidate. Kits often go live after the certificate is issued."""
+    import time
+    t = triage("kyc-sbi-verify.top")
+    d, _ = repo.upsert_candidate(db, name="kyc-sbi-verify.top", etld1=t.etld1, cert_id=None, triage=t,
+                                 source="certstream", ct_seen_at=datetime.now(timezone.utc))
+
+    async def dead(domain, brand, **kw):
+        return ConfirmResult("unreachable", 0.0, [Signal("not_assessable", "weak", "timeout")], 0), None, Enrichment()
+
+    monkeypatch.setattr(enrich_worker, "confirm", dead)
+    r = fr.FakeRedis(decode_responses=True)
+    delays = []
+    for _ in range(len(enrich_worker.RECHECK_DELAYS_S) + 1):
+        before = time.time()
+        assert await enrich_worker.handle_one(d, conn=db, redis=r, evidence_dir=tmp_path, signing_key_hex="00" * 32,
+                                              force=True) == "unreachable"
+        due = await r.zscore(enrich_worker.RETRY_ZSET, f"force:{d}")
+        delays.append(None if due is None else round(due - before))
+        await r.zrem(enrich_worker.RETRY_ZSET, f"force:{d}")
+    assert delays[0] >= 300 and delays[1] > delays[0]
+    assert delays[-1] is None  # gives up after the schedule (72 h)

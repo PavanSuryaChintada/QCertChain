@@ -53,3 +53,11 @@ def test_proper_nouns_keep_their_case():
 def test_missed_targets_are_said_plainly():
     md = render(metrics())
     assert "misses the 20 s target" in md and "5 ms" in md
+
+
+def test_qubo_claim_is_scoped_and_qaoa_warm_start_disclosed():
+    """Review I9: the x-only QUBO is exact only up to second order, and QAOA starts from the greedy plan."""
+    md = render(metrics())
+    assert "exact x-only" not in md
+    assert "exact up to second order" in md
+    assert "warm start" in md and "greedy" in md

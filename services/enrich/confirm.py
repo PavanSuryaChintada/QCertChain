@@ -16,8 +16,8 @@ import asyncio
 from services.config import SETTINGS
 from services.enrich.enrichers import Enrichment, enrich
 from services.enrich.fetch import FetchedPage, Limiter, RateLimited, Unreachable, fetch
-from services.enrich.fingerprint import (dom_structure_hash, extract_forms, favicon_hash, js_bundle_hashes,
-                                         page_title)
+from services.enrich.fingerprint import (extract_forms, favicon_hash, js_bundle_hashes,
+                                         kit_hash, page_title)
 from services.ingest.brands import Brand, etld1
 
 Strength = Literal["strong", "moderate", "weak"]
@@ -88,8 +88,8 @@ def analyze_page(page: FetchedPage, domain: str, brand: Brand | None, known_kits
             signals.append(Signal("credential_post_foreign_origin", "strong",
                                   f"form {f.method.upper()} with password field -> {target}{brand_txt}"))
             break
-    dom = dom_structure_hash(html)
-    if dom in known_kits:
+    dom = kit_hash(html)
+    if dom is not None and dom in known_kits:
         signals.append(Signal("kit_dom_hash_match", "strong",
                               f"DOM structure {dom[:12]}... matches known kit {known_kits[dom]}"))
     if brand and page.favicon and favicon_hash(page.favicon) in brand_favicons.get(brand.name, set()):
@@ -144,7 +144,7 @@ async def confirm(domain: str, brand: Brand | None, *, known_kits: dict[str, str
     if isinstance(got, Unreachable):
         return ConfirmResult("unreachable", 0.0, [Signal("not_assessable", "weak",
                              f"could not fetch: {got.reason} — still a candidate")], 0), None, e
-    e.dom_hash = dom_structure_hash(got.html)
+    e.dom_hash = kit_hash(got.html)
     e.favicon_hash = favicon_hash(got.favicon) if got.favicon else None
     e.js_hashes = js_bundle_hashes(got.scripts)
     e.page_title = page_title(got.html)

@@ -154,3 +154,9 @@ async def test_confirm_rate_limited_stays_candidate(monkeypatch):
     monkeypatch.setattr(c, "enrich", fake_enrich)
     res, _, _ = await c.confirm("x.top", None, known_kits={}, brand_favicons={}, issuer=None)
     assert res.verdict == "candidate" and res.signals[0].name == "rate_limited"
+
+
+def test_trivial_page_never_matches_a_known_kit():
+    bare = "<html><body><form method=post><input type=password></form></body></html>"
+    r = analyze_page(page(bare), "icici-verify-kyc.top", ICICI, {dom_structure_hash(bare): "bare"}, {}, None, None, now=NOW)
+    assert "kit_dom_hash_match" not in {s.name for s in r.signals}

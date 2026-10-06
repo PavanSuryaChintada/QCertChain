@@ -41,7 +41,7 @@ def upsert_candidate(c: sa.Connection, *, name: str, etld1: str, cert_id: int | 
     row = c.execute(sa.text("""
         insert into domains (name, etld1, cert_id, source, ct_seen_at, received_at, candidate_at,
                              triage_score, triage_reasons, brand_matched)
-        values (:name, :etld1, :cert, :source, :ct_seen, :received, now(), :score, cast(:reasons as jsonb), :brand)
+        values (:name, :etld1, :cert, :source, :ct_seen, :received, clock_timestamp(), :score, cast(:reasons as jsonb), :brand)
         on conflict (name) do update set last_seen = now()
         returning id, (xmax = 0) as created"""),
         {"name": name, "etld1": etld1, "cert": cert_id, "source": source, "ct_seen": ct_seen_at, "received": received_at,
@@ -53,8 +53,8 @@ def set_confirmation(c: sa.Connection, domain_id: int, r: ConfirmResult) -> None
     status = r.verdict if r.verdict in ("confirmed", "dismissed", "unreachable") else "candidate"
     c.execute(sa.text("""
         update domains set status = :status, confirm_reasons = cast(:reasons as jsonb), confidence = :conf,
-               verdict_at = now(),
-               confirmed_at = case when :status = 'confirmed' then coalesce(confirmed_at, now()) else confirmed_at end
+               verdict_at = clock_timestamp(),  -- write time, not transaction start: these are measured latencies
+               confirmed_at = case when :status = 'confirmed' then coalesce(confirmed_at, clock_timestamp()) else confirmed_at end
         where id = :id"""), {"status": status, "reasons": _j(r.reasons()), "conf": r.confidence, "id": domain_id})
 
 

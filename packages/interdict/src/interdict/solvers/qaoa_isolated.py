@@ -41,6 +41,17 @@ def warm() -> None:
     _pool().submit(int).result(timeout=120)
 
 
+def _rewarm_in_background() -> threading.Thread:
+    def run():
+        try:
+            warm()
+        except Exception:  # pool shut down meanwhile (API stop): the next solve warms a fresh one
+            pass
+    t = threading.Thread(target=run, daemon=True)
+    t.start()
+    return t
+
+
 def shutdown() -> None:
     global _POOL
     with _LOCK:
@@ -60,5 +71,5 @@ def solve_qaoa_isolated(p: Problem, timeout_s: float = 15.0, _child_timeout_s: f
         return fut.result(timeout=timeout_s + GRACE_S)
     except FuturesTimeout:
         shutdown()  # the child overran: kill it, and warm a replacement in the background right away
-        threading.Thread(target=warm, daemon=True).start()
+        _rewarm_in_background()
         raise TimeoutError(f"qaoa exceeded {timeout_s}s (process terminated)") from None

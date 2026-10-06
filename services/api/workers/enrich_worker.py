@@ -25,6 +25,13 @@ from services.ml.brand_refs import load_brand_favicons
 from services.ingest.triage import _brands, warm
 
 QUEUE, RETRY_ZSET = "enrich:queue", "enrich:retry"
+MISSING_ATTEMPTS_KEY = "enrich:missing_attempts"
+MISSING_ROW_ATTEMPTS = 5  # producers may push the id before their transaction commits
+MISSING_ROW_DELAY_S = 3
+# TRD: an unreachable domain stays a candidate. Phishing kits are often deployed after the certificate is
+# issued, so re-check over 72 h instead of judging once, seconds after issuance.
+RECHECK_DELAYS_S = (300, 1800, 7200, 21600, 86400, 259200)
+RECHECK_KEY = "enrich:recheck_attempts"
 
 
 @lru_cache(maxsize=1)
@@ -43,7 +50,15 @@ async def handle_one(domain_id: int, *, conn: sa.Connection, redis, evidence_dir
                      signing_key_hex: str, force: bool = False) -> str:
     row = conn.execute(sa.text("select name, status, brand_matched, source, cert_id from domains where id = :d"),
                        {"d": domain_id}).one_or_none()
-    if row is None or (row.status != "candidate" and not force):
+    if row is None:
+        n = await redis.hincrby(MISSING_ATTEMPTS_KEY, str(domain_id), 1)
+        if n > MISSING_ROW_ATTEMPTS:
+            await redis.hdel(MISSING_ATTEMPTS_KEY, str(domain_id))
+            return "skipped"
+        await redis.zadd(RETRY_ZSET, {str(domain_id): time.time() + MISSING_ROW_DELAY_S})
+        return "requeued"
+    await redis.hdel(MISSING_ATTEMPTS_KEY, str(domain_id))
+    if row.status != "candidate" and not force:
         return "skipped"
     issuer = conn.execute(sa.text("select issuer from certificates where id = :c"), {"c": row.cert_id}).scalar() \
         if row.cert_id else None
@@ -56,6 +71,14 @@ async def handle_one(domain_id: int, *, conn: sa.Connection, redis, evidence_dir
         return "requeued"
     persist_result(conn, domain_id, row.name, result, page, e, evidence_dir=evidence_dir,
                    signing_key_hex=signing_key_hex, source=row.source)
+    if result.verdict == "unreachable":
+        n = await redis.hincrby(RECHECK_KEY, str(domain_id), 1)
+        if n <= len(RECHECK_DELAYS_S):
+            await redis.zadd(RETRY_ZSET, {f"force:{domain_id}": time.time() + RECHECK_DELAYS_S[n - 1]})
+        else:
+            await redis.hdel(RECHECK_KEY, str(domain_id))
+    else:
+        await redis.hdel(RECHECK_KEY, str(domain_id))
     repo.log(conn, "enrich", f"{row.name}: {result.verdict} in {time.perf_counter() - t0:.1f}s",
              context={"domain_id": domain_id, "via": page.via if page else None})
     return result.verdict

@@ -483,3 +483,25 @@ Format: **AI did** · **Owner decided** · **Verified by** · **Rulings** (AI ju
   - Re-measured the live response times in a steady-state window (114 candidates).
 - **Verified by:** `test_build_report.py` (8): unmeasured → "not measured"; numbers come from the metrics; quantum framing verbatim and never a heading; "never sent" stated; proper nouns keep their case; missed targets said plainly; no precision number shown where recall is zero.
 - **Corrected in review before shipping:** misleading "precision 0.0" (undefined at zero recall), "0.0 false-positive rate" (now "0 of 60,000"), lower-cased proper nouns, build-log phrasing in the email section, "tens of milliseconds" (measured 58–228 ms), and a claim about mean latency that was never measured (replaced by the measured median).
+
+## Task 26 — deploy configuration (not deployed)
+
+- **AI did:** wrote `docker-compose.yml` (one image for API and workers, plus certstream, Hardhat, Redis and a test Postgres), `services/api/Dockerfile`, `.dockerignore`, Railway service configs, the certstream Dockerfile, `apps/console/vercel.json` and `docs/DEPLOY.md`.
+- **Found while building:** `python:3.11-slim` moved to Debian trixie, where Playwright 1.49 cannot install its system libraries. The image is pinned to `python:3.11-slim-bookworm`.
+- **Not done:** nothing is deployed. Deploy waits for the owner's go-ahead and tokens. `docs/DEPLOY.md` states that the API has no authentication yet.
+
+## Whole-branch review and fix pass
+
+- **AI did:** a fresh reviewer (separate agent, no build context) read the whole branch. It reported 1 critical, 10 important and 16 minor findings. The important and critical ones were fixed, each with a test that failed first:
+  - **Database did not enforce "confirmed needs two strong signals".** Added a CHECK constraint (`strong_signal_count`). Checked first: 400 confirmed rows in Supabase, 0 violating. Then applied.
+  - **Email endpoint returned 500 on malformed input.** Switched to the tolerant `compat32` parser. A 5,000-message fuzz found 86 crashes before the fix and 0 after. Non-object JSON now returns 422.
+  - **Enrich worker could read a domain row before the triage commit landed.** It now retries, then gives up after 5 attempts. The triage worker publishes only after commit.
+  - **Unreachable domains were never re-checked.** They are re-checked with backoff: 5 min, 30 min, 2 h, 6 h, 1 day, 3 days.
+  - **Triage worker could lose certificates on a crash.** Stale messages are reclaimed (XAUTOCLAIM), and poison messages go to a dead-letter stream.
+  - **SSRF in page fetching.** The host comes from an attacker's certificate. Every request is now checked: the start URL, each redirect hop, favicon, scripts, and every Playwright subrequest. A host is fetched only if every address it resolves to is public. Bodies are streamed and capped at 2 MB, and the whole fetch has a deadline.
+  - **Shared CDN/DNS made unrelated sites one campaign.** CDN ASNs (Cloudflare, AWS, Google, Fastly, Akamai, Microsoft) and managed-DNS nameservers no longer create edges.
+  - **Trivial pages shared a "kit" hash.** Pages below 20 tags or 8 distinct tags get no kit hash.
+  - **Report over-claimed.** The QUBO is now described as "exact up to second order", and the QAOA warm start from the greedy plan is disclosed.
+- **Verified by:** the full Python suite (services + packages), console vitest, and Hardhat tests (counts in the ledger).
+- **Kept, with tests:** lookalike and homoglyph both firing on a pure homograph. It is what lifts `xn--cicibank-shh.com`, `xn--pytm-53d.com` and similar over the threshold. A known miss is pinned: the Cyrillic-s `sbi.co.in` homograph scores 0.30. It awaits the owner's homoglyph-threshold decision.
+- **Deferred:** the 16 minor findings, listed in the final hand-off. API authentication is deferred to the deploy decision.

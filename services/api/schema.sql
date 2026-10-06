@@ -63,6 +63,15 @@ create table if not exists domains (
     or jsonb_array_length(coalesce(confirm_reasons->'signals', '[]'::jsonb)) > 0)
 );
 create index if not exists domains_status_idx  on domains (status, triage_score desc);
+-- CLAUDE.md non-negotiable, enforced in the database too: confirmed needs >= 2 STRONG signals.
+create or replace function strong_signal_count(reasons jsonb) returns int
+language sql immutable as $$
+  select count(*)::int from jsonb_array_elements(coalesce(reasons->'signals', '[]'::jsonb)) s
+  where s->>'strength' = 'strong'
+$$;
+alter table domains drop constraint if exists domains_confirmed_needs_two_strong;
+alter table domains add constraint domains_confirmed_needs_two_strong
+  check (status <> 'confirmed' or strong_signal_count(confirm_reasons) >= 2);
 alter table domains add column if not exists verdict_at timestamptz;
 alter table domains add column if not exists received_at timestamptz;  -- when OUR ingest received the cert  -- when ANY verdict was reached (response time)
 create index if not exists domains_etld1_idx   on domains (etld1);

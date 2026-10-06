@@ -155,3 +155,19 @@ def test_warm_loads_everything_up_front():
     t = time.perf_counter()
     triage("first-real-call-after-warm.com")
     assert time.perf_counter() - t < 0.05
+
+
+@pytest.mark.parametrize("d", ["xn--cicibank-shh.com", "xn--hdfcbnk-6fg.com", "xn--pytm-53d.com",
+                               "xn--flpkart-sog.com", "xn--bi-kyc-hvf.com"])
+def test_real_punycode_homographs_are_candidates(d):
+    """Review I8: lookalike and homoglyph_hit both fire on a pure homograph. That is kept on purpose — it is
+    what lifts a bare homograph on a low-risk TLD (no keyword, no risky TLD) over the threshold."""
+    r = triage(d)
+    assert r.is_candidate and any(x.feature == "homoglyph_hit" for x in r.reasons), (d, r.score, r.reasons)
+
+
+def test_homograph_of_a_short_brand_domain_is_a_known_miss():
+    """KNOWN MISS, pending an owner decision on the homoglyph-only threshold: Cyrillic-s 'sbi.co.in' carries
+    only homoglyph_hit (0.30). Pinned so a weight change is a visible decision, not a side effect."""
+    r = triage("xn--bi-doc.co.in")
+    assert [x.feature for x in r.reasons] == ["homoglyph_hit"] and not r.is_candidate
