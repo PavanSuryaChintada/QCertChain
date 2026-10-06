@@ -223,3 +223,19 @@ Format: **AI did** · **Owner decided** · **Verified by** · **Rulings** (AI ju
   - **The TLS issuer comes from a verified handshake (stdlib),** to avoid adding `cryptography`.
   - **One or more strong signals without enough for confirmation stays `candidate`.** It is not dismissed.
   - **Weak-only evidence is `dismissed`.** Free CA plus young domain describes a large share of all certificates.
+
+## Task 13 — repository layer, triage worker
+
+- **AI did:** wrote `db.py` (Supabase engine), `repo.py` (plain SQL against `schema.sql`; the caller owns the transaction) and `triage_worker.py`:
+  - Consumer group on `certs:raw`, batches of 500.
+  - Only candidates are written to Postgres.
+  - New candidates go to `enrich:queue`.
+  - Every triage result is published for the live feed, with its source labelled (live/replay/seed).
+  - Warm-up runs at startup.
+- **Verified by:** `test_repo` (6) and `test_triage_worker` (2): RED, then GREEN, against local postgres:17. Covered:
+  - certificate upsert is idempotent on fingerprint
+  - a repeat name (precert + final cert from different logs) gives one row, and first-seen/`candidate_at` are never overwritten
+  - **the database rejects `confirmed` without stored signals**
+  - node/edge upserts are idempotent, with a `domain_count`
+  - allowlisted names never touch Postgres
+  - the replay source is labelled in the DB and in the feed
