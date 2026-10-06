@@ -349,3 +349,23 @@ Format: **AI did** · **Owner decided** · **Verified by** · **Rulings** (AI ju
   - Legit rated malicious: **0/5** in both conditions.
   - Options were reported to the owner; the rule stays until the owner decides.
 - **Ruling:** Return-Path and Message-ID mismatches are not counted when DMARC passes. An aligned pass explains third-party ESP sending; this keeps the legit ESP sample clean.
+
+## Task 20 — console shell, tokens, stream rail, verdict chip, mode indicator
+
+- **AI did:**
+  - Vite + React 18 + TS + Tailwind (mapped only to DESIGN.md's locked tokens; no default palette, radius ≤ 2px, no shadows).
+  - Typed API client mirroring API_CONTRACT.
+  - Layout: header with mode indicator, counters, nav, and live/replay switch; left rail with campaigns (severity squares) and candidates (verdict chips); the stream rail, which never collapses and becomes a 120px bottom strip below 1100px.
+  - `VerdictChip`, `ModeIndicator`, `StreamLine`, mono `DomainName`/`Num`/`Hash`.
+  - Client-side SSE throttle.
+- **Verified by:**
+  - vitest RED (modules missing), then GREEN 10/10:
+    - a candidate never renders a verdict colour
+    - a `suspicious` email is grey like a candidate
+    - a confirmed verdict with < 2 strong signals renders as CANDIDATE
+    - every chip pairs colour with a word
+    - replay ≠ live; down/reconnecting never reads LIVE
+    - the throttle holds ≤ 20/s under 3,000/s; the cap keeps the newest lines and never drops candidates
+  - `tsc --noEmit` + `vite build` pass.
+  - Screenshot review of the running console against the live API showed no console errors, and the mode correctly showed STREAM DOWN because no ingest was running.
+- **Incident:** port 5173 belongs to another local project (its dev server answered my first screenshot). The console now runs on 5180, which is in the API CORS default.

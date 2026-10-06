@@ -1,0 +1,69 @@
+@import "./tokens.css";
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* docs/DESIGN.md — one continuous surface divided by 1px rules. No cards, shadows, gradients or radius > 2px. */
+html, body, #root { height: 100%; }
+body {
+  margin: 0;
+  background: var(--ground-000);
+  color: var(--ink-100);
+  font-family: var(--font-body);
+  font-size: 14px;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+}
+:focus-visible { outline: 2px solid var(--ink-000); outline-offset: 2px; }
+::selection { background: var(--ground-400); color: var(--ink-000); }
+
+.mono, .num { font-family: var(--font-data); font-variant-numeric: tabular-nums; }
+.num { font-weight: 500; }
+.eyebrow { font-family: var(--font-display); font-weight: 600; font-size: 11px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--ink-200); }
+.panel-title { font-family: var(--font-display); font-weight: 600; font-size: 15px; letter-spacing: 0.02em; color: var(--ink-000); }
+.secondary { font-size: 13px; color: var(--ink-200); }
+.rule-b { border-bottom: 1px solid var(--ground-300); }
+.rule-t { border-top: 1px solid var(--ground-300); }
+.rule-r { border-right: 1px solid var(--ground-300); }
+.rule-l { border-left: 1px solid var(--ground-300); }
+
+button, select, input, textarea {
+  font: inherit;
+  color: var(--ink-000);
+  background: var(--ground-200);
+  border: 1px solid var(--ground-300);
+  border-radius: 2px;
+  min-height: 32px;
+  padding: 0 12px;
+}
+button { cursor: pointer; transition: background-color 120ms ease-out; }
+button:hover:not(:disabled) { background: var(--ground-300); }
+button:disabled { color: var(--ink-300); cursor: not-allowed; }
+textarea { padding: 8px 12px; font-family: var(--font-data); font-size: 12px; }
+
+.row { transition: background-color 120ms ease-out; }
+.row:hover, .row[aria-selected="true"] { background: var(--ground-200); }
+
+/* layout: header 48 · left 220 · fluid · stream 300 (DESIGN §5) */
+.shell { display: grid; height: 100%; grid-template-rows: 48px 1fr; grid-template-columns: 220px 1fr 300px;
+         grid-template-areas: "head head head" "left main stream"; }
+.shell > header { grid-area: head; }
+.shell > .left { grid-area: left; overflow: auto; min-height: 0; }
+.shell > main { grid-area: main; overflow: auto; min-height: 0; }
+.shell > .stream { grid-area: stream; overflow: hidden; min-height: 0; }
+@media (max-width: 1099px) {
+  /* the stream rail never collapses: it becomes a 120px bottom strip */
+  .shell { grid-template-rows: 48px 1fr 120px; grid-template-columns: 220px 1fr;
+           grid-template-areas: "head head" "left main" "stream stream"; }
+}
+
+.stream-line { animation: fade-in 80ms ease-out; }
+@keyframes fade-in { from { opacity: 0; } to { opacity: 1; } }
+.solving { height: 2px; background: var(--ground-300); overflow: hidden; position: relative; }
+.solving::after { content: ""; position: absolute; inset: 0; width: 30%; background: var(--ink-200);
+                  animation: indeterminate 1200ms linear infinite; }
+@keyframes indeterminate { from { left: -30%; } to { left: 100%; } }
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation: none !important; transition: none !important; }
+}
+@keyframes flare { from { color: var(--v-confirmed); } to { color: var(--ink-000); } }

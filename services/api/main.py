@@ -23,7 +23,7 @@ async def lifespan(app: FastAPI):
 
 app = FastAPI(title="QCertChain API", version="0.1.0", lifespan=lifespan)
 app.add_middleware(CORSMiddleware,
-                   allow_origins=[o for o in os.environ.get("CONSOLE_ORIGINS", "http://localhost:5173").split(",") if o],
+                   allow_origins=[o for o in os.environ.get("CONSOLE_ORIGINS", "http://localhost:5180").split(",") if o],
                    allow_methods=["*"], allow_headers=["*"])
 
 
