@@ -1,0 +1,62 @@
+{
+ "data": {
+  "cert_index": 315672504,
+  "cert_link": "https://elephant2027h1.ct.sectigo.com/ct/v1/get-entries?start=315672504&end=315672504",
+  "leaf_cert": {
+   "all_domains": [
+    "*.sbi-login.top",
+    "sbi-login.top",
+    "",
+    "192.168.0.1",
+    "xn--80ak6aa92e.com",
+    "Example.COM."
+   ],
+   "extensions": {
+    "authorityInfoAccess": "URI:http://yr1.i.lencr.org/",
+    "authorityKeyIdentifier": "keyid:1f:2f:35:be:46:14:82:cd:40:b1:ae:79:2c:55:78:fa:f7:d4:68:fb",
+    "basicConstraints": "CA:FALSE",
+    "certificatePolicies": "Policy: 2.23.140.1.2.1\n",
+    "keyUsage": "Digital Signature, Key Encipherment",
+    "subjectAltName": "DNS:k8z1ew5fi93lba27.signin.buildingshameuse.fit",
+    "subjectKeyIdentifier": "keyid:7c:da:6a:6d:1f:35:89:46:9d:48:33:ef:3a:75:a4:50:e9:1d:33:50"
+   },
+   "fingerprint": "AB:75:C4:51:75:28:AE:D3:DE:AB:2E:BE:81:EE:B2:BB:D3:A0:56:B0",
+   "sha1": "AB:75:C4:51:75:28:AE:D3:DE:AB:2E:BE:81:EE:B2:BB:D3:A0:56:B0",
+   "sha256": "9C:74:B0:91:84:89:3D:AE:BF:B0:8C:6B:80:27:0C:D4:0F:DD:A2:6A:50:1B:75:6C:31:24:A1:F4:F8:1D:C8:34",
+   "not_after": 1799065258,
+   "not_before": 1791289259,
+   "serial_number": "06FC27B31A512765A1F319BFE256B4761124",
+   "signature_algorithm": "sha256, rsa",
+   "subject": {
+    "C": null,
+    "CN": "k8z1ew5fi93lba27.signin.buildingshameuse.fit",
+    "L": null,
+    "O": null,
+    "OU": null,
+    "ST": null,
+    "aggregated": "/CN=k8z1ew5fi93lba27.signin.buildingshameuse.fit",
+    "email_address": null
+   },
+   "issuer": {
+    "C": "US",
+    "CN": "YR1",
+    "L": null,
+    "O": "Let's Encrypt",
+    "OU": null,
+    "ST": null,
+    "aggregated": "/C=US/CN=YR1/O=Let's Encrypt",
+    "email_address": null
+   },
+   "is_ca": false
+  },
+  "seen": 1791293322.804,
+  "source": {
+   "name": "Sectigo 'Elephant2027h1'",
+   "url": "https://elephant2027h1.ct.sectigo.com",
+   "timestamp": 1791293087.294,
+   "type": "rfc6962"
+  },
+  "update_type": "X509LogEntry"
+ },
+ "message_type": "certificate_update"
+}
