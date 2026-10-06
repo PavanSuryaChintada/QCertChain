@@ -1,0 +1,106 @@
+[
+ {
+  "threshold": 0.2,
+  "recall": 0.3404,
+  "fpr": 0.013583,
+  "precision_at_1_in_1000": 0.0245,
+  "hard_negative_fp_rate": 0.0171,
+  "candidates_per_min_at_200k_certs": 2782.0
+ },
+ {
+  "threshold": 0.25,
+  "recall": 0.3282,
+  "fpr": 0.011317,
+  "precision_at_1_in_1000": 0.0282,
+  "hard_negative_fp_rate": 0.0137,
+  "candidates_per_min_at_200k_certs": 2326.7
+ },
+ {
+  "threshold": 0.3,
+  "recall": 0.245,
+  "fpr": 0.004033,
+  "precision_at_1_in_1000": 0.0573,
+  "hard_negative_fp_rate": 0.0034,
+  "candidates_per_min_at_200k_certs": 854.9
+ },
+ {
+  "threshold": 0.35,
+  "recall": 0.24,
+  "fpr": 0.003667,
+  "precision_at_1_in_1000": 0.0615,
+  "hard_negative_fp_rate": 0.0,
+  "candidates_per_min_at_200k_certs": 780.6
+ },
+ {
+  "threshold": 0.4,
+  "recall": 0.2331,
+  "fpr": 0.0033,
+  "precision_at_1_in_1000": 0.066,
+  "hard_negative_fp_rate": 0.0,
+  "candidates_per_min_at_200k_certs": 706.0
+ },
+ {
+  "threshold": 0.45,
+  "recall": 0.2103,
+  "fpr": 0.002517,
+  "precision_at_1_in_1000": 0.0772,
+  "hard_negative_fp_rate": 0.0,
+  "candidates_per_min_at_200k_certs": 544.9
+ },
+ {
+  "threshold": 0.5,
+  "recall": 0.1988,
+  "fpr": 0.002133,
+  "precision_at_1_in_1000": 0.0853,
+  "hard_negative_fp_rate": 0.0,
+  "candidates_per_min_at_200k_certs": 466.0
+ },
+ {
+  "threshold": 0.55,
+  "recall": 0.1377,
+  "fpr": 0.00065,
+  "precision_at_1_in_1000": 0.175,
+  "hard_negative_fp_rate": 0.0,
+  "candidates_per_min_at_200k_certs": 157.4
+ },
+ {
+  "threshold": 0.6,
+  "recall": 0.1261,
+  "fpr": 0.000383,
+  "precision_at_1_in_1000": 0.2478,
+  "hard_negative_fp_rate": 0.0,
+  "candidates_per_min_at_200k_certs": 101.8
+ },
+ {
+  "threshold": 0.65,
+  "recall": 0.1182,
+  "fpr": 0.000333,
+  "precision_at_1_in_1000": 0.2619,
+  "hard_negative_fp_rate": 0.0,
+  "candidates_per_min_at_200k_certs": 90.2
+ },
+ {
+  "threshold": 0.7,
+  "recall": 0.112,
+  "fpr": 0.000317,
+  "precision_at_1_in_1000": 0.2615,
+  "hard_negative_fp_rate": 0.0,
+  "candidates_per_min_at_200k_certs": 85.7
+ },
+ {
+  "threshold": 0.75,
+  "recall": 0.1081,
+  "fpr": 0.000283,
+  "precision_at_1_in_1000": 0.2763,
+  "hard_negative_fp_rate": 0.0,
+  "candidates_per_min_at_200k_certs": 78.2
+ },
+ {
+  "threshold": 0.8,
+  "recall": 0.1012,
+  "fpr": 0.000267,
+  "precision_at_1_in_1000": 0.2753,
+  "hard_negative_fp_rate": 0.0,
+  "candidates_per_min_at_200k_certs": 73.5
+ }
+]

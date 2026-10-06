@@ -17,11 +17,19 @@ from services.api import repo
 from services.api.db import engine
 from services.api.pipeline import persist_result
 from services.config import SETTINGS
+from functools import lru_cache
+
 from services.enrich.confirm import confirm
+from services.ml.brand_refs import load_brand_favicons
 
 from services.ingest.triage import _brands, warm
 
 QUEUE, RETRY_ZSET = "enrich:queue", "enrich:retry"
+
+
+@lru_cache(maxsize=1)
+def _favicons() -> dict[str, set[str]]:
+    return load_brand_favicons()  # real brand favicons -> the strong favicon_brand_match signal
 RETRY_DELAY_S = 30
 
 
@@ -41,7 +49,7 @@ async def handle_one(domain_id: int, *, conn: sa.Connection, redis, evidence_dir
         if row.cert_id else None
     brand = next((b for b in _brands().brands if b.name == row.brand_matched), None)  # cached index
     t0 = time.perf_counter()
-    result, page, e = await confirm(row.name, brand, known_kits=repo.known_kits(conn), brand_favicons={},
+    result, page, e = await confirm(row.name, brand, known_kits=repo.known_kits(conn), brand_favicons=_favicons(),
                                     issuer=issuer, limiter=_limiter(redis))
     if result.signals and result.signals[0].name == "rate_limited":
         await redis.zadd(RETRY_ZSET, {str(domain_id): time.time() + RETRY_DELAY_S})

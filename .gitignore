@@ -30,3 +30,5 @@ reports/ct_capture/*.log
 data/capture_full.jsonl
 data/probe.jsonl
 apps/console/dist/
+data/ml/
+services/ml/artifacts/*.joblib

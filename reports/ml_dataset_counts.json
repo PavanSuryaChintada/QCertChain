@@ -1,0 +1,13 @@
+{
+ "phishtank_rows_last_90d": 13584,
+ "openphish_rows": 300,
+ "fetched_at": "2026-10-06T18:14:07.811958+00:00",
+ "positives_unique_etld1": 9375,
+ "positives_after_campaign_dedup": 8384,
+ "positives_matching_our_40_brands": 47,
+ "negatives_sampled": 200000,
+ "hard_negatives": 584,
+ "tranco_rows": 1000000,
+ "train": true,
+ "decision": "train"
+}

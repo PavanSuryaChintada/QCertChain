@@ -422,3 +422,27 @@ Format: **AI did** · **Owner decided** · **Verified by** · **Rulings** (AI ju
     - Measured through the API: **12.0 s first, then 6.6–6.9 s**, inside the 15 s budget.
   - **The first CP-SAT plan took 3.4–4.5 s cold.** OR-Tools is now warmed at API startup: **131 ms** on the first call after startup, 73–78 ms warm.
   - **The API lifespan leaked a global solver flag,** which broke the `test_fallback` release gate when run in the same process. It's now restored on shutdown, with a test.
+
+## Task 23 — triage model: datasets, honest evaluation, adoption gate; brand favicons
+
+- **AI did:**
+  - `datasets.py`: PhishTank verified-online (last 90 days), the OpenPhish public feed, Tranco 1M negatives and hard negatives; counts reported before training, with MODELS.md §8's stop rule.
+  - `split.py`: temporal and campaign-disjoint splits, never random.
+  - `train_triage.py`:
+    - calibrated logistic regression on the SAME feature code triage runs
+    - TLD rates fitted on training data only
+    - metrics: AUC on both splits, recall, precision at the real 1:1000 base rate, hard-negative FP rate, sweep 0.20–0.80, coefficients
+    - MODELS.md §7's four hard checks plus the triage release-gate cases as the adoption gate
+  - `brand_refs.py`: real brand favicons (observe only); now used by the enrich worker.
+- **Measured:**
+  - Data: 13,584 PhishTank rows (90 days) + 300 OpenPhish → 9,375 unique → **8,384 after campaign de-dup** (≥ 5,000: train). **584 hard negatives** (≥ 200).
+  - **Only 47 positives target our 40 Indian brands.**
+  - Temporal AUC **0.787**, campaign-disjoint 0.844. At 0.45: recall 21%, **precision at 1:1000 = 7.7%**, hard-negative FP 0%. Top coefficient share 0.25.
+- **Decision (MODELS.md fallback, no owner action needed): the model is NOT adopted; triage stays on hand-set rules labelled `provenance: rules`.** It failed these hard checks:
+  - flags `aws.dev` and `amazon.dev` (Tranco top 1,000)
+  - `onlinesbi.sbi` scores ≥ 0.1
+  - misses `icicibannk-login.top`
+  - flags `netbanking.hdfcbank.com`
+
+  Cause: the public phishing feeds barely cover Indian brands, so the model learned TLD and name shape, not brand impersonation.
+- **Favicons:** 32/40 brands collected. Unreachable, so no signal for them: Yes Bank, IDFC First, Google Pay, EPFO, IRCTC, Myntra, Meesho, Swiggy.

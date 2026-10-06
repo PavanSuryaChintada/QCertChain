@@ -1,0 +1,299 @@
+{
+ "trained_at": "2026-10-06T23:46:43.330117",
+ "features": [
+  "brand_token_exact",
+  "min_edit_distance",
+  "homoglyph_hit",
+  "tld_risk",
+  "keyword_count",
+  "hyphen_count",
+  "max_label_len",
+  "digit_ratio",
+  "subdomain_depth",
+  "entropy",
+  "issuer_is_free_ca",
+  "san_count"
+ ],
+ "base_rate": "1:1000",
+ "threshold": 0.45,
+ "splits": {
+  "temporal": {
+   "auc": 0.787,
+   "n_test_pos": 2767,
+   "n_test_neg": 60000,
+   "n_test_hard": 292,
+   "at_threshold": {
+    "threshold": 0.45,
+    "recall": 0.2103,
+    "fpr": 0.002517,
+    "precision_at_1_in_1000": 0.0772,
+    "hard_negative_fp_rate": 0.0,
+    "candidates_per_min_at_200k_certs": 544.9
+   },
+   "sweep": [
+    {
+     "threshold": 0.2,
+     "recall": 0.3404,
+     "fpr": 0.013583,
+     "precision_at_1_in_1000": 0.0245,
+     "hard_negative_fp_rate": 0.0171,
+     "candidates_per_min_at_200k_certs": 2782.0
+    },
+    {
+     "threshold": 0.25,
+     "recall": 0.3282,
+     "fpr": 0.011317,
+     "precision_at_1_in_1000": 0.0282,
+     "hard_negative_fp_rate": 0.0137,
+     "candidates_per_min_at_200k_certs": 2326.7
+    },
+    {
+     "threshold": 0.3,
+     "recall": 0.245,
+     "fpr": 0.004033,
+     "precision_at_1_in_1000": 0.0573,
+     "hard_negative_fp_rate": 0.0034,
+     "candidates_per_min_at_200k_certs": 854.9
+    },
+    {
+     "threshold": 0.35,
+     "recall": 0.24,
+     "fpr": 0.003667,
+     "precision_at_1_in_1000": 0.0615,
+     "hard_negative_fp_rate": 0.0,
+     "candidates_per_min_at_200k_certs": 780.6
+    },
+    {
+     "threshold": 0.4,
+     "recall": 0.2331,
+     "fpr": 0.0033,
+     "precision_at_1_in_1000": 0.066,
+     "hard_negative_fp_rate": 0.0,
+     "candidates_per_min_at_200k_certs": 706.0
+    },
+    {
+     "threshold": 0.45,
+     "recall": 0.2103,
+     "fpr": 0.002517,
+     "precision_at_1_in_1000": 0.0772,
+     "hard_negative_fp_rate": 0.0,
+     "candidates_per_min_at_200k_certs": 544.9
+    },
+    {
+     "threshold": 0.5,
+     "recall": 0.1988,
+     "fpr": 0.002133,
+     "precision_at_1_in_1000": 0.0853,
+     "hard_negative_fp_rate": 0.0,
+     "candidates_per_min_at_200k_certs": 466.0
+    },
+    {
+     "threshold": 0.55,
+     "recall": 0.1377,
+     "fpr": 0.00065,
+     "precision_at_1_in_1000": 0.175,
+     "hard_negative_fp_rate": 0.0,
+     "candidates_per_min_at_200k_certs": 157.4
+    },
+    {
+     "threshold": 0.6,
+     "recall": 0.1261,
+     "fpr": 0.000383,
+     "precision_at_1_in_1000": 0.2478,
+     "hard_negative_fp_rate": 0.0,
+     "candidates_per_min_at_200k_certs": 101.8
+    },
+    {
+     "threshold": 0.65,
+     "recall": 0.1182,
+     "fpr": 0.000333,
+     "precision_at_1_in_1000": 0.2619,
+     "hard_negative_fp_rate": 0.0,
+     "candidates_per_min_at_200k_certs": 90.2
+    },
+    {
+     "threshold": 0.7,
+     "recall": 0.112,
+     "fpr": 0.000317,
+     "precision_at_1_in_1000": 0.2615,
+     "hard_negative_fp_rate": 0.0,
+     "candidates_per_min_at_200k_certs": 85.7
+    },
+    {
+     "threshold": 0.75,
+     "recall": 0.1081,
+     "fpr": 0.000283,
+     "precision_at_1_in_1000": 0.2763,
+     "hard_negative_fp_rate": 0.0,
+     "candidates_per_min_at_200k_certs": 78.2
+    },
+    {
+     "threshold": 0.8,
+     "recall": 0.1012,
+     "fpr": 0.000267,
+     "precision_at_1_in_1000": 0.2753,
+     "hard_negative_fp_rate": 0.0,
+     "candidates_per_min_at_200k_certs": 73.5
+    }
+   ],
+   "n_train_pos": 5617,
+   "cutoff": "2026-08-29T03:14:04+00:00"
+  },
+  "campaign_disjoint": {
+   "auc": 0.8443,
+   "n_test_pos": 2515,
+   "n_test_neg": 60000,
+   "n_test_hard": 292,
+   "at_threshold": {
+    "threshold": 0.45,
+    "recall": 0.3249,
+    "fpr": 0.002583,
+    "precision_at_1_in_1000": 0.1118,
+    "hard_negative_fp_rate": 0.0,
+    "candidates_per_min_at_200k_certs": 581.1
+   },
+   "sweep": [
+    {
+     "threshold": 0.2,
+     "recall": 0.4306,
+     "fpr": 0.01305,
+     "precision_at_1_in_1000": 0.032,
+     "hard_negative_fp_rate": 0.0342,
+     "candidates_per_min_at_200k_certs": 2693.5
+    },
+    {
+     "threshold": 0.25,
+     "recall": 0.4068,
+     "fpr": 0.0092,
+     "precision_at_1_in_1000": 0.0424,
+     "hard_negative_fp_rate": 0.0068,
+     "candidates_per_min_at_200k_certs": 1919.5
+    },
+    {
+     "threshold": 0.3,
+     "recall": 0.4016,
+     "fpr": 0.0085,
+     "precision_at_1_in_1000": 0.0452,
+     "hard_negative_fp_rate": 0.0068,
+     "candidates_per_min_at_200k_certs": 1778.6
+    },
+    {
+     "threshold": 0.35,
+     "recall": 0.3897,
+     "fpr": 0.00765,
+     "precision_at_1_in_1000": 0.0485,
+     "hard_negative_fp_rate": 0.0034,
+     "candidates_per_min_at_200k_certs": 1606.4
+    },
+    {
+     "threshold": 0.4,
+     "recall": 0.336,
+     "fpr": 0.003017,
+     "precision_at_1_in_1000": 0.1003,
+     "hard_negative_fp_rate": 0.0034,
+     "candidates_per_min_at_200k_certs": 669.9
+    },
+    {
+     "threshold": 0.45,
+     "recall": 0.3249,
+     "fpr": 0.002583,
+     "precision_at_1_in_1000": 0.1118,
+     "hard_negative_fp_rate": 0.0,
+     "candidates_per_min_at_200k_certs": 581.1
+    },
+    {
+     "threshold": 0.5,
+     "recall": 0.3149,
+     "fpr": 0.0024,
+     "precision_at_1_in_1000": 0.1161,
+     "hard_negative_fp_rate": 0.0,
+     "candidates_per_min_at_200k_certs": 542.5
+    },
+    {
+     "threshold": 0.55,
+     "recall": 0.2624,
+     "fpr": 0.000583,
+     "precision_at_1_in_1000": 0.3105,
+     "hard_negative_fp_rate": 0.0,
+     "candidates_per_min_at_200k_certs": 169.0
+    },
+    {
+     "threshold": 0.6,
+     "recall": 0.2565,
+     "fpr": 0.0004,
+     "precision_at_1_in_1000": 0.3909,
+     "hard_negative_fp_rate": 0.0,
+     "candidates_per_min_at_200k_certs": 131.2
+    },
+    {
+     "threshold": 0.65,
+     "recall": 0.2457,
+     "fpr": 0.00035,
+     "precision_at_1_in_1000": 0.4127,
+     "hard_negative_fp_rate": 0.0,
+     "candidates_per_min_at_200k_certs": 119.1
+    },
+    {
+     "threshold": 0.7,
+     "recall": 0.2378,
+     "fpr": 0.000267,
+     "precision_at_1_in_1000": 0.4716,
+     "hard_negative_fp_rate": 0.0,
+     "candidates_per_min_at_200k_certs": 100.8
+    },
+    {
+     "threshold": 0.75,
+     "recall": 0.235,
+     "fpr": 0.000267,
+     "precision_at_1_in_1000": 0.4687,
+     "hard_negative_fp_rate": 0.0,
+     "candidates_per_min_at_200k_certs": 100.3
+    },
+    {
+     "threshold": 0.8,
+     "recall": 0.2334,
+     "fpr": 0.0002,
+     "precision_at_1_in_1000": 0.5388,
+     "hard_negative_fp_rate": 0.0,
+     "candidates_per_min_at_200k_certs": 86.6
+    }
+   ],
+   "n_train_pos": 5869,
+   "cutoff": null
+  }
+ },
+ "coefficients": {
+  "brand_token_exact": 0.2405,
+  "min_edit_distance": 0.2621,
+  "homoglyph_hit": -0.1154,
+  "tld_risk": 0.8089,
+  "keyword_count": 0.1474,
+  "hyphen_count": 0.4657,
+  "max_label_len": 0.6157,
+  "digit_ratio": 0.2731,
+  "subdomain_depth": 0.135,
+  "entropy": -0.1209,
+  "issuer_is_free_ca": 0.0,
+  "san_count": 0.0
+ },
+ "top_coefficient_share": 0.254,
+ "hard_checks": {
+  "1_tranco_top1000_below_threshold": [
+   "aws.dev",
+   "amazon.dev"
+  ],
+  "2_brand_legit_domains_below_0.1": [
+   "onlinesbi.sbi"
+  ],
+  "3_hard_negative_fp_rate_below_5pct": 0.0,
+  "4_top_coefficient_share_below_0.40": 0.254,
+  "5_release_gate_phish_missed": [
+   "icicibannk-login.top"
+  ],
+  "5_release_gate_legit_flagged": [
+   "netbanking.hdfcbank.com"
+  ]
+ },
+ "passed_checks": false,
+ "decision": "rules stay (provenance 'rules'): a hard check failed"
+}

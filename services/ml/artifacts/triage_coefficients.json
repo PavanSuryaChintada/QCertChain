@@ -1,0 +1,31 @@
+{
+ "features": [
+  "brand_token_exact",
+  "min_edit_distance",
+  "homoglyph_hit",
+  "tld_risk",
+  "keyword_count",
+  "hyphen_count",
+  "max_label_len",
+  "digit_ratio",
+  "subdomain_depth",
+  "entropy",
+  "issuer_is_free_ca",
+  "san_count"
+ ],
+ "coef": [
+  0.2405,
+  0.2621,
+  -0.1154,
+  0.8089,
+  0.1474,
+  0.4657,
+  0.6157,
+  0.2731,
+  0.135,
+  -0.1209,
+  0.0,
+  0.0
+ ],
+ "passed_checks": false
+}
