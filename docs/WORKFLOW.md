@@ -1,4 +1,4 @@
-# WORKFLOW — SEVER
+# WORKFLOW — QCertChain
 
 Phase-by-phase build plan, flows, and the demo script.
 

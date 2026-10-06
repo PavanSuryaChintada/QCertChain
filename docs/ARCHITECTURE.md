@@ -1,4 +1,4 @@
-# ARCHITECTURE — SEVER
+# ARCHITECTURE — QCertChain
 
 Read after `CLAUDE.md`, before any build spec.
 

@@ -1,4 +1,4 @@
-# RUNBOOK — SEVER
+# RUNBOOK — QCertChain
 
 Setup, verification, and the things that actually break.
 
@@ -60,7 +60,7 @@ docker compose ps        # both healthy
 
 **✓ Checkpoint:**
 ```bash
-docker compose exec postgres psql -U sever -d sever -c "\dt"
+docker compose exec postgres psql -U qcertchain -d qcertchain -c "\dt"
 # should list ~15 tables — schema.sql runs automatically on first boot
 ```
 
@@ -276,7 +276,7 @@ Run this **30 minutes before** presenting, not five.
 ## 11 · Stale-string sweep — do this in Phase 6
 
 ```bash
-grep -ri "TODO\|FIXME\|placeholder\|lorem\|SEVER_PLACEHOLDER" --include="*.py" --include="*.tsx" --include="*.ts" .
+grep -ri "TODO\|FIXME\|placeholder\|lorem\|QCERTCHAIN_PLACEHOLDER" --include="*.py" --include="*.tsx" --include="*.ts" .
 ```
 
 Previous builds have shipped with a stale region name rendering live on a demo page. Grep before freezing.

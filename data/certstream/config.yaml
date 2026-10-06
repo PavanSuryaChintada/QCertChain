@@ -1,0 +1,26 @@
+# certstream-server-go v1.10.1 — self-hosted CT aggregator (spec D8).
+# Public certstream.calidog.io verified dead 2026-10-06.
+webserver:
+  listen_addr: "0.0.0.0"
+  listen_port: 8080
+  real_ip: false
+  whitelist: []          # port is published on 127.0.0.1 only (compose); private network on Railway
+  full_url: "/full-stream"
+  lite_url: "/"
+  domains_only_url: "/domains-only"
+  compression_enabled: false
+prometheus:
+  enabled: true          # certstreamservergo_certs_by_log_total{url,operator} = per-log volume
+  listen_addr: "0.0.0.0"
+  listen_port: 8080
+  metrics_url: "/metrics"
+  expose_system_metrics: false
+  whitelist: []
+general:
+  disable_default_logs: false
+  # excluded_logs: none. Owner rule: never trim without measured per-operator volume
+  # from the capture and explicit sign-off. Tiled (Let's Encrypt) coverage biases the lead-time metric.
+  buffer_sizes: {websocket: 300, ctlog: 1000, dispatcher: 10000}
+  drop_old_logs: true
+  recovery:
+    enabled: false       # known issue: transient tile error restarts worker from startup index -> mass replay

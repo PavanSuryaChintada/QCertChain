@@ -1,21 +1,28 @@
-# SEVER — local and demo infrastructure
+# QCertChain — local and demo infrastructure
 # Bring up:  docker compose up -d postgres redis
 # Full:      docker compose up -d
-name: sever
+name: qcertchain
 
 services:
+  certstream:
+    image: 0rickyy0/certstream-server-go:v1.10.1
+    ports: ["127.0.0.1:8080:8080"]
+    volumes: ["./data/certstream:/app/config"]
+    restart: unless-stopped
+    # v1.10.1: #104 partial-tile fix + #114 off-by-one. recovery off (see config).
+
   postgres:
     image: postgres:16-alpine
     environment:
-      POSTGRES_USER: sever
-      POSTGRES_PASSWORD: sever
-      POSTGRES_DB: sever
+      POSTGRES_USER: qcertchain
+      POSTGRES_PASSWORD: qcertchain
+      POSTGRES_DB: qcertchain
     ports: ["5432:5432"]
     volumes:
       - pgdata:/var/lib/postgresql/data
       - ./services/api/schema.sql:/docker-entrypoint-initdb.d/01-schema.sql:ro
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U sever"]
+      test: ["CMD-SHELL", "pg_isready -U qcertchain"]
       interval: 5s
       timeout: 3s
       retries: 10
@@ -37,7 +44,7 @@ services:
     build: {context: ., dockerfile: services/api/Dockerfile}
     env_file: [.env]
     environment:
-      DATABASE_URL: postgresql+psycopg://sever:sever@postgres:5432/sever
+      DATABASE_URL: postgresql+psycopg://qcertchain:qcertchain@postgres:5432/qcertchain
       REDIS_URL: redis://redis:6379
     ports: ["8000:8000"]
     depends_on:
@@ -63,7 +70,7 @@ services:
     build: {context: ., dockerfile: services/api/Dockerfile}
     env_file: [.env]
     environment:
-      DATABASE_URL: postgresql+psycopg://sever:sever@postgres:5432/sever
+      DATABASE_URL: postgresql+psycopg://qcertchain:qcertchain@postgres:5432/qcertchain
       REDIS_URL: redis://redis:6379
     depends_on:
       postgres: {condition: service_healthy}
@@ -76,7 +83,7 @@ services:
     build: {context: ., dockerfile: services/api/Dockerfile}
     env_file: [.env]
     environment:
-      DATABASE_URL: postgresql+psycopg://sever:sever@postgres:5432/sever
+      DATABASE_URL: postgresql+psycopg://qcertchain:qcertchain@postgres:5432/qcertchain
       REDIS_URL: redis://redis:6379
     depends_on:
       postgres: {condition: service_healthy}

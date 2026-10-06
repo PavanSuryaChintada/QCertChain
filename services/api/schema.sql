@@ -1,4 +1,4 @@
--- SEVER · PostgreSQL 16
+-- QCertChain · PostgreSQL 16
 -- Run once:  psql $DATABASE_URL -f services/api/schema.sql
 -- This file is the source of truth. Do not retype DDL from the docs.
 

@@ -1,4 +1,4 @@
-# TRD — SEVER
+# TRD — QCertChain
 
 Technical specification. Pairs with `CLAUDE.md`, `ARCHITECTURE.md`, `NPHARD.md`, `BLOCKCHAIN.md`.
 

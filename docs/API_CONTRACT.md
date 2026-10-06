@@ -1,4 +1,4 @@
-# API CONTRACT — SEVER
+# API CONTRACT — QCertChain
 
 Exact request and response shapes. **Build this before the real data exists** — the console and the backend are built in parallel and will diverge without it.
 

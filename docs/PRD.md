@@ -1,4 +1,4 @@
-# PRD — SEVER
+# PRD — QCertChain
 
 Phishing campaign interdiction. Scope, users, features.
 

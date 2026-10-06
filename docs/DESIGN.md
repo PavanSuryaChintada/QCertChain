@@ -1,4 +1,4 @@
-# DESIGN — SEVER
+# DESIGN — QCertChain
 
 Visual and interaction spec. These tokens are locked. Do not invent values.
 
@@ -109,7 +109,7 @@ Scale: `11 · 12 · 13 · 14 · 15 · 18 · 22 · 28`. Nothing else.
 
 ```
 ┌──────────────────────────────────────────────────────────────────────┐
-│ SEVER      ● LIVE · 3,204/s      12 campaigns · 47 confirmed    [◼]  │  48px
+│ QCertChain      ● LIVE · 3,204/s      12 campaigns · 47 confirmed    [◼]  │  48px
 ├────────────┬──────────────────────────────────┬──────────────────────┤
 │            │                                  │  CERTIFICATE STREAM  │
 │  CAMPAIGNS │         GRAPH / DETAIL           │                      │

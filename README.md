@@ -1,8 +1,7 @@
-# SEVER
+# QCertChain
 
 **Phishing campaign interdiction.** Catch the certificate before the email is sent, and take the whole campaign down in four moves.
 
-*(Name is a placeholder — rename with find-replace.)*
 
 ---
 

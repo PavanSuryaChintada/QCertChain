@@ -1,15 +1,14 @@
-# CLAUDE.md — Build Rules for SEVER
+# CLAUDE.md — Build Rules for QCertChain
 
 > Read this completely before writing any code. It overrides your defaults.
 > Read `docs/ARCHITECTURE.md` next. Then the spec for whatever you are building.
 
-*(Name is a placeholder. Rename with find-replace if the team picks another.)*
 
 ---
 
 ## 1. What this is
 
-**SEVER** — a phishing campaign interdiction platform.
+**QCertChain** — a phishing campaign interdiction platform.
 
 Everyone else builds a URL classifier. We do three things nobody else does:
 
@@ -64,7 +63,7 @@ The CT firehose may produce nothing interesting during a 5-minute demo window. B
 ## 3. Repository layout
 
 ```
-sever/
+qcertchain/
 ├── CLAUDE.md
 ├── README.md
 ├── docs/
@@ -157,3 +156,7 @@ Read in this order for whatever you are building:
 ## 7. When you are unsure
 
 Ask rather than assume. If a spec in `docs/` conflicts with this file, this file wins. Stop and ask before adding a dependency, sending any outbound request to a third party's abuse channel, claiming a performance result, or marking a domain confirmed on weak evidence.
+
+## 8. Owner decisions (2026-10-06) — override the baseline above
+
+`docs/superpowers/specs/2026-10-06-qcertchain-design.md` §2 records decisions D1–D9 taken with the project owner. Where they conflict with this file or `docs/`, they win. In short: email-header module is in scope (paste/upload only); database is Supabase (RLS on every table); certstream is self-hosted (certstream-server-go v1.10.1); takedown targets are `ip`, `nameserver`, `registrar` only; triage ships rules first, then a trained model; report is `docs/REPORT.md` generated from measured `reports/metrics.json`.
