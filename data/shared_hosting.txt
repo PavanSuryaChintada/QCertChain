@@ -1,0 +1,15 @@
+# Subdomain-hosting platforms where anyone can get <name>.<platform>, that are in Tranco but
+# NOT in the Public Suffix List private section. Treated as public suffixes so a phishing
+# subdomain is never allowlisted because the platform is popular.
+# Found 2026-10-06 by checking known abused platforms against tldextract's PSL snapshot.
+000webhostapp.com
+weebly.com
+surge.sh
+square.site
+godaddysites.com
+mystrikingly.com
+jimdosite.com
+webcindario.com
+16mb.com
+glide.page
+ipfs.io

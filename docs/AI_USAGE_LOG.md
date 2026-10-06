@@ -56,3 +56,18 @@ Format: **AI did** · **Owner decided** · **Verified by** · **Rulings** (AI ju
   - Live probe: anon REST read returned `[]` with a row present, and anon REST insert was rejected with `42501`. Probe row deleted.
 - **Rulings:** none beyond the plan.
 - **Incident:** a Python edit of `docker-compose.yml` used the Windows default cp1252 encoding and mangled the em dashes. I repaired it and verified there is no remaining mojibake. All file writes now pass `encoding="utf-8"` explicitly.
+
+## Task 5 — brands, allowlist
+
+- **AI did:** wrote `brands.yaml` (40 Indian brands, 50 legit domains), the Tranco fetch script, `brands.py` (brand index, allowlist, shared eTLD+1 extractor), and a DNS-verification script for the brand domains.
+- **Verified by:**
+  - `test_brands.py`: RED, then GREEN 7/7.
+  - All 50 legit domains resolve in DNS.
+  - Tranco list `56WKN` fetched.
+- **Found by testing, fixed test-first:**
+  - tldextract skips the PSL private section by default, so `x.github.io` would have collapsed to `github.io`.
+  - 11 subdomain-hosting platforms are in Tranco but not in the PSL (weebly.com, 000webhostapp.com, surge.sh, …). Without the fix, every phishing subdomain on them would have been allowlisted with a score of 0. Now listed in `data/shared_hosting.txt` and treated as public suffixes.
+- **Rulings:**
+  - The allowlist size assertion is ≥ 99,000 (the plan said ≥ 100,000), because 100k Tranco rows normalise to 99,627 registrable domains.
+  - `bank.in` is allowlisted as a zone (RBI-restricted registry).
+  - Generic tokens were dropped from the spec's example: `netbanking` stays a phishing keyword rather than an HDFC token, and `axis` and `kite` were too generic.

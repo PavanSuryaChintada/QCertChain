@@ -1,0 +1,179 @@
+# QCertChain brand list — drives triage (TRD §2, DATA.md §4).
+# tokens: lowercase alphanumerics, unique across brands. Tokens of <= 3 chars match only a
+# whole hyphen/dot/digit-delimited segment (triage), never a substring.
+# legit_domains: the brand's real registrable domains. Every entry is DNS-verified by
+# scripts/verify_brands.py; anything unverified is omitted and listed in data/MANIFEST.md.
+
+# --- Banking ---
+- name: State Bank of India
+  tokens: [sbi, onlinesbi, yonosbi]
+  legit_domains: [sbi.co.in, onlinesbi.sbi, yonosbi.com]
+  sector: banking
+- name: HDFC Bank
+  tokens: [hdfc, hdfcbank]
+  legit_domains: [hdfcbank.com, hdfc.com]
+  sector: banking
+- name: ICICI Bank
+  tokens: [icici, icicibank]
+  legit_domains: [icicibank.com]
+  sector: banking
+- name: Axis Bank
+  tokens: [axisbank]
+  legit_domains: [axisbank.com]
+  sector: banking
+- name: Kotak Mahindra Bank
+  tokens: [kotak, kotakbank]
+  legit_domains: [kotak.com]
+  sector: banking
+- name: Punjab National Bank
+  tokens: [pnb, pnbindia]
+  legit_domains: [pnbindia.in]
+  sector: banking
+- name: Bank of Baroda
+  tokens: [bankofbaroda, bobibanking, bobworld]
+  legit_domains: [bankofbaroda.in, bobibanking.com]
+  sector: banking
+- name: Canara Bank
+  tokens: [canarabank]
+  legit_domains: [canarabank.com]
+  sector: banking
+- name: Union Bank of India
+  tokens: [unionbankofindia, unionbank]
+  legit_domains: [unionbankofindia.co.in]
+  sector: banking
+- name: IndusInd Bank
+  tokens: [indusind]
+  legit_domains: [indusind.com]
+  sector: banking
+- name: Yes Bank
+  tokens: [yesbank]
+  legit_domains: [yesbank.in]
+  sector: banking
+- name: IDFC First Bank
+  tokens: [idfcfirst, idfcfirstbank, idfc]
+  legit_domains: [idfcfirstbank.com]
+  sector: banking
+
+# --- Fintech / UPI ---
+- name: Paytm
+  tokens: [paytm, paytmbank]
+  legit_domains: [paytm.com, paytmbank.com]
+  sector: fintech
+- name: PhonePe
+  tokens: [phonepe]
+  legit_domains: [phonepe.com]
+  sector: fintech
+- name: Google Pay
+  tokens: [gpay, googlepay]
+  legit_domains: [google.com]
+  sector: fintech
+- name: NPCI UPI
+  tokens: [npci, upi]
+  legit_domains: [npci.org.in]
+  sector: fintech
+- name: BHIM
+  tokens: [bhim, bhimupi]
+  legit_domains: [bhimupi.org.in]
+  sector: fintech
+- name: MobiKwik
+  tokens: [mobikwik]
+  legit_domains: [mobikwik.com]
+  sector: fintech
+
+# --- Telecom ---
+- name: Jio
+  tokens: [jio, myjio]
+  legit_domains: [jio.com]
+  sector: telecom
+- name: Airtel
+  tokens: [airtel]
+  legit_domains: [airtel.in, airtel.com]
+  sector: telecom
+- name: Vi (Vodafone Idea)
+  tokens: [vi, myvi, vodafoneidea]
+  legit_domains: [myvi.in]
+  sector: telecom
+
+# --- Government ---
+- name: Income Tax India
+  tokens: [incometax, itrfiling, efiling]
+  legit_domains: [incometax.gov.in, incometaxindia.gov.in]
+  sector: government
+- name: EPFO
+  tokens: [epfo, epfindia, uan]
+  legit_domains: [epfindia.gov.in]
+  sector: government
+- name: UIDAI Aadhaar
+  tokens: [uidai, aadhaar, aadhar, myaadhaar]
+  legit_domains: [uidai.gov.in]
+  sector: government
+- name: DigiLocker
+  tokens: [digilocker]
+  legit_domains: [digilocker.gov.in]
+  sector: government
+- name: IRCTC
+  tokens: [irctc]
+  legit_domains: [irctc.co.in]
+  sector: government
+- name: India Post
+  tokens: [indiapost, ippb, ippbonline]
+  legit_domains: [indiapost.gov.in, ippbonline.com]
+  sector: government
+- name: GST Portal
+  tokens: [gst, gstportal]
+  legit_domains: [gst.gov.in]
+  sector: government
+- name: Parivahan
+  tokens: [parivahan, echallan]
+  legit_domains: [parivahan.gov.in]
+  sector: government
+- name: NSDL PAN
+  tokens: [nsdl, pancard]
+  legit_domains: [nsdl.com, nsdl.co.in]
+  sector: government
+
+# --- E-commerce ---
+- name: Amazon India
+  tokens: [amazon]
+  legit_domains: [amazon.in, amazon.com]
+  sector: ecommerce
+- name: Flipkart
+  tokens: [flipkart]
+  legit_domains: [flipkart.com]
+  sector: ecommerce
+- name: Myntra
+  tokens: [myntra]
+  legit_domains: [myntra.com]
+  sector: ecommerce
+- name: Meesho
+  tokens: [meesho]
+  legit_domains: [meesho.com]
+  sector: ecommerce
+
+# --- Brokerage ---
+- name: Zerodha
+  tokens: [zerodha]
+  legit_domains: [zerodha.com]
+  sector: brokerage
+- name: Groww
+  tokens: [groww]
+  legit_domains: [groww.in]
+  sector: brokerage
+- name: Upstox
+  tokens: [upstox]
+  legit_domains: [upstox.com]
+  sector: brokerage
+- name: Angel One
+  tokens: [angelone, angelbroking]
+  legit_domains: [angelone.in]
+  sector: brokerage
+
+# --- Insurance / consumer ---
+- name: LIC
+  tokens: [lic, licindia]
+  legit_domains: [licindia.in]
+  sector: insurance
+- name: Swiggy
+  tokens: [swiggy]
+  legit_domains: [swiggy.com]
+  sector: consumer
