@@ -1,0 +1,159 @@
+[
+ {
+  "inputs": [],
+  "stateMutability": "nonpayable",
+  "type": "constructor"
+ },
+ {
+  "inputs": [],
+  "name": "AlreadyRegistered",
+  "type": "error"
+ },
+ {
+  "inputs": [],
+  "name": "NotAdmin",
+  "type": "error"
+ },
+ {
+  "inputs": [],
+  "name": "NotRegisteredOrg",
+  "type": "error"
+ },
+ {
+  "anonymous": false,
+  "inputs": [
+   {
+    "indexed": true,
+    "internalType": "address",
+    "name": "who",
+    "type": "address"
+   }
+  ],
+  "name": "OrgDeactivated",
+  "type": "event"
+ },
+ {
+  "anonymous": false,
+  "inputs": [
+   {
+    "indexed": true,
+    "internalType": "address",
+    "name": "who",
+    "type": "address"
+   },
+   {
+    "indexed": false,
+    "internalType": "string",
+    "name": "name",
+    "type": "string"
+   }
+  ],
+  "name": "OrgRegistered",
+  "type": "event"
+ },
+ {
+  "inputs": [],
+  "name": "admin",
+  "outputs": [
+   {
+    "internalType": "address",
+    "name": "",
+    "type": "address"
+   }
+  ],
+  "stateMutability": "view",
+  "type": "function"
+ },
+ {
+  "inputs": [
+   {
+    "internalType": "address",
+    "name": "who",
+    "type": "address"
+   }
+  ],
+  "name": "deactivateOrg",
+  "outputs": [],
+  "stateMutability": "nonpayable",
+  "type": "function"
+ },
+ {
+  "inputs": [
+   {
+    "internalType": "address",
+    "name": "who",
+    "type": "address"
+   }
+  ],
+  "name": "isActive",
+  "outputs": [
+   {
+    "internalType": "bool",
+    "name": "",
+    "type": "bool"
+   }
+  ],
+  "stateMutability": "view",
+  "type": "function"
+ },
+ {
+  "inputs": [],
+  "name": "listOrgs",
+  "outputs": [
+   {
+    "internalType": "address[]",
+    "name": "",
+    "type": "address[]"
+   }
+  ],
+  "stateMutability": "view",
+  "type": "function"
+ },
+ {
+  "inputs": [
+   {
+    "internalType": "address",
+    "name": "",
+    "type": "address"
+   }
+  ],
+  "name": "orgs",
+  "outputs": [
+   {
+    "internalType": "string",
+    "name": "name",
+    "type": "string"
+   },
+   {
+    "internalType": "bool",
+    "name": "active",
+    "type": "bool"
+   },
+   {
+    "internalType": "uint256",
+    "name": "registeredAt",
+    "type": "uint256"
+   }
+  ],
+  "stateMutability": "view",
+  "type": "function"
+ },
+ {
+  "inputs": [
+   {
+    "internalType": "address",
+    "name": "who",
+    "type": "address"
+   },
+   {
+    "internalType": "string",
+    "name": "name",
+    "type": "string"
+   }
+  ],
+  "name": "registerOrg",
+  "outputs": [],
+  "stateMutability": "nonpayable",
+  "type": "function"
+ }
+]

@@ -274,6 +274,8 @@ create table if not exists anchor_queue (
   queued_at   timestamptz default now(),
   done        boolean default false
 );
+alter table anchor_queue add column if not exists next_attempt_at timestamptz default now();
+create index if not exists anchor_due_idx on anchor_queue (done, next_attempt_at);
 -- anchoring is NON-BLOCKING. If the chain is down, detection, clustering
 -- and interdiction all continue. Nothing in the critical path waits here.
 

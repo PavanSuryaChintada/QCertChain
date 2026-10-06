@@ -9,7 +9,7 @@ from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
-from services.api.routes import campaigns, domains, evidence, ops, plans, stream
+from services.api.routes import campaigns, domains, evidence, ledger, ops, plans, stream
 from services.ingest.triage import warm
 
 PROBLEM = "application/problem+json"
@@ -50,5 +50,6 @@ def health():
     return {"status": "ok", "service": "qcertchain-api"}
 
 
-for r in (stream.router, domains.router, campaigns.router, plans.router, evidence.router, ops.router):
+for r in (stream.router, domains.router, campaigns.router, plans.router, evidence.router, ledger.router,
+          ops.router):
     app.include_router(r)

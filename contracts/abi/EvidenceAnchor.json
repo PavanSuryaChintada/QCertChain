@@ -1,0 +1,148 @@
+[
+ {
+  "inputs": [
+   {
+    "internalType": "address",
+    "name": "registry",
+    "type": "address"
+   }
+  ],
+  "stateMutability": "nonpayable",
+  "type": "constructor"
+ },
+ {
+  "inputs": [],
+  "name": "AlreadyAnchored",
+  "type": "error"
+ },
+ {
+  "inputs": [],
+  "name": "NotOrg",
+  "type": "error"
+ },
+ {
+  "anonymous": false,
+  "inputs": [
+   {
+    "indexed": true,
+    "internalType": "bytes32",
+    "name": "bundleId",
+    "type": "bytes32"
+   },
+   {
+    "indexed": true,
+    "internalType": "bytes32",
+    "name": "campaignId",
+    "type": "bytes32"
+   },
+   {
+    "indexed": true,
+    "internalType": "address",
+    "name": "collector",
+    "type": "address"
+   },
+   {
+    "indexed": false,
+    "internalType": "bytes32",
+    "name": "bundleRoot",
+    "type": "bytes32"
+   }
+  ],
+  "name": "EvidenceAnchored",
+  "type": "event"
+ },
+ {
+  "inputs": [
+   {
+    "internalType": "bytes32",
+    "name": "bundleId",
+    "type": "bytes32"
+   },
+   {
+    "internalType": "bytes32",
+    "name": "bundleRoot",
+    "type": "bytes32"
+   },
+   {
+    "internalType": "bytes32",
+    "name": "campaignId",
+    "type": "bytes32"
+   }
+  ],
+  "name": "anchor",
+  "outputs": [],
+  "stateMutability": "nonpayable",
+  "type": "function"
+ },
+ {
+  "inputs": [
+   {
+    "internalType": "bytes32",
+    "name": "",
+    "type": "bytes32"
+   }
+  ],
+  "name": "anchors",
+  "outputs": [
+   {
+    "internalType": "bytes32",
+    "name": "bundleRoot",
+    "type": "bytes32"
+   },
+   {
+    "internalType": "bytes32",
+    "name": "campaignId",
+    "type": "bytes32"
+   },
+   {
+    "internalType": "address",
+    "name": "collector",
+    "type": "address"
+   },
+   {
+    "internalType": "uint64",
+    "name": "timestamp",
+    "type": "uint64"
+   }
+  ],
+  "stateMutability": "view",
+  "type": "function"
+ },
+ {
+  "inputs": [],
+  "name": "orgRegistry",
+  "outputs": [
+   {
+    "internalType": "contract IOrgRegistry2",
+    "name": "",
+    "type": "address"
+   }
+  ],
+  "stateMutability": "view",
+  "type": "function"
+ },
+ {
+  "inputs": [
+   {
+    "internalType": "bytes32",
+    "name": "bundleId",
+    "type": "bytes32"
+   },
+   {
+    "internalType": "bytes32",
+    "name": "claimedRoot",
+    "type": "bytes32"
+   }
+  ],
+  "name": "verify",
+  "outputs": [
+   {
+    "internalType": "bool",
+    "name": "",
+    "type": "bool"
+   }
+  ],
+  "stateMutability": "view",
+  "type": "function"
+ }
+]

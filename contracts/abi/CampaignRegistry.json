@@ -1,0 +1,236 @@
+[
+ {
+  "inputs": [
+   {
+    "internalType": "address",
+    "name": "registry",
+    "type": "address"
+   }
+  ],
+  "stateMutability": "nonpayable",
+  "type": "constructor"
+ },
+ {
+  "inputs": [],
+  "name": "AlreadyPublished",
+  "type": "error"
+ },
+ {
+  "inputs": [],
+  "name": "NotOrg",
+  "type": "error"
+ },
+ {
+  "inputs": [],
+  "name": "SelfCorroboration",
+  "type": "error"
+ },
+ {
+  "inputs": [],
+  "name": "UnknownCampaign",
+  "type": "error"
+ },
+ {
+  "anonymous": false,
+  "inputs": [
+   {
+    "indexed": true,
+    "internalType": "bytes32",
+    "name": "campaignId",
+    "type": "bytes32"
+   },
+   {
+    "indexed": true,
+    "internalType": "bytes32",
+    "name": "kitHash",
+    "type": "bytes32"
+   },
+   {
+    "indexed": true,
+    "internalType": "address",
+    "name": "reporter",
+    "type": "address"
+   },
+   {
+    "indexed": false,
+    "internalType": "bytes32",
+    "name": "iocRoot",
+    "type": "bytes32"
+   },
+   {
+    "indexed": false,
+    "internalType": "uint16",
+    "name": "domainCount",
+    "type": "uint16"
+   },
+   {
+    "indexed": false,
+    "internalType": "uint8",
+    "name": "confidence",
+    "type": "uint8"
+   }
+  ],
+  "name": "CampaignPublished",
+  "type": "event"
+ },
+ {
+  "anonymous": false,
+  "inputs": [
+   {
+    "indexed": true,
+    "internalType": "bytes32",
+    "name": "campaignId",
+    "type": "bytes32"
+   },
+   {
+    "indexed": true,
+    "internalType": "address",
+    "name": "org",
+    "type": "address"
+   }
+  ],
+  "name": "Corroborated",
+  "type": "event"
+ },
+ {
+  "inputs": [
+   {
+    "internalType": "bytes32",
+    "name": "",
+    "type": "bytes32"
+   }
+  ],
+  "name": "campaigns",
+  "outputs": [
+   {
+    "internalType": "bytes32",
+    "name": "iocRoot",
+    "type": "bytes32"
+   },
+   {
+    "internalType": "bytes32",
+    "name": "kitHash",
+    "type": "bytes32"
+   },
+   {
+    "internalType": "uint16",
+    "name": "domainCount",
+    "type": "uint16"
+   },
+   {
+    "internalType": "uint8",
+    "name": "confidence",
+    "type": "uint8"
+   },
+   {
+    "internalType": "address",
+    "name": "reporter",
+    "type": "address"
+   },
+   {
+    "internalType": "uint64",
+    "name": "timestamp",
+    "type": "uint64"
+   }
+  ],
+  "stateMutability": "view",
+  "type": "function"
+ },
+ {
+  "inputs": [
+   {
+    "internalType": "bytes32",
+    "name": "campaignId",
+    "type": "bytes32"
+   }
+  ],
+  "name": "corroborate",
+  "outputs": [],
+  "stateMutability": "nonpayable",
+  "type": "function"
+ },
+ {
+  "inputs": [
+   {
+    "internalType": "bytes32",
+    "name": "campaignId",
+    "type": "bytes32"
+   }
+  ],
+  "name": "corroborationsOf",
+  "outputs": [
+   {
+    "internalType": "address[]",
+    "name": "",
+    "type": "address[]"
+   }
+  ],
+  "stateMutability": "view",
+  "type": "function"
+ },
+ {
+  "inputs": [
+   {
+    "internalType": "bytes32",
+    "name": "kitHash",
+    "type": "bytes32"
+   }
+  ],
+  "name": "findByKit",
+  "outputs": [
+   {
+    "internalType": "bytes32[]",
+    "name": "",
+    "type": "bytes32[]"
+   }
+  ],
+  "stateMutability": "view",
+  "type": "function"
+ },
+ {
+  "inputs": [],
+  "name": "orgRegistry",
+  "outputs": [
+   {
+    "internalType": "contract IOrgRegistry",
+    "name": "",
+    "type": "address"
+   }
+  ],
+  "stateMutability": "view",
+  "type": "function"
+ },
+ {
+  "inputs": [
+   {
+    "internalType": "bytes32",
+    "name": "campaignId",
+    "type": "bytes32"
+   },
+   {
+    "internalType": "bytes32",
+    "name": "iocRoot",
+    "type": "bytes32"
+   },
+   {
+    "internalType": "bytes32",
+    "name": "kitHash",
+    "type": "bytes32"
+   },
+   {
+    "internalType": "uint16",
+    "name": "domainCount",
+    "type": "uint16"
+   },
+   {
+    "internalType": "uint8",
+    "name": "confidence",
+    "type": "uint8"
+   }
+  ],
+  "name": "publishCampaign",
+  "outputs": [],
+  "stateMutability": "nonpayable",
+  "type": "function"
+ }
+]

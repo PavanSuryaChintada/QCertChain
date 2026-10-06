@@ -32,3 +32,27 @@ def get_evidence_dir() -> str:
 
 def get_signing_key() -> str:
     return SETTINGS.collector_private_key
+
+
+class UnavailableLedger:
+    """Stand-in when the chain or its deployment file is missing: every read reports 'unavailable'."""
+
+    def __init__(self, reason: str):
+        self.reason = reason
+        self.accounts: dict = {}
+
+    def available(self) -> bool:
+        return False
+
+
+@lru_cache(maxsize=1)
+def _ledger():
+    from services.api.ledger_service import Ledger
+    try:
+        return Ledger.from_settings(SETTINGS)
+    except Exception as e:  # missing deployments/abi: the API still serves everything else
+        return UnavailableLedger(f"{type(e).__name__}: {e}")
+
+
+def get_ledger():
+    return _ledger()

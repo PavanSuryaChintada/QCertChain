@@ -1,0 +1,123 @@
+[
+ {
+  "inputs": [
+   {
+    "internalType": "address",
+    "name": "registry",
+    "type": "address"
+   }
+  ],
+  "stateMutability": "nonpayable",
+  "type": "constructor"
+ },
+ {
+  "inputs": [],
+  "name": "NotOrg",
+  "type": "error"
+ },
+ {
+  "anonymous": false,
+  "inputs": [
+   {
+    "indexed": true,
+    "internalType": "bytes32",
+    "name": "subjectHash",
+    "type": "bytes32"
+   },
+   {
+    "indexed": true,
+    "internalType": "address",
+    "name": "org",
+    "type": "address"
+   },
+   {
+    "indexed": false,
+    "internalType": "enum Attestation.Verdict",
+    "name": "verdict",
+    "type": "uint8"
+   },
+   {
+    "indexed": false,
+    "internalType": "uint64",
+    "name": "timestamp",
+    "type": "uint64"
+   }
+  ],
+  "name": "Attested",
+  "type": "event"
+ },
+ {
+  "inputs": [
+   {
+    "internalType": "bytes32",
+    "name": "subjectHash",
+    "type": "bytes32"
+   },
+   {
+    "internalType": "enum Attestation.Verdict",
+    "name": "v",
+    "type": "uint8"
+   }
+  ],
+  "name": "attest",
+  "outputs": [],
+  "stateMutability": "nonpayable",
+  "type": "function"
+ },
+ {
+  "inputs": [
+   {
+    "internalType": "bytes32",
+    "name": "",
+    "type": "bytes32"
+   },
+   {
+    "internalType": "address",
+    "name": "",
+    "type": "address"
+   }
+  ],
+  "name": "attestations",
+  "outputs": [
+   {
+    "internalType": "enum Attestation.Verdict",
+    "name": "",
+    "type": "uint8"
+   }
+  ],
+  "stateMutability": "view",
+  "type": "function"
+ },
+ {
+  "inputs": [
+   {
+    "internalType": "bytes32",
+    "name": "subjectHash",
+    "type": "bytes32"
+   }
+  ],
+  "name": "attestorsOf",
+  "outputs": [
+   {
+    "internalType": "address[]",
+    "name": "",
+    "type": "address[]"
+   }
+  ],
+  "stateMutability": "view",
+  "type": "function"
+ },
+ {
+  "inputs": [],
+  "name": "orgRegistry",
+  "outputs": [
+   {
+    "internalType": "contract IOrgRegistry3",
+    "name": "",
+    "type": "address"
+   }
+  ],
+  "stateMutability": "view",
+  "type": "function"
+ }
+]

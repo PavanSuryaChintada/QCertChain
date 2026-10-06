@@ -305,3 +305,27 @@ Format: **AI did** · **Owner decided** · **Verified by** · **Rulings** (AI ju
   - **The Attestation fix is proven, not assumed:** with BUILD_SPEC §5's original logic swapped back in, the test fails (only org1 is recorded and org2's dispute is lost); with the fix it passes.
   - A local deploy registered orgs whose addresses equal those derived from the `.env` keys.
 - **Environment note:** the global npm registry is `registry.npmmirror.com`. The install took 13 minutes at 2–4 minutes per large package. Left unchanged; flagged to the owner.
+
+## Task 18 — ledger service, anchor queue, ledger API
+
+- **AI did:**
+  - `ledger_service.py` (web3.py):
+    - addresses from `deployments/localhost.json`, ABIs from committed `contracts/abi/` (exported from the build)
+    - on-chain ids are keccak(uuid); custom errors are decoded by selector
+  - `anchor_worker.py`:
+    - drains `anchor_queue` with a savepoint per item
+    - exponential backoff via the new `next_attempt_at` column
+    - `AlreadyPublished`/`AlreadyAnchored` treated as idempotent success
+    - updates `published_tx`/`anchored_tx` and `ledger_events`
+  - Ledger routes:
+    - publish, attest and corroborate are **queued (202)**, with no chain call inside a request
+    - `by-kit` maps on-chain ids back to local campaigns and returns `local_telemetry_received: false`
+    - a down chain gives 503 with the queue depth
+    - the API keeps serving when the deployment file is missing
+- **Verified by:** `test_ledger.py`: RED, then GREEN 10/10.
+  - **5 tests against a real Hardhat node:**
+    - inheritance by kit, with reporter name and corroboration
+    - anchor + verify + tamper (false) + re-anchor rejected
+    - org2 dispute
+    - **end to end:** seed → publish via API → anchor worker → org 2's kit query returns the campaign, and `published_tx` matches
+  - A fake ledger proves that with the chain down, items stay queued with backoff and nothing blocks.
