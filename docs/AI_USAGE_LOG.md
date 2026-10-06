@@ -239,3 +239,17 @@ Format: **AI did** · **Owner decided** · **Verified by** · **Rulings** (AI ju
   - node/edge upserts are idempotent, with a `domain_count`
   - allowlisted names never touch Postgres
   - the replay source is labelled in the DB and in the feed
+
+## Task 14 — graph edges, clustering, campaign upsert
+
+- **AI did:**
+  - `build.py`: `edges_for` with the spec weights (registrar 0.15), `TAKEDOWN_ROUTE`, an IOC Merkle root, and `recluster`:
+    - campaign ids stay stable across runs
+    - labels are `CAMP-NNNN`
+    - `campaign_joined_at` is set only when a domain's campaign changes
+  - `cluster.py`: NetworkX components over edges ≥ 0.6, merged only when two components share ≥ 2 distinct medium-weight (ASN-class) nodes; a single domain is not a campaign.
+- **Verified by:** `test_cluster.py`: RED, then GREEN 9/9. Covered:
+  - shared ASN or issuer alone never merges; one medium edge doesn't merge, two do
+  - weak infrastructure (registrar) is still listed as campaign infrastructure
+  - 500 domains cluster in under 2 s
+  - DB test: a stable campaign id on re-run, plus the label, kit hash and a 64-hex IOC root
