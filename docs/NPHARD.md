@@ -144,6 +144,16 @@ Rank remaining nodes by weighted coverage, keep the top **C = 12**.
 
 ## 6. QUBO form
 
+> **Correction (2026-10-06, implementation).** The penalty form below rewards over-coverage: each
+> extra selected node covering an already-covered group subtracts λ₁, and the budget penalty does
+> **not** cap it (competing plans both pick exactly k). Counter-example: g1={a,b} w=5, g2={c} w=1,
+> k=2 → the energy prefers {a,b} (−11) over the true optimum {a,c} (−6). `packages/interdict/qubo.py`
+> therefore uses the **x-only** formulation `value(g) = w_g·[1 − Π(1 − x_v)]` expanded to second
+> order (exact for ≤ 2 dependencies per group; under-values only all-dependencies-selected cases),
+> plus `λ₂(Σx − k)²`. One qubit per candidate node — ≤ 12 after reduction instead of 26.
+> Tested by brute-force ground-state checks in `tests/test_qubo.py`. The text below is the original
+> specification, kept for the record.
+
 Penalty form of the same problem:
 
 ```

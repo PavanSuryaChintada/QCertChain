@@ -126,3 +126,15 @@ Format: **AI did** · **Owner decided** · **Verified by** · **Rulings** (AI ju
   - Fixes: collapse identical dependency signatures (exact), warm-start from greedy, never return worse than the warm start, and **report OPTIMAL vs FEASIBLE with the gap** so a time-limited plan is never presented as proven.
   - Campaign-shaped 400-domain instances (Zipf IPs/NS/registrars) solve to OPTIMAL in < 1 s.
 - **Rulings:** perf test split (campaign-shaped must be OPTIMAL under 1 s; hard random must respect a 0.9 s limit and report its gap). See ledger.
+
+## Task 8 — reduction, QUBO, annealing, router with fallback, benchmark (release gate test_fallback)
+
+- **AI did:**
+  - Wrote reduction (collapse → prune dominated → top-C), the QUBO, simulated annealing, the fallback router (every exception falls through; greedy last; validation gate) and the honest benchmark (every backend run alone, failures are rows, exactly one `is_best`).
+- **Verified by:** `test_reduce`, `test_qubo` and `test_fallback`: RED, then GREEN. The interdict suite is at 591/591.
+- **Spec bug found and corrected (ruling, flagged to the owner): the NPHARD §6 QUBO rewards over-coverage.**
+  - Counter-example: g1={a,b} w5, g2={c} w1, k=2. The spec energy picks {a,b} (energy −11) over the optimum {a,c} (energy −6).
+  - Replaced with the x-only, second-order inclusion–exclusion formulation, which is exact for ≤ 2 dependencies per group.
+  - A brute-force test asserts the ground state equals the true optimum on 25 random instances.
+  - Qubits: ≤ 12 instead of 26.
+  - Correction note added to `docs/NPHARD.md` §6; the original text is kept.
