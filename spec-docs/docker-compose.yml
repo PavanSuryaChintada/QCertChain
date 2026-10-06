@@ -1,0 +1,99 @@
+# SEVER — local and demo infrastructure
+# Bring up:  docker compose up -d postgres redis
+# Full:      docker compose up -d
+name: sever
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: sever
+      POSTGRES_PASSWORD: sever
+      POSTGRES_DB: sever
+    ports: ["5432:5432"]
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      - ./services/api/schema.sql:/docker-entrypoint-initdb.d/01-schema.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U sever"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  redis:
+    image: redis:7-alpine
+    command: redis-server --appendonly yes --maxmemory 512mb --maxmemory-policy noeviction
+    ports: ["6379:6379"]
+    volumes: [redisdata:/data]
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+    # noeviction is deliberate: silently dropping queued certificates
+    # under memory pressure would corrupt the pipeline invisibly
+
+  api:
+    build: {context: ., dockerfile: services/api/Dockerfile}
+    env_file: [.env]
+    environment:
+      DATABASE_URL: postgresql+psycopg://sever:sever@postgres:5432/sever
+      REDIS_URL: redis://redis:6379
+    ports: ["8000:8000"]
+    depends_on:
+      postgres: {condition: service_healthy}
+      redis: {condition: service_healthy}
+    volumes: ["./data:/data"]
+    command: uvicorn main:app --host 0.0.0.0 --port 8000
+
+  ingest:
+    build: {context: ., dockerfile: services/api/Dockerfile}
+    env_file: [.env]
+    environment:
+      REDIS_URL: redis://redis:6379
+    depends_on:
+      redis: {condition: service_healthy}
+    volumes: ["./data:/data"]
+    command: python -m services.ingest.stream
+    restart: unless-stopped
+    # ONE replica only. Multiple consumers on the same CT stream
+    # duplicate work, they do not shard it.
+
+  triage:
+    build: {context: ., dockerfile: services/api/Dockerfile}
+    env_file: [.env]
+    environment:
+      DATABASE_URL: postgresql+psycopg://sever:sever@postgres:5432/sever
+      REDIS_URL: redis://redis:6379
+    depends_on:
+      postgres: {condition: service_healthy}
+      redis: {condition: service_healthy}
+    volumes: ["./data:/data"]
+    command: python -m services.api.workers.triage_worker
+    restart: unless-stopped
+
+  enrich:
+    build: {context: ., dockerfile: services/api/Dockerfile}
+    env_file: [.env]
+    environment:
+      DATABASE_URL: postgresql+psycopg://sever:sever@postgres:5432/sever
+      REDIS_URL: redis://redis:6379
+    depends_on:
+      postgres: {condition: service_healthy}
+      redis: {condition: service_healthy}
+    volumes: ["./data:/data"]
+    command: python -m services.api.workers.enrich_worker
+    deploy: {replicas: 4}
+    restart: unless-stopped
+    shm_size: 1gb
+    # shm_size matters: Chromium crashes on the default 64MB
+
+  hardhat:
+    build: {context: ./contracts, dockerfile: Dockerfile}
+    ports: ["8545:8545"]
+    command: npx hardhat node --hostname 0.0.0.0
+    restart: unless-stopped
+
+volumes:
+  pgdata:
+  redisdata:
