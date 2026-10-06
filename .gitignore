@@ -27,3 +27,5 @@ data/allowlist.txt
 reports/*.tmp
 .superpowers/
 reports/ct_capture/*.log
+data/capture_full.jsonl
+data/probe.jsonl

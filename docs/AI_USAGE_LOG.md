@@ -96,3 +96,21 @@ Format: **AI did** · **Owner decided** · **Verified by** · **Rulings** (AI ju
   7. **Unknown-TLD bug:** a TLD missing from the PSL snapshot was being treated as "is a public suffix" and scored 0. New gTLDs would never have been flagged. Fixed and tested.
   8. **4-second first call:** the lazy allowlist build landed on the first live certificate. Added `warm()`, which workers call at startup.
 - **Rulings:** listed in the ledger. Weights unchanged; every change is to feature extraction, per the plan's rule.
+
+## Task 3 — self-hosted certstream, 30-minute capture, CT-citizenship report
+
+- **AI did:**
+  - Ran certstream-server-go v1.10.1 (recovery off) and the 30-minute capture.
+  - Wrote `scripts/ct_capture_report.py`: per-operator and per-log volume from Prometheus snapshots, tiled vs RFC 6962 from Google's log list, measured inbound bytes, derived request rate.
+  - Compacted the capture to a 1.5 GB replay file without DER/chain; the raw 7.6 GB is kept, git-ignored.
+- **Verified by measurement:** results are in `reports/ct_capture/report.md`.
+  - **Volume:** 1.27M log entries processed (689/s); 920k messages delivered to the capture client; **401k unique certificates (219/s)**.
+  - **Tiled share:** **37.4%** of entries. All 6 Let's Encrypt tiled logs delivered.
+  - **Load on CT log operators:** **14.8 Mbit/s** inbound, measured; **5–21 req/s**, derived.
+  - **#104 fix:** partial-tile deferral of up to 60 s, confirmed in the v1.10.1 source.
+- **Corrected a claim before it shipped:** the first draft attributed the processed-vs-delivered gap to cross-log dedup. Counting showed:
+  - The server does not dedup: 56% of messages were duplicate deliveries.
+  - 27% of entries were never delivered to the full-stream client.
+  - On the lite stream, 92.8% is delivered.
+  - The report now says the drop cause is inferred, not measured.
+- **Owner instruction honoured:** no `excluded_logs` proposed. Coverage gaps are listed as involuntary: GoDaddy 429s, plus 0-entry logs at Cloudflare, Sectigo and IPng.

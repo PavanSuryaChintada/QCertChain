@@ -1,0 +1,586 @@
+{
+ "window_utc": [
+  "2026-10-06T13:28:14+00:00",
+  "2026-10-06T13:58:51+00:00"
+ ],
+ "seconds": 1837,
+ "server_entries_processed": 1265158,
+ "server_entries_per_sec": 688.7,
+ "captured_messages": 920052,
+ "captured_per_sec": 500.8,
+ "captured_unique_certs": 401426,
+ "unique_certs_per_sec": 218.5,
+ "duplicate_delivery_share": 0.5637,
+ "undelivered_to_capture_client": 345106,
+ "undelivered_share": 0.2728,
+ "captured_by_log_type": {
+  "rfc6962": 628533,
+  "tiled": 291519
+ },
+ "capture_reconnects": 1,
+ "tiled_share_of_entries": 0.3736,
+ "per_operator": {
+  "Sectigo": {
+   "entries": 378129,
+   "logs": 8,
+   "tiled_entries": 0,
+   "zero_logs": [
+    "mammoth2026h2.ct.sectigo.com",
+    "sabre2026h2.ct.sectigo.com"
+   ],
+   "share": 0.2989
+  },
+  "Google": {
+   "entries": 279766,
+   "logs": 10,
+   "tiled_entries": 127566,
+   "zero_logs": [],
+   "share": 0.2211
+  },
+  "TrustAsia": {
+   "entries": 137651,
+   "logs": 4,
+   "tiled_entries": 52224,
+   "zero_logs": [],
+   "share": 0.1088
+  },
+  "Let's Encrypt": {
+   "entries": 120169,
+   "logs": 6,
+   "tiled_entries": 120169,
+   "zero_logs": [],
+   "share": 0.095
+  },
+  "IPng Networks": {
+   "entries": 106399,
+   "logs": 10,
+   "tiled_entries": 106399,
+   "zero_logs": [
+    "halloumi2028h1.mon.ct.ipng.ch"
+   ],
+   "share": 0.0841
+  },
+  "Cloudflare": {
+   "entries": 97132,
+   "logs": 2,
+   "tiled_entries": 0,
+   "zero_logs": [
+    "ct.cloudflare.com/logs/nimbus2026"
+   ],
+   "share": 0.0768
+  },
+  "DigiCert": {
+   "entries": 79604,
+   "logs": 6,
+   "tiled_entries": 0,
+   "zero_logs": [],
+   "share": 0.0629
+  },
+  "Geomys": {
+   "entries": 65324,
+   "logs": 10,
+   "tiled_entries": 65324,
+   "zero_logs": [],
+   "share": 0.0516
+  },
+  "Microsec": {
+   "entries": 984,
+   "logs": 5,
+   "tiled_entries": 984,
+   "zero_logs": [],
+   "share": 0.0008
+  },
+  "GoDaddy": {
+   "entries": 0,
+   "logs": 5,
+   "tiled_entries": 0,
+   "zero_logs": [
+    "ct-log-api.godaddy.com/aquamarine2026h2",
+    "ct-log-api.godaddy.com/aquamarine2027h1",
+    "ct-log-api.godaddy.com/aquamarine2027h2",
+    "ct-log-api.godaddy.com/aquamarine2028h1",
+    "ct-log-api.godaddy.com/aquamarine2028h2"
+   ],
+   "share": 0.0
+  }
+ },
+ "per_log": [
+  {
+   "url": "tiger2027h1.ct.sectigo.com",
+   "operator": "Sectigo",
+   "type": "rfc6962",
+   "entries": 166842,
+   "per_sec": 90.82
+  },
+  {
+   "url": "elephant2027h1.ct.sectigo.com",
+   "operator": "Sectigo",
+   "type": "rfc6962",
+   "entries": 163677,
+   "per_sec": 89.1
+  },
+  {
+   "url": "ct.cloudflare.com/logs/nimbus2027",
+   "operator": "Cloudflare",
+   "type": "rfc6962",
+   "entries": 97132,
+   "per_sec": 52.88
+  },
+  {
+   "url": "luoshu2027.trustasia.com/luoshu2027",
+   "operator": "TrustAsia",
+   "type": "tiled",
+   "entries": 52224,
+   "per_sec": 28.43
+  },
+  {
+   "url": "tuscolo2027h1.skylight.geomys.org",
+   "operator": "Geomys",
+   "type": "tiled",
+   "entries": 51968,
+   "per_sec": 28.29
+  },
+  {
+   "url": "mon.willow.ct.letsencrypt.org/2027h1",
+   "operator": "Let's Encrypt",
+   "type": "tiled",
+   "entries": 43264,
+   "per_sec": 23.55
+  },
+  {
+   "url": "mon.sycamore.ct.letsencrypt.org/2027h1",
+   "operator": "Let's Encrypt",
+   "type": "tiled",
+   "entries": 43083,
+   "per_sec": 23.45
+  },
+  {
+   "url": "ct.googleapis.com/logs/us1/argon2026h2",
+   "operator": "Google",
+   "type": "rfc6962",
+   "entries": 43008,
+   "per_sec": 23.41
+  },
+  {
+   "url": "ct.googleapis.com/logs/us1/argon2027h1",
+   "operator": "Google",
+   "type": "rfc6962",
+   "entries": 42930,
+   "per_sec": 23.37
+  },
+  {
+   "url": "gouda2027h1.mon.ct.ipng.ch",
+   "operator": "IPng Networks",
+   "type": "tiled",
+   "entries": 42240,
+   "per_sec": 22.99
+  },
+  {
+   "url": "storage.googleapis.com/plumbersarms2027h1.prod.certificate.transparency.goog",
+   "operator": "Google",
+   "type": "tiled",
+   "entries": 40192,
+   "per_sec": 21.88
+  },
+  {
+   "url": "halloumi2027h1.mon.ct.ipng.ch",
+   "operator": "IPng Networks",
+   "type": "tiled",
+   "entries": 39424,
+   "per_sec": 21.46
+  },
+  {
+   "url": "storage.googleapis.com/parcelyard2026h2.prod.certificate.transparency.goog",
+   "operator": "Google",
+   "type": "tiled",
+   "entries": 38425,
+   "per_sec": 20.92
+  },
+  {
+   "url": "storage.googleapis.com/parcelyard2027h1.prod.certificate.transparency.goog",
+   "operator": "Google",
+   "type": "tiled",
+   "entries": 34048,
+   "per_sec": 18.53
+  },
+  {
+   "url": "ct.googleapis.com/logs/eu1/xenon2027h1",
+   "operator": "Google",
+   "type": "rfc6962",
+   "entries": 33536,
+   "per_sec": 18.26
+  },
+  {
+   "url": "ct.googleapis.com/logs/eu1/xenon2026h2",
+   "operator": "Google",
+   "type": "rfc6962",
+   "entries": 32726,
+   "per_sec": 17.81
+  },
+  {
+   "url": "ct2026-a.trustasia.com/log2026a",
+   "operator": "TrustAsia",
+   "type": "rfc6962",
+   "entries": 32292,
+   "per_sec": 17.58
+  },
+  {
+   "url": "hetu2027.trustasia.com/hetu2027",
+   "operator": "TrustAsia",
+   "type": "rfc6962",
+   "entries": 31104,
+   "per_sec": 16.93
+  },
+  {
+   "url": "tiger2026h2.ct.sectigo.com",
+   "operator": "Sectigo",
+   "type": "rfc6962",
+   "entries": 28019,
+   "per_sec": 15.25
+  },
+  {
+   "url": "sphinx.ct.digicert.com/2027h1",
+   "operator": "DigiCert",
+   "type": "rfc6962",
+   "entries": 26926,
+   "per_sec": 14.66
+  },
+  {
+   "url": "wyvern.ct.digicert.com/2027h1",
+   "operator": "DigiCert",
+   "type": "rfc6962",
+   "entries": 24717,
+   "per_sec": 13.46
+  },
+  {
+   "url": "ct2026-b.trustasia.com/log2026b",
+   "operator": "TrustAsia",
+   "type": "rfc6962",
+   "entries": 22031,
+   "per_sec": 11.99
+  },
+  {
+   "url": "elephant2026h2.ct.sectigo.com",
+   "operator": "Sectigo",
+   "type": "rfc6962",
+   "entries": 19587,
+   "per_sec": 10.66
+  },
+  {
+   "url": "halloumi2026h2a.mon.ct.ipng.ch",
+   "operator": "IPng Networks",
+   "type": "tiled",
+   "entries": 17556,
+   "per_sec": 9.56
+  },
+  {
+   "url": "mon.sycamore.ct.letsencrypt.org/2026h2",
+   "operator": "Let's Encrypt",
+   "type": "tiled",
+   "entries": 16923,
+   "per_sec": 9.21
+  },
+  {
+   "url": "mon.willow.ct.letsencrypt.org/2026h2",
+   "operator": "Let's Encrypt",
+   "type": "tiled",
+   "entries": 16896,
+   "per_sec": 9.2
+  },
+  {
+   "url": "wyvern.ct.digicert.com/2026h2",
+   "operator": "DigiCert",
+   "type": "rfc6962",
+   "entries": 14903,
+   "per_sec": 8.11
+  },
+  {
+   "url": "storage.googleapis.com/plumbersarms2026h2.prod.certificate.transparency.goog",
+   "operator": "Google",
+   "type": "tiled",
+   "entries": 14899,
+   "per_sec": 8.11
+  },
+  {
+   "url": "sphinx.ct.digicert.com/2026h2",
+   "operator": "DigiCert",
+   "type": "rfc6962",
+   "entries": 13056,
+   "per_sec": 7.11
+  },
+  {
+   "url": "tuscolo2026h2.skylight.geomys.org",
+   "operator": "Geomys",
+   "type": "tiled",
+   "entries": 12288,
+   "per_sec": 6.69
+  },
+  {
+   "url": "gouda2026h2.mon.ct.ipng.ch",
+   "operator": "IPng Networks",
+   "type": "tiled",
+   "entries": 7168,
+   "per_sec": 3.9
+  },
+  {
+   "url": "eszigno2027h1.mon.ct.e-szigno.hu",
+   "operator": "Microsec",
+   "type": "tiled",
+   "entries": 936,
+   "per_sec": 0.51
+  },
+  {
+   "url": "trastevere2027h1.skylight.geomys.org",
+   "operator": "Geomys",
+   "type": "tiled",
+   "entries": 899,
+   "per_sec": 0.49
+  },
+  {
+   "url": "eszigno2026h2.mon.ct.e-szigno.hu",
+   "operator": "Microsec",
+   "type": "tiled",
+   "entries": 43,
+   "per_sec": 0.02
+  },
+  {
+   "url": "trastevere2028h1.skylight.geomys.org",
+   "operator": "Geomys",
+   "type": "tiled",
+   "entries": 34,
+   "per_sec": 0.02
+  },
+  {
+   "url": "trastevere2026h2.skylight.geomys.org",
+   "operator": "Geomys",
+   "type": "tiled",
+   "entries": 33,
+   "per_sec": 0.02
+  },
+  {
+   "url": "tuscolo2027h2.skylight.geomys.org",
+   "operator": "Geomys",
+   "type": "tiled",
+   "entries": 33,
+   "per_sec": 0.02
+  },
+  {
+   "url": "trastevere2028h2.skylight.geomys.org",
+   "operator": "Geomys",
+   "type": "tiled",
+   "entries": 32,
+   "per_sec": 0.02
+  },
+  {
+   "url": "trastevere2027h2.skylight.geomys.org",
+   "operator": "Geomys",
+   "type": "tiled",
+   "entries": 13,
+   "per_sec": 0.01
+  },
+  {
+   "url": "tuscolo2028h1.skylight.geomys.org",
+   "operator": "Geomys",
+   "type": "tiled",
+   "entries": 12,
+   "per_sec": 0.01
+  },
+  {
+   "url": "tuscolo2028h2.skylight.geomys.org",
+   "operator": "Geomys",
+   "type": "tiled",
+   "entries": 12,
+   "per_sec": 0.01
+  },
+  {
+   "url": "elephant2027h2.ct.sectigo.com",
+   "operator": "Sectigo",
+   "type": "rfc6962",
+   "entries": 3,
+   "per_sec": 0.0
+  },
+  {
+   "url": "gouda2028h2.mon.ct.ipng.ch",
+   "operator": "IPng Networks",
+   "type": "tiled",
+   "entries": 3,
+   "per_sec": 0.0
+  },
+  {
+   "url": "halloumi2028h2.mon.ct.ipng.ch",
+   "operator": "IPng Networks",
+   "type": "tiled",
+   "entries": 3,
+   "per_sec": 0.0
+  },
+  {
+   "url": "eszigno2027h2.mon.ct.e-szigno.hu",
+   "operator": "Microsec",
+   "type": "tiled",
+   "entries": 2,
+   "per_sec": 0.0
+  },
+  {
+   "url": "eszigno2028h2.mon.ct.e-szigno.hu",
+   "operator": "Microsec",
+   "type": "tiled",
+   "entries": 2,
+   "per_sec": 0.0
+  },
+  {
+   "url": "gouda2028h1.mon.ct.ipng.ch",
+   "operator": "IPng Networks",
+   "type": "tiled",
+   "entries": 2,
+   "per_sec": 0.0
+  },
+  {
+   "url": "halloumi2027h2.mon.ct.ipng.ch",
+   "operator": "IPng Networks",
+   "type": "tiled",
+   "entries": 2,
+   "per_sec": 0.0
+  },
+  {
+   "url": "mon.sycamore.ct.letsencrypt.org/2027h2",
+   "operator": "Let's Encrypt",
+   "type": "tiled",
+   "entries": 2,
+   "per_sec": 0.0
+  },
+  {
+   "url": "eszigno2028h1.mon.ct.e-szigno.hu",
+   "operator": "Microsec",
+   "type": "tiled",
+   "entries": 1,
+   "per_sec": 0.0
+  },
+  {
+   "url": "gouda2027h2.mon.ct.ipng.ch",
+   "operator": "IPng Networks",
+   "type": "tiled",
+   "entries": 1,
+   "per_sec": 0.0
+  },
+  {
+   "url": "mon.willow.ct.letsencrypt.org/2027h2",
+   "operator": "Let's Encrypt",
+   "type": "tiled",
+   "entries": 1,
+   "per_sec": 0.0
+  },
+  {
+   "url": "sphinx.ct.digicert.com/2027h2",
+   "operator": "DigiCert",
+   "type": "rfc6962",
+   "entries": 1,
+   "per_sec": 0.0
+  },
+  {
+   "url": "storage.googleapis.com/parcelyard2027h2.prod.certificate.transparency.goog",
+   "operator": "Google",
+   "type": "tiled",
+   "entries": 1,
+   "per_sec": 0.0
+  },
+  {
+   "url": "storage.googleapis.com/plumbersarms2027h2.prod.certificate.transparency.goog",
+   "operator": "Google",
+   "type": "tiled",
+   "entries": 1,
+   "per_sec": 0.0
+  },
+  {
+   "url": "tiger2027h2.ct.sectigo.com",
+   "operator": "Sectigo",
+   "type": "rfc6962",
+   "entries": 1,
+   "per_sec": 0.0
+  },
+  {
+   "url": "wyvern.ct.digicert.com/2027h2",
+   "operator": "DigiCert",
+   "type": "rfc6962",
+   "entries": 1,
+   "per_sec": 0.0
+  },
+  {
+   "url": "ct-log-api.godaddy.com/aquamarine2026h2",
+   "operator": "GoDaddy",
+   "type": "tiled",
+   "entries": 0,
+   "per_sec": 0.0
+  },
+  {
+   "url": "ct-log-api.godaddy.com/aquamarine2027h1",
+   "operator": "GoDaddy",
+   "type": "tiled",
+   "entries": 0,
+   "per_sec": 0.0
+  },
+  {
+   "url": "ct-log-api.godaddy.com/aquamarine2027h2",
+   "operator": "GoDaddy",
+   "type": "tiled",
+   "entries": 0,
+   "per_sec": 0.0
+  },
+  {
+   "url": "ct-log-api.godaddy.com/aquamarine2028h1",
+   "operator": "GoDaddy",
+   "type": "tiled",
+   "entries": 0,
+   "per_sec": 0.0
+  },
+  {
+   "url": "ct-log-api.godaddy.com/aquamarine2028h2",
+   "operator": "GoDaddy",
+   "type": "tiled",
+   "entries": 0,
+   "per_sec": 0.0
+  },
+  {
+   "url": "ct.cloudflare.com/logs/nimbus2026",
+   "operator": "Cloudflare",
+   "type": "rfc6962",
+   "entries": 0,
+   "per_sec": 0.0
+  },
+  {
+   "url": "halloumi2028h1.mon.ct.ipng.ch",
+   "operator": "IPng Networks",
+   "type": "tiled",
+   "entries": 0,
+   "per_sec": 0.0
+  },
+  {
+   "url": "mammoth2026h2.ct.sectigo.com",
+   "operator": "Sectigo",
+   "type": "rfc6962",
+   "entries": 0,
+   "per_sec": 0.0
+  },
+  {
+   "url": "sabre2026h2.ct.sectigo.com",
+   "operator": "Sectigo",
+   "type": "rfc6962",
+   "entries": 0,
+   "per_sec": 0.0
+  }
+ ],
+ "outbound": {
+  "inbound_bytes_from_ct_logs": 3399000000,
+  "inbound_mbit_per_sec": 14.8,
+  "derived_tile_requests": 1870,
+  "derived_rfc6962_get_entries_requests": 3107,
+  "derived_checkpoint_polls_range": [
+   4531,
+   33984
+  ],
+  "derived_total_requests_per_sec_range": [
+   5.18,
+   21.21
+  ],
+  "method": "certstream-server-go exposes no HTTP request counter. Requests are derived: one full data tile per 256 tiled entries (partial tiles deferred up to 60 s, #104 fix); one get-entries per 256 RFC 6962 entries; one checkpoint poll per tiled log every 2-15 s. Inbound bytes are measured (docker stats RX of the certstream container)."
+ }
+}
