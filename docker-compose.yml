@@ -1,5 +1,5 @@
 # QCertChain — local and demo infrastructure
-# Bring up:  docker compose up -d postgres redis
+# Bring up:  docker compose up -d redis certstream   (DB is Supabase)
 # Full:      docker compose up -d
 name: qcertchain
 
@@ -11,21 +11,6 @@ services:
     restart: unless-stopped
     # v1.10.1: #104 partial-tile fix + #114 off-by-one. recovery off (see config).
 
-  postgres:
-    image: postgres:16-alpine
-    environment:
-      POSTGRES_USER: qcertchain
-      POSTGRES_PASSWORD: qcertchain
-      POSTGRES_DB: qcertchain
-    ports: ["5432:5432"]
-    volumes:
-      - pgdata:/var/lib/postgresql/data
-      - ./services/api/schema.sql:/docker-entrypoint-initdb.d/01-schema.sql:ro
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U qcertchain"]
-      interval: 5s
-      timeout: 3s
-      retries: 10
 
   redis:
     image: redis:7-alpine
@@ -44,11 +29,9 @@ services:
     build: {context: ., dockerfile: services/api/Dockerfile}
     env_file: [.env]
     environment:
-      DATABASE_URL: postgresql+psycopg://qcertchain:qcertchain@postgres:5432/qcertchain
       REDIS_URL: redis://redis:6379
     ports: ["8000:8000"]
     depends_on:
-      postgres: {condition: service_healthy}
       redis: {condition: service_healthy}
     volumes: ["./data:/data"]
     command: uvicorn main:app --host 0.0.0.0 --port 8000
@@ -70,10 +53,8 @@ services:
     build: {context: ., dockerfile: services/api/Dockerfile}
     env_file: [.env]
     environment:
-      DATABASE_URL: postgresql+psycopg://qcertchain:qcertchain@postgres:5432/qcertchain
       REDIS_URL: redis://redis:6379
     depends_on:
-      postgres: {condition: service_healthy}
       redis: {condition: service_healthy}
     volumes: ["./data:/data"]
     command: python -m services.api.workers.triage_worker
@@ -83,10 +64,8 @@ services:
     build: {context: ., dockerfile: services/api/Dockerfile}
     env_file: [.env]
     environment:
-      DATABASE_URL: postgresql+psycopg://qcertchain:qcertchain@postgres:5432/qcertchain
       REDIS_URL: redis://redis:6379
     depends_on:
-      postgres: {condition: service_healthy}
       redis: {condition: service_healthy}
     volumes: ["./data:/data"]
     command: python -m services.api.workers.enrich_worker
@@ -101,6 +80,13 @@ services:
     command: npx hardhat node --hostname 0.0.0.0
     restart: unless-stopped
 
+  postgres-test:
+    image: postgres:17-alpine
+    profiles: [test]
+    environment: {POSTGRES_USER: qcertchain, POSTGRES_PASSWORD: qcertchain, POSTGRES_DB: qcertchain_test}
+    ports: ["127.0.0.1:5433:5432"]
+    tmpfs: [/var/lib/postgresql/data]
+    # tests only — the app database is Supabase (spec D7)
+
 volumes:
-  pgdata:
   redisdata:

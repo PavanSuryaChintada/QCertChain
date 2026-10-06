@@ -33,3 +33,26 @@ Format: **AI did** · **Owner decided** · **Verified by** · **Rulings** (AI ju
   - Pinned `web3==7.10.0` instead of the plan's 7.6.0, which requires `websockets<14` and conflicts with the TRD pin `websockets==14.1`.
   - The CT capture runs before the rest of Phase 0, per the owner's order.
 - **Observed:** GoDaddy CT logs (aquamarine*) answered HTTP 429 at startup, and certstream-server-go dropped those workers. This is a coverage gap that goes into the capture report.
+
+## Task 2 — Supabase schema + RLS, test Postgres
+
+- **AI did:**
+  - Extended `schema.sql` with:
+    - `domains.source`
+    - stage timestamps `ct_seen_at`, `candidate_at`, `campaign_joined_at`
+    - a DB check that blocks `confirmed` without stored signals
+    - a unique certificate fingerprint
+    - the `registrar` node kind, with takedown routes limited to hosting, dns and registrar
+    - benchmark columns `qubit_count`, `is_best`, `error`, `targets`
+    - `fallback_from`
+    - the `known_kits` and `email_analyses` tables, with a DB check that malicious needs 2 strong signals
+    - an idempotent FK
+    - RLS on every table
+  - Added a `postgres:17` test container. Tests refuse to run against Supabase.
+- **Verified by:**
+  - `test_schema.py`: RED 7/9, then GREEN 9/9.
+  - Supabase pooler host in `.env` == live project pooler config from the management API (`aws-0-ap-southeast-1.pooler.supabase.com`). Session mode on :5432 connects (PostgreSQL 17.11).
+  - Applied to Supabase: 18 tables, 0 without RLS.
+  - Live probe: anon REST read returned `[]` with a row present, and anon REST insert was rejected with `42501`. Probe row deleted.
+- **Rulings:** none beyond the plan.
+- **Incident:** a Python edit of `docker-compose.yml` used the Windows default cp1252 encoding and mangled the em dashes. I repaired it and verified there is no remaining mojibake. All file writes now pass `encoding="utf-8"` explicitly.
