@@ -71,3 +71,28 @@ Format: **AI did** · **Owner decided** · **Verified by** · **Rulings** (AI ju
   - The allowlist size assertion is ≥ 99,000 (the plan said ≥ 100,000), because 100k Tranco rows normalise to 99,627 registrable domains.
   - `bank.in` is allowlisted as a zone (RBI-restricted registry).
   - Generic tokens were dropped from the spec's example: `netbanking` stays a phishing keyword rather than an HDFC token, and `axis` and `kite` were too generic.
+
+## Task 6 — triage (release gate)
+
+- **AI did:**
+  - Wrote the confusable skeleton (`homoglyph.py`).
+  - Wrote the 12-feature extractor shared with training (`services/ml/features.py`).
+  - Wrote rules triage with allowlist first and TRD §2 weights, unchanged (`triage.py`).
+  - Wrote the real-traffic benchmark (`scripts/bench_triage.py` → `reports/triage_bench.json`).
+- **Verified by:**
+  - `test_triage.py`: RED (module missing), then GREEN. It now has 50 tests:
+    - plan gates: legit never a candidate, phishing always a candidate, < 5 ms average
+    - 7 regressions built from real false positives in the capture
+    - homoglyph, brand-TLD, unknown-TLD and warm-up tests
+  - Benchmark on 200k unique real CT names: p50 0.29 ms, p95 1.5 ms, p99 4.8–5.3 ms (varies run to run on this laptop). Max 108 ms, consistent with the ~95 ms machine stalls measured with no triage code running.
+  - Candidate volume: 50 → **10 per 200k names**, about 1.5 per minute of stream.
+- **Found by measuring on real traffic, each fixed test-first:**
+  1. **Double counting:** one substring hit counted as both an exact token and a lookalike. This flagged `growww.today` (Dutch, unrelated) and `idfcbank.com`, which is 1 edit from `hdfcbank`.
+  2. **Lookalike on common words:** `onlines` is 2 deletions from `onlinesbi`. A segment shorter than the token now gets 1 edit at most.
+  3. **Hex split into `vi`:** splitting segments on digits turned hex like `vi0svszw` into the token `vi`. Digits now stay inside segments, and edge digits are stripped (`sbi1` → `sbi`).
+  4. **AWS's own domains** were flagged. Added `amazonaws.com`, `amazonwebservices.com/.com.cn/.eu` and `amazongamelift.com`, ownership checked via NS on `awsdns-*`. A bare public-suffix name (an S3 access point) now scores 0.
+  5. **Brand-owned TLDs** (`.sbi`, `.jio`, `.amazon`, `.aws`) are now allowlisted, with the sponsor of each verified in IANA's root database.
+  6. **ASCII `l→i`** turned `vl` into `vi`. Homoglyph matches on 2–3 letter tokens now need real non-ASCII characters.
+  7. **Unknown-TLD bug:** a TLD missing from the PSL snapshot was being treated as "is a public suffix" and scored 0. New gTLDs would never have been flagged. Fixed and tested.
+  8. **4-second first call:** the lazy allowlist build landed on the first live certificate. Added `warm()`, which workers call at startup.
+- **Rulings:** listed in the ledger. Weights unchanged; every change is to feature extraction, per the plan's rule.

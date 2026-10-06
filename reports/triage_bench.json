@@ -1,0 +1,116 @@
+{
+ "measured_at": "2026-10-06T14:30:31.302740+00:00",
+ "capture": "data/capture.jsonl",
+ "names_unique": 200000,
+ "capture_span_min": 6.53,
+ "latency_us": {
+  "p50": 294.5,
+  "p95": 1519.2,
+  "p99": 5333.8,
+  "max": 107937.1
+ },
+ "candidates": 10,
+ "candidates_per_min_of_stream": 1.5,
+ "by_brand": [
+  [
+   "Amazon India",
+   9
+  ],
+  [
+   "Vi (Vodafone Idea)",
+   1
+  ]
+ ],
+ "sample": [
+  [
+   "www.lkjilgfihcbxbtjy08698whm.amazonaf-45bb-a6ee-e0c7fc93dc87.kennelstudio.com",
+   0.45,
+   "Amazon India",
+   [
+    "brand_token_exact",
+    "shape"
+   ]
+  ],
+  [
+   "www.srwww.whm.qq0omm0kii0gee0cawhm.4whm.amazonaf-45bb-a6ee-e0c7fc93dc87.kennelstudio.com",
+   0.45,
+   "Amazon India",
+   [
+    "brand_token_exact",
+    "shape"
+   ]
+  ],
+  [
+   "mu.myvips.top",
+   0.5,
+   "Vi (Vodafone Idea)",
+   [
+    "brand_token_exact",
+    "tld_risk"
+   ]
+  ],
+  [
+   "www.yxwvqxwvqlsnn0ljihgff0dbawhm.87698whm.amazonaf-45bb-a6ee-e0c7fc93dc87.kennelstudio.com",
+   0.45,
+   "Amazon India",
+   [
+    "brand_token_exact",
+    "shape"
+   ]
+  ],
+  [
+   "www.zytkvuponqlknmloo0mkjj0hfee0ca8amazonaf-45bb-a6ee-e0c7fc93dc87.kennelstudio.com",
+   0.45,
+   "Amazon India",
+   [
+    "brand_token_exact",
+    "shape"
+   ]
+  ],
+  [
+   "nwhm.mvd.n0ljihgfamvd.87698whm.amazonaf-45bb-a6ee-e0c7fc93dc87.kennelstudio.com",
+   0.45,
+   "Amazon India",
+   [
+    "brand_token_exact",
+    "shape"
+   ]
+  ],
+  [
+   "mlkwww.fedgbanotexistsamazonaf-45bb-a6ee-e0c7fc93dc87.ks98765432notexistsnotexistsnotexistspanel.helioscope.fr",
+   0.45,
+   "Amazon India",
+   [
+    "brand_token_exact",
+    "shape"
+   ]
+  ],
+  [
+   "www.swww.zytsnmponihgfahkfj0hff0dba87698amazonaf-45bb-a6ee-e0c7fc93dc87.kennelstudio.com",
+   0.45,
+   "Amazon India",
+   [
+    "brand_token_exact",
+    "shape"
+   ]
+  ],
+  [
+   "www.pstore.qponmhgbahgfmvl.097698whm.amazonaf-45bb-a6ee-e0c7fc93dc87.kennelstudio.com",
+   0.45,
+   "Amazon India",
+   [
+    "brand_token_exact",
+    "shape"
+   ]
+  ],
+  [
+   "www.www.old.twww.onmlsrqponihgfahkfj0hff0dba87698amazonaf-45bb-a6ee-e0c7fc93dc87.kennelstudio.com",
+   0.45,
+   "Amazon India",
+   [
+    "brand_token_exact",
+    "shape"
+   ]
+  ]
+ ]
+}

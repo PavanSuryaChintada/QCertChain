@@ -39,12 +39,14 @@ class Brand:
     tokens: tuple[str, ...]
     legit_domains: tuple[str, ...]
     sector: str
+    legit_tlds: tuple[str, ...] = ()
 
 
 @dataclass
 class BrandIndex:
     brands: list[Brand]
     legit_etld1s: set[str] = field(default_factory=set)
+    legit_tlds: set[str] = field(default_factory=set)
     by_token: dict[str, Brand] = field(default_factory=dict)
     tokens_by_len: dict[int, list[str]] = field(default_factory=lambda: defaultdict(list))
 
@@ -55,9 +57,11 @@ def load_brands(path: str | Path) -> BrandIndex:
     idx = BrandIndex(brands=[])
     for b in raw:
         brand = Brand(b["name"], tuple(t.lower() for t in b["tokens"]),
-                      tuple(d.lower() for d in b["legit_domains"]), b["sector"])
+                      tuple(d.lower() for d in b["legit_domains"]), b["sector"],
+                      tuple(t.lower() for t in b.get("legit_tlds", ())))
         idx.brands.append(brand)
         idx.legit_etld1s.update(etld1(d) for d in brand.legit_domains)
+        idx.legit_tlds.update(brand.legit_tlds)
         for t in brand.tokens:
             if t in idx.by_token:
                 raise ValueError(f"token {t!r} used by two brands")

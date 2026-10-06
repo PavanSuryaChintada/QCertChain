@@ -1,6 +1,7 @@
 # QCertChain brand list — drives triage (TRD §2, DATA.md §4).
 # tokens: lowercase alphanumerics, unique across brands. Tokens of <= 3 chars match only a
 # whole hyphen/dot/digit-delimited segment (triage), never a substring.
+# legit_tlds: brand-owned top-level domains (IANA sponsoring organisation verified).
 # legit_domains: the brand's real registrable domains. Every entry is DNS-verified by
 # scripts/verify_brands.py; anything unverified is omitted and listed in data/MANIFEST.md.
 
@@ -8,6 +9,7 @@
 - name: State Bank of India
   tokens: [sbi, onlinesbi, yonosbi]
   legit_domains: [sbi.co.in, onlinesbi.sbi, yonosbi.com]
+  legit_tlds: [sbi]          # IANA sponsor: STATE BANK OF INDIA
   sector: banking
 - name: HDFC Bank
   tokens: [hdfc, hdfcbank]
@@ -84,6 +86,7 @@
 - name: Jio
   tokens: [jio, myjio]
   legit_domains: [jio.com]
+  legit_tlds: [jio]          # IANA sponsor: Reliance Industries Limited
   sector: telecom
 - name: Airtel
   tokens: [airtel]
@@ -135,7 +138,9 @@
 # --- E-commerce ---
 - name: Amazon India
   tokens: [amazon]
-  legit_domains: [amazon.in, amazon.com]
+  # AWS service domains: Amazon-owned (NS on awsdns-*); seen as false positives in the 2026-10-06 capture
+  legit_domains: [amazon.in, amazon.com, amazonaws.com, amazonwebservices.com, amazonwebservices.com.cn, amazonwebservices.eu, amazongamelift.com]
+  legit_tlds: [amazon, aws]  # IANA sponsors: Amazon Registry Services / AWS Registry LLC
   sector: ecommerce
 - name: Flipkart
   tokens: [flipkart]

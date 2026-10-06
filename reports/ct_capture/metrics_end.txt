@@ -1,0 +1,71 @@
+certstreamservergo_certificates_total{type="precert"} 638276
+certstreamservergo_certificates_total{type="regular"} 703545
+certstreamservergo_certs_by_log_total{url="ct-log-api.godaddy.com/aquamarine2026h2",operator="GoDaddy"} 0
+certstreamservergo_certs_by_log_total{url="ct-log-api.godaddy.com/aquamarine2027h1",operator="GoDaddy"} 0
+certstreamservergo_certs_by_log_total{url="ct-log-api.godaddy.com/aquamarine2027h2",operator="GoDaddy"} 0
+certstreamservergo_certs_by_log_total{url="ct-log-api.godaddy.com/aquamarine2028h1",operator="GoDaddy"} 0
+certstreamservergo_certs_by_log_total{url="ct-log-api.godaddy.com/aquamarine2028h2",operator="GoDaddy"} 0
+certstreamservergo_certs_by_log_total{url="ct.cloudflare.com/logs/nimbus2026",operator="Cloudflare"} 0
+certstreamservergo_certs_by_log_total{url="ct.cloudflare.com/logs/nimbus2027",operator="Cloudflare"} 97132
+certstreamservergo_certs_by_log_total{url="ct.googleapis.com/logs/eu1/xenon2026h2",operator="Google"} 33962
+certstreamservergo_certs_by_log_total{url="ct.googleapis.com/logs/eu1/xenon2027h1",operator="Google"} 35008
+certstreamservergo_certs_by_log_total{url="ct.googleapis.com/logs/us1/argon2026h2",operator="Google"} 44705
+certstreamservergo_certs_by_log_total{url="ct.googleapis.com/logs/us1/argon2027h1",operator="Google"} 45073
+certstreamservergo_certs_by_log_total{url="ct2026-a.trustasia.com/log2026a",operator="TrustAsia"} 32292
+certstreamservergo_certs_by_log_total{url="ct2026-b.trustasia.com/log2026b",operator="TrustAsia"} 22543
+certstreamservergo_certs_by_log_total{url="elephant2026h2.ct.sectigo.com",operator="Sectigo"} 21188
+certstreamservergo_certs_by_log_total{url="elephant2027h1.ct.sectigo.com",operator="Sectigo"} 167103
+certstreamservergo_certs_by_log_total{url="elephant2027h2.ct.sectigo.com",operator="Sectigo"} 3
+certstreamservergo_certs_by_log_total{url="eszigno2026h2.mon.ct.e-szigno.hu",operator="Microsec"} 47
+certstreamservergo_certs_by_log_total{url="eszigno2027h1.mon.ct.e-szigno.hu",operator="Microsec"} 951
+certstreamservergo_certs_by_log_total{url="eszigno2027h2.mon.ct.e-szigno.hu",operator="Microsec"} 2
+certstreamservergo_certs_by_log_total{url="eszigno2028h1.mon.ct.e-szigno.hu",operator="Microsec"} 1
+certstreamservergo_certs_by_log_total{url="eszigno2028h2.mon.ct.e-szigno.hu",operator="Microsec"} 2
+certstreamservergo_certs_by_log_total{url="gouda2026h2.mon.ct.ipng.ch",operator="IPng Networks"} 7761
+certstreamservergo_certs_by_log_total{url="gouda2027h1.mon.ct.ipng.ch",operator="IPng Networks"} 45160
+certstreamservergo_certs_by_log_total{url="gouda2027h2.mon.ct.ipng.ch",operator="IPng Networks"} 1
+certstreamservergo_certs_by_log_total{url="gouda2028h1.mon.ct.ipng.ch",operator="IPng Networks"} 2
+certstreamservergo_certs_by_log_total{url="gouda2028h2.mon.ct.ipng.ch",operator="IPng Networks"} 3
+certstreamservergo_certs_by_log_total{url="halloumi2026h2a.mon.ct.ipng.ch",operator="IPng Networks"} 18771
+certstreamservergo_certs_by_log_total{url="halloumi2027h1.mon.ct.ipng.ch",operator="IPng Networks"} 43128
+certstreamservergo_certs_by_log_total{url="halloumi2027h2.mon.ct.ipng.ch",operator="IPng Networks"} 2
+certstreamservergo_certs_by_log_total{url="halloumi2028h1.mon.ct.ipng.ch",operator="IPng Networks"} 0
+certstreamservergo_certs_by_log_total{url="halloumi2028h2.mon.ct.ipng.ch",operator="IPng Networks"} 3
+certstreamservergo_certs_by_log_total{url="hetu2027.trustasia.com/hetu2027",operator="TrustAsia"} 31965
+certstreamservergo_certs_by_log_total{url="luoshu2027.trustasia.com/luoshu2027",operator="TrustAsia"} 56751
+certstreamservergo_certs_by_log_total{url="mammoth2026h2.ct.sectigo.com",operator="Sectigo"} 0
+certstreamservergo_certs_by_log_total{url="mon.sycamore.ct.letsencrypt.org/2026h2",operator="Let's Encrypt"} 18203
+certstreamservergo_certs_by_log_total{url="mon.sycamore.ct.letsencrypt.org/2027h1",operator="Let's Encrypt"} 49901
+certstreamservergo_certs_by_log_total{url="mon.sycamore.ct.letsencrypt.org/2027h2",operator="Let's Encrypt"} 2
+certstreamservergo_certs_by_log_total{url="mon.willow.ct.letsencrypt.org/2026h2",operator="Let's Encrypt"} 18472
+certstreamservergo_certs_by_log_total{url="mon.willow.ct.letsencrypt.org/2027h1",operator="Let's Encrypt"} 49731
+certstreamservergo_certs_by_log_total{url="mon.willow.ct.letsencrypt.org/2027h2",operator="Let's Encrypt"} 1
+certstreamservergo_certs_by_log_total{url="sabre2026h2.ct.sectigo.com",operator="Sectigo"} 0
+certstreamservergo_certs_by_log_total{url="sphinx.ct.digicert.com/2026h2",operator="DigiCert"} 14400
+certstreamservergo_certs_by_log_total{url="sphinx.ct.digicert.com/2027h1",operator="DigiCert"} 31511
+certstreamservergo_certs_by_log_total{url="sphinx.ct.digicert.com/2027h2",operator="DigiCert"} 1
+certstreamservergo_certs_by_log_total{url="storage.googleapis.com/parcelyard2026h2.prod.certificate.transparency.goog",operator="Google"} 39592
+certstreamservergo_certs_by_log_total{url="storage.googleapis.com/parcelyard2027h1.prod.certificate.transparency.goog",operator="Google"} 39094
+certstreamservergo_certs_by_log_total{url="storage.googleapis.com/parcelyard2027h2.prod.certificate.transparency.goog",operator="Google"} 1
+certstreamservergo_certs_by_log_total{url="storage.googleapis.com/plumbersarms2026h2.prod.certificate.transparency.goog",operator="Google"} 16254
+certstreamservergo_certs_by_log_total{url="storage.googleapis.com/plumbersarms2027h1.prod.certificate.transparency.goog",operator="Google"} 46593
+certstreamservergo_certs_by_log_total{url="storage.googleapis.com/plumbersarms2027h2.prod.certificate.transparency.goog",operator="Google"} 1
+certstreamservergo_certs_by_log_total{url="tiger2026h2.ct.sectigo.com",operator="Sectigo"} 28019
+certstreamservergo_certs_by_log_total{url="tiger2027h1.ct.sectigo.com",operator="Sectigo"} 169763
+certstreamservergo_certs_by_log_total{url="tiger2027h2.ct.sectigo.com",operator="Sectigo"} 1
+certstreamservergo_certs_by_log_total{url="trastevere2026h2.skylight.geomys.org",operator="Geomys"} 33
+certstreamservergo_certs_by_log_total{url="trastevere2027h1.skylight.geomys.org",operator="Geomys"} 926
+certstreamservergo_certs_by_log_total{url="trastevere2027h2.skylight.geomys.org",operator="Geomys"} 13
+certstreamservergo_certs_by_log_total{url="trastevere2028h1.skylight.geomys.org",operator="Geomys"} 34
+certstreamservergo_certs_by_log_total{url="trastevere2028h2.skylight.geomys.org",operator="Geomys"} 34
+certstreamservergo_certs_by_log_total{url="tuscolo2026h2.skylight.geomys.org",operator="Geomys"} 13301
+certstreamservergo_certs_by_log_total{url="tuscolo2027h1.skylight.geomys.org",operator="Geomys"} 56354
+certstreamservergo_certs_by_log_total{url="tuscolo2027h2.skylight.geomys.org",operator="Geomys"} 33
+certstreamservergo_certs_by_log_total{url="tuscolo2028h1.skylight.geomys.org",operator="Geomys"} 12
+certstreamservergo_certs_by_log_total{url="tuscolo2028h2.skylight.geomys.org",operator="Geomys"} 12
+certstreamservergo_certs_by_log_total{url="wyvern.ct.digicert.com/2026h2",operator="DigiCert"} 16275
+certstreamservergo_certs_by_log_total{url="wyvern.ct.digicert.com/2027h1",operator="DigiCert"} 29692
+certstreamservergo_certs_by_log_total{url="wyvern.ct.digicert.com/2027h2",operator="DigiCert"} 1
+certstreamservergo_clients_total{type="domain"} 0
+certstreamservergo_clients_total{type="full"} 0
+certstreamservergo_clients_total{type="lite"} 0
