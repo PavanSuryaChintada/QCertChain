@@ -81,7 +81,9 @@ Live feed, campaign list, graph, plan review, evidence viewer, cross-org feed, m
 - **HTTP-only phishing.** No certificate, no CT record. Stated limit.
 - **Wildcard certificate subdomains.** `*.example.com` hides the phishing host. Stated limit.
 - **Real victim or customer data.** None enters the system.
-- **Email scanning.** We work upstream of the inbox, on purpose.
+- ~~Email scanning.~~ **Changed 2026-10-06 (owner decision D1/D2):** an email-header analysis module is in scope —
+  paste or `.eml` upload only, never a mailbox connection. It correlates sender and link domains into the CT pipeline;
+  `malicious` needs ≥ 2 strong signals, and email never confirms a domain on its own. See design spec §3.
 
 ---
 

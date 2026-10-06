@@ -1,0 +1,54 @@
+{
+ "p01_display_spoof_dmarc_fail.eml": {
+  "truth": "phishing",
+  "scenario": "cold-start: SBI display name on a lookalike domain, DMARC fail, Reply-To mismatch"
+ },
+ "p02_exact_domain_spoof.eml": {
+  "truth": "phishing",
+  "scenario": "cold-start: From is the real sbi.co.in, DMARC fail (exact-domain spoof)"
+ },
+ "p03_campaign_link.eml": {
+  "truth": "phishing",
+  "scenario": "warm: ICICI display spoof + link to a domain the CT pipeline already confirmed"
+ },
+ "p04_income_tax_refund.eml": {
+  "truth": "phishing",
+  "scenario": "cold-start: Income Tax refund display spoof, all auth passes for the attacker's own domain"
+ },
+ "p05_paytm_no_display_brand.eml": {
+  "truth": "phishing",
+  "scenario": "cold-start: no brand display name; lookalike sender, Reply-To mismatch, SPF softfail"
+ },
+ "p06_hdfc_exact_spoof_plus_lookalike_link.eml": {
+  "truth": "phishing",
+  "scenario": "warm: hdfcbank.com spoofed (DMARC fail) + link to a confirmed campaign domain"
+ },
+ "p07_body_only_paste.eml": {
+  "truth": "phishing",
+  "scenario": "analyst pasted only the body: no headers at all"
+ },
+ "p08_folded_headers.eml": {
+  "truth": "phishing",
+  "scenario": "cold-start: p01 with folded Authentication-Results and Received headers"
+ },
+ "l01_sbi_newsletter.eml": {
+  "truth": "legit",
+  "scenario": "SBI newsletter from sbi.co.in, all auth pass"
+ },
+ "l02_amazon_order.eml": {
+  "truth": "legit",
+  "scenario": "Amazon order confirmation from amazon.in, auth pass"
+ },
+ "l03_internal_no_auth_headers.eml": {
+  "truth": "legit",
+  "scenario": "internal mail from a company relay that adds no Authentication-Results"
+ },
+ "l04_non_utf8_newsletter.eml": {
+  "truth": "legit",
+  "scenario": "legit HDFC mail with latin-1 bytes in the body"
+ },
+ "l05_brand_via_esp.eml": {
+  "truth": "legit",
+  "scenario": "HDFC via a third-party ESP: Return-Path on the ESP, DMARC pass by DKIM alignment"
+ }
+}

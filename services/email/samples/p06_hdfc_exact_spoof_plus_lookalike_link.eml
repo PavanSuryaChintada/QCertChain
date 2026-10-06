@@ -1,0 +1,10 @@
+X-QCertChain-Sample: synthetic
+From: "HDFC Bank" <alerts@hdfcbank.com>
+Message-ID: <f6@mailer.example>
+Subject: NetBanking password expiry
+Date: Tue, 06 Oct 2026 03:00:00 +0000
+Authentication-Results: mx.recipient.example; spf=fail; dkim=none; dmarc=fail header.from=hdfcbank.com
+Received: from mailer.example ([198.51.100.12]) by mx.recipient.example; Tue, 06 Oct 2026 03:00:01 +0000
+Content-Type: text/plain; charset=utf-8
+
+Reset: https://hdfc-netbanking-secure-301.example/reset

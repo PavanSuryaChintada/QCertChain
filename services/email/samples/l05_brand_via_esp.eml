@@ -1,0 +1,11 @@
+X-QCertChain-Sample: synthetic
+From: "HDFC Bank" <offers@hdfcbank.com>
+Return-Path: <bounces+123@em.esp-provider.example>
+Message-ID: <n5@esp-provider.example>
+Subject: Credit card offers
+Date: Mon, 05 Oct 2026 09:00:00 +0000
+Authentication-Results: mx.recipient.example; spf=pass smtp.mailfrom=em.esp-provider.example; dkim=pass header.d=hdfcbank.com; dmarc=pass header.from=hdfcbank.com
+Received: from em.esp-provider.example ([192.0.2.40]) by mx.recipient.example; Mon, 05 Oct 2026 09:00:01 +0000
+Content-Type: text/plain; charset=utf-8
+
+https://www.hdfcbank.com/personal/pay/cards

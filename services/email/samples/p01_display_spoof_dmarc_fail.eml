@@ -1,0 +1,21 @@
+X-QCertChain-Sample: synthetic
+From: "State Bank of India" <alerts@sbi-kyc-update.example>
+Reply-To: help@sbi-support-desk.example
+Return-Path: <bounce@bulk-mailer.example>
+Message-ID: <a1@bulk-mailer.example>
+Subject: KYC pending: account will be blocked
+Date: Mon, 05 Oct 2026 03:00:00 +0000
+Authentication-Results: mx.recipient.example; spf=fail smtp.mailfrom=bulk-mailer.example; dkim=none; dmarc=fail header.from=sbi-kyc-update.example
+Received: from bulk-mailer.example (unknown [203.0.113.9]) by mx.recipient.example; Mon, 05 Oct 2026 03:00:02 +0000
+MIME-Version: 1.0
+Content-Type: multipart/alternative; boundary="b1"
+
+--b1
+Content-Type: text/plain; charset=utf-8
+
+Dear customer, update your KYC: https://sbi-kyc-verify-17.example/login
+--b1
+Content-Type: text/html; charset=utf-8
+
+<a href="https://sbi-kyc-verify-17.example/login">Update KYC</a>
+--b1--

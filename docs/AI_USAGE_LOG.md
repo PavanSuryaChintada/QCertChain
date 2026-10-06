@@ -329,3 +329,23 @@ Format: **AI did** · **Owner decided** · **Verified by** · **Rulings** (AI ju
     - org2 dispute
     - **end to end:** seed → publish via API → anchor worker → org 2's kit query returns the campaign, and `published_tx` matches
   - A fake ledger proves that with the chain down, items stay queued with backoff and nothing blocks.
+
+## Task 19 — email-header module
+
+- **AI did:**
+  - `parse.py` (stdlib `email`, never raises, absent headers recorded), `signals.py` (spec §3.2) and `analyze.py` (≥ 2-strong gate; correlation creates `source='email'` candidates, never confirmed domains).
+  - API: `POST /email/analyze` (JSON or multipart, 2 MB → 413; new candidates queued for normal confirmation), list, detail.
+  - Labelled synthetic sample set: 8 phishing, 5 legit, all reserved `.example` names. Labels are ground truth, not expected verdicts.
+  - `scripts/email_eval.py` → `reports/email_eval.json`.
+- **Verified by:** `test_email.py`: RED, then GREEN 19/19. Covered:
+  - the gate: moderate-only never malicious; legit never malicious, even warm
+  - robustness: garbage, body-only paste, folded headers, non-UTF-8
+  - DB correlation creates only candidates
+  - API: JSON, multipart, 413, list and detail
+- **Found by measuring, fixed test-first:** the display-name brand matcher missed "Income Tax Department" (token `incometax` has no space). It now compares with spacing and punctuation removed; short tokens still need a whole word.
+- **Owner-requested measurement, gate NOT changed:**
+  - Cold start: recall **0/8** (7/8 suspicious, 1/8 clean).
+  - Warm (link domains already confirmed by the CT pipeline): **6/8**.
+  - Legit rated malicious: **0/5** in both conditions.
+  - Options were reported to the owner; the rule stays until the owner decides.
+- **Ruling:** Return-Path and Message-ID mismatches are not counted when DMARC passes. An aligned pass explains third-party ESP sending; this keeps the legit ESP sample clean.

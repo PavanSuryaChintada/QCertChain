@@ -1,0 +1,11 @@
+X-QCertChain-Sample: synthetic
+From: "ICICI Bank" <service@icici-netbanking-secure.example>
+Reply-To: support@icici-helpdesk.example
+Message-ID: <c3@icici-netbanking-secure.example>
+Subject: Unusual login detected
+Date: Mon, 05 Oct 2026 05:00:00 +0000
+Authentication-Results: mx.recipient.example; spf=pass smtp.mailfrom=icici-netbanking-secure.example; dkim=pass; dmarc=pass header.from=icici-netbanking-secure.example
+Received: from mail.icici-netbanking-secure.example ([203.0.113.10]) by mx.recipient.example; Mon, 05 Oct 2026 05:00:01 +0000
+Content-Type: text/plain; charset=utf-8
+
+Verify now: https://icicibank-verify-kyc-4412.example/login

@@ -9,7 +9,7 @@ from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
-from services.api.routes import campaigns, domains, evidence, ledger, ops, plans, stream
+from services.api.routes import campaigns, domains, email, evidence, ledger, ops, plans, stream
 from services.ingest.triage import warm
 
 PROBLEM = "application/problem+json"
@@ -51,5 +51,5 @@ def health():
 
 
 for r in (stream.router, domains.router, campaigns.router, plans.router, evidence.router, ledger.router,
-          ops.router):
+          email.router, ops.router):
     app.include_router(r)

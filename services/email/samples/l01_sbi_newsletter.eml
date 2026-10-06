@@ -1,0 +1,10 @@
+X-QCertChain-Sample: synthetic
+From: SBI <newsletter@sbi.co.in>
+Message-ID: <n1@sbi.co.in>
+Subject: Festive offers on home loans
+Date: Mon, 05 Oct 2026 06:00:00 +0000
+Authentication-Results: mx.recipient.example; spf=pass smtp.mailfrom=sbi.co.in; dkim=pass header.d=sbi.co.in; dmarc=pass header.from=sbi.co.in
+Received: from mail.sbi.co.in ([192.0.2.20]) by mx.recipient.example; Mon, 05 Oct 2026 06:00:01 +0000
+Content-Type: text/plain; charset=utf-8
+
+Read more at https://sbi.co.in/web/personal-banking/loans

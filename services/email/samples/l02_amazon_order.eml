@@ -1,0 +1,10 @@
+X-QCertChain-Sample: synthetic
+From: "Amazon.in" <order-update@amazon.in>
+Message-ID: <n2@amazon.in>
+Subject: Your order has shipped
+Date: Mon, 05 Oct 2026 07:00:00 +0000
+Authentication-Results: mx.recipient.example; spf=pass; dkim=pass header.d=amazon.in; dmarc=pass header.from=amazon.in
+Received: from a1-2.smtp-out.amazonses.com ([192.0.2.21]) by mx.recipient.example; Mon, 05 Oct 2026 07:00:01 +0000
+Content-Type: text/plain; charset=utf-8
+
+Track: https://www.amazon.in/gp/your-account/order-history

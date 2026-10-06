@@ -1,0 +1,310 @@
+{
+ "measured_at": "2026-10-06T16:48:37.884420+00:00",
+ "n_samples": 13,
+ "note": "synthetic labelled sample set (services/email/samples); small n \u2014 directional, not a benchmark",
+ "cold": {
+  "recall_malicious": "0/8",
+  "phishing_rated_suspicious": "7/8",
+  "phishing_rated_clean": "1/8",
+  "legit_rated_malicious": "0/5",
+  "legit_rated_suspicious": "1/5",
+  "rows": [
+   {
+    "sample": "p01_display_spoof_dmarc_fail.eml",
+    "truth": "phishing",
+    "scenario": "cold-start: SBI display name on a lookalike domain, DMARC fail, Reply-To mismatch",
+    "verdict": "suspicious",
+    "strong": 1,
+    "signals": [
+     "strong:display_name_brand_spoof",
+     "moderate:lookalike_sender_domain",
+     "moderate:reply_to_mismatch",
+     "moderate:spf_fail",
+     "weak:return_path_mismatch",
+     "weak:message_id_mismatch"
+    ]
+   },
+   {
+    "sample": "p02_exact_domain_spoof.eml",
+    "truth": "phishing",
+    "scenario": "cold-start: From is the real sbi.co.in, DMARC fail (exact-domain spoof)",
+    "verdict": "suspicious",
+    "strong": 1,
+    "signals": [
+     "strong:dmarc_fail_brand_from",
+     "moderate:spf_fail",
+     "moderate:dkim_fail",
+     "weak:return_path_mismatch",
+     "weak:message_id_mismatch"
+    ]
+   },
+   {
+    "sample": "p03_campaign_link.eml",
+    "truth": "phishing",
+    "scenario": "warm: ICICI display spoof + link to a domain the CT pipeline already confirmed",
+    "verdict": "suspicious",
+    "strong": 1,
+    "signals": [
+     "strong:display_name_brand_spoof",
+     "moderate:lookalike_sender_domain",
+     "moderate:reply_to_mismatch"
+    ]
+   },
+   {
+    "sample": "p04_income_tax_refund.eml",
+    "truth": "phishing",
+    "scenario": "cold-start: Income Tax refund display spoof, all auth passes for the attacker's own domain",
+    "verdict": "suspicious",
+    "strong": 1,
+    "signals": [
+     "strong:display_name_brand_spoof"
+    ]
+   },
+   {
+    "sample": "p05_paytm_no_display_brand.eml",
+    "truth": "phishing",
+    "scenario": "cold-start: no brand display name; lookalike sender, Reply-To mismatch, SPF softfail",
+    "verdict": "suspicious",
+    "strong": 0,
+    "signals": [
+     "moderate:lookalike_sender_domain",
+     "moderate:reply_to_mismatch",
+     "moderate:spf_fail"
+    ]
+   },
+   {
+    "sample": "p06_hdfc_exact_spoof_plus_lookalike_link.eml",
+    "truth": "phishing",
+    "scenario": "warm: hdfcbank.com spoofed (DMARC fail) + link to a confirmed campaign domain",
+    "verdict": "suspicious",
+    "strong": 1,
+    "signals": [
+     "strong:dmarc_fail_brand_from",
+     "moderate:spf_fail",
+     "weak:message_id_mismatch"
+    ]
+   },
+   {
+    "sample": "p07_body_only_paste.eml",
+    "truth": "phishing",
+    "scenario": "analyst pasted only the body: no headers at all",
+    "verdict": "clean",
+    "strong": 0,
+    "signals": []
+   },
+   {
+    "sample": "p08_folded_headers.eml",
+    "truth": "phishing",
+    "scenario": "cold-start: p01 with folded Authentication-Results and Received headers",
+    "verdict": "suspicious",
+    "strong": 1,
+    "signals": [
+     "strong:display_name_brand_spoof",
+     "moderate:lookalike_sender_domain",
+     "moderate:reply_to_mismatch",
+     "moderate:spf_fail",
+     "weak:message_id_mismatch"
+    ]
+   },
+   {
+    "sample": "l01_sbi_newsletter.eml",
+    "truth": "legit",
+    "scenario": "SBI newsletter from sbi.co.in, all auth pass",
+    "verdict": "clean",
+    "strong": 0,
+    "signals": []
+   },
+   {
+    "sample": "l02_amazon_order.eml",
+    "truth": "legit",
+    "scenario": "Amazon order confirmation from amazon.in, auth pass",
+    "verdict": "clean",
+    "strong": 0,
+    "signals": []
+   },
+   {
+    "sample": "l03_internal_no_auth_headers.eml",
+    "truth": "legit",
+    "scenario": "internal mail from a company relay that adds no Authentication-Results",
+    "verdict": "suspicious",
+    "strong": 0,
+    "signals": [
+     "weak:auth_results_missing"
+    ]
+   },
+   {
+    "sample": "l04_non_utf8_newsletter.eml",
+    "truth": "legit",
+    "scenario": "legit HDFC mail with latin-1 bytes in the body",
+    "verdict": "clean",
+    "strong": 0,
+    "signals": []
+   },
+   {
+    "sample": "l05_brand_via_esp.eml",
+    "truth": "legit",
+    "scenario": "HDFC via a third-party ESP: Return-Path on the ESP, DMARC pass by DKIM alignment",
+    "verdict": "clean",
+    "strong": 0,
+    "signals": []
+   }
+  ]
+ },
+ "warm": {
+  "recall_malicious": "6/8",
+  "phishing_rated_suspicious": "2/8",
+  "phishing_rated_clean": "0/8",
+  "legit_rated_malicious": "0/5",
+  "legit_rated_suspicious": "1/5",
+  "rows": [
+   {
+    "sample": "p01_display_spoof_dmarc_fail.eml",
+    "truth": "phishing",
+    "scenario": "cold-start: SBI display name on a lookalike domain, DMARC fail, Reply-To mismatch",
+    "verdict": "malicious",
+    "strong": 2,
+    "signals": [
+     "strong:display_name_brand_spoof",
+     "strong:link_domain_confirmed",
+     "moderate:lookalike_sender_domain",
+     "moderate:reply_to_mismatch",
+     "moderate:spf_fail",
+     "weak:return_path_mismatch",
+     "weak:message_id_mismatch"
+    ]
+   },
+   {
+    "sample": "p02_exact_domain_spoof.eml",
+    "truth": "phishing",
+    "scenario": "cold-start: From is the real sbi.co.in, DMARC fail (exact-domain spoof)",
+    "verdict": "malicious",
+    "strong": 2,
+    "signals": [
+     "strong:dmarc_fail_brand_from",
+     "strong:link_domain_confirmed",
+     "moderate:spf_fail",
+     "moderate:dkim_fail",
+     "weak:return_path_mismatch",
+     "weak:message_id_mismatch"
+    ]
+   },
+   {
+    "sample": "p03_campaign_link.eml",
+    "truth": "phishing",
+    "scenario": "warm: ICICI display spoof + link to a domain the CT pipeline already confirmed",
+    "verdict": "malicious",
+    "strong": 2,
+    "signals": [
+     "strong:display_name_brand_spoof",
+     "strong:link_domain_confirmed",
+     "moderate:lookalike_sender_domain",
+     "moderate:reply_to_mismatch"
+    ]
+   },
+   {
+    "sample": "p04_income_tax_refund.eml",
+    "truth": "phishing",
+    "scenario": "cold-start: Income Tax refund display spoof, all auth passes for the attacker's own domain",
+    "verdict": "malicious",
+    "strong": 2,
+    "signals": [
+     "strong:display_name_brand_spoof",
+     "strong:link_domain_confirmed"
+    ]
+   },
+   {
+    "sample": "p05_paytm_no_display_brand.eml",
+    "truth": "phishing",
+    "scenario": "cold-start: no brand display name; lookalike sender, Reply-To mismatch, SPF softfail",
+    "verdict": "suspicious",
+    "strong": 1,
+    "signals": [
+     "strong:link_domain_confirmed",
+     "moderate:lookalike_sender_domain",
+     "moderate:reply_to_mismatch",
+     "moderate:spf_fail"
+    ]
+   },
+   {
+    "sample": "p06_hdfc_exact_spoof_plus_lookalike_link.eml",
+    "truth": "phishing",
+    "scenario": "warm: hdfcbank.com spoofed (DMARC fail) + link to a confirmed campaign domain",
+    "verdict": "malicious",
+    "strong": 2,
+    "signals": [
+     "strong:dmarc_fail_brand_from",
+     "strong:link_domain_confirmed",
+     "moderate:spf_fail",
+     "weak:message_id_mismatch"
+    ]
+   },
+   {
+    "sample": "p07_body_only_paste.eml",
+    "truth": "phishing",
+    "scenario": "analyst pasted only the body: no headers at all",
+    "verdict": "suspicious",
+    "strong": 1,
+    "signals": [
+     "strong:link_domain_confirmed"
+    ]
+   },
+   {
+    "sample": "p08_folded_headers.eml",
+    "truth": "phishing",
+    "scenario": "cold-start: p01 with folded Authentication-Results and Received headers",
+    "verdict": "malicious",
+    "strong": 2,
+    "signals": [
+     "strong:display_name_brand_spoof",
+     "strong:link_domain_confirmed",
+     "moderate:lookalike_sender_domain",
+     "moderate:reply_to_mismatch",
+     "moderate:spf_fail",
+     "weak:message_id_mismatch"
+    ]
+   },
+   {
+    "sample": "l01_sbi_newsletter.eml",
+    "truth": "legit",
+    "scenario": "SBI newsletter from sbi.co.in, all auth pass",
+    "verdict": "clean",
+    "strong": 0,
+    "signals": []
+   },
+   {
+    "sample": "l02_amazon_order.eml",
+    "truth": "legit",
+    "scenario": "Amazon order confirmation from amazon.in, auth pass",
+    "verdict": "clean",
+    "strong": 0,
+    "signals": []
+   },
+   {
+    "sample": "l03_internal_no_auth_headers.eml",
+    "truth": "legit",
+    "scenario": "internal mail from a company relay that adds no Authentication-Results",
+    "verdict": "suspicious",
+    "strong": 0,
+    "signals": [
+     "weak:auth_results_missing"
+    ]
+   },
+   {
+    "sample": "l04_non_utf8_newsletter.eml",
+    "truth": "legit",
+    "scenario": "legit HDFC mail with latin-1 bytes in the body",
+    "verdict": "clean",
+    "strong": 0,
+    "signals": []
+   },
+   {
+    "sample": "l05_brand_via_esp.eml",
+    "truth": "legit",
+    "scenario": "HDFC via a third-party ESP: Return-Path on the ESP, DMARC pass by DKIM alignment",
+    "verdict": "clean",
+    "strong": 0,
+    "signals": []
+   }
+  ]
+ }
+}

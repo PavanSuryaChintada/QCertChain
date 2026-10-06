@@ -1,0 +1,8 @@
+X-QCertChain-Sample: synthetic
+From: HDFC Bank <alerts@hdfcbank.com>
+Message-ID: <n4@hdfcbank.com>
+Subject: Statement
+Authentication-Results: mx.recipient.example; spf=pass; dkim=pass; dmarc=pass header.from=hdfcbank.com
+Content-Type: text/plain; charset=latin-1
+
+Your statement is ready ιθ at https://www.hdfcbank.com/
