@@ -114,3 +114,15 @@ Format: **AI did** · **Owner decided** · **Verified by** · **Rulings** (AI ju
   - On the lite stream, 92.8% is delivered.
   - The report now says the drop cause is inferred, not measured.
 - **Owner instruction honoured:** no `excluded_logs` proposed. Coverage gaps are listed as involuntary: GoDaddy 429s, plus 0-entry logs at Cloudflare, Sectigo and IPng.
+
+## Task 7 — interdict package: types, greedy, CP-SAT, validation (release gate)
+
+- **AI did:** wrote the standalone MIT package `packages/interdict`: `Problem`/`Plan` types, greedy, CP-SAT and the validation gate.
+- **Verified by:**
+  - `test_interdict.py`: RED, then GREEN 569/569.
+  - The tests cover: 500 random instances (never over budget, coverage exact); CP-SAT equals brute force on 60 small instances; greedy meets the 1−1/e bound against brute force; k=0 and k>nodes; unreachable domains; fractional weights.
+- **Found by measuring, not assumed:**
+  - On the plan's random 400-domain instance, CP-SAT needs **3–4 s on this 4-core laptop to *prove* optimality**, although greedy already finds the optimum.
+  - Fixes: collapse identical dependency signatures (exact), warm-start from greedy, never return worse than the warm start, and **report OPTIMAL vs FEASIBLE with the gap** so a time-limited plan is never presented as proven.
+  - Campaign-shaped 400-domain instances (Zipf IPs/NS/registrars) solve to OPTIMAL in < 1 s.
+- **Rulings:** perf test split (campaign-shaped must be OPTIMAL under 1 s; hard random must respect a 0.9 s limit and report its gap). See ledger.

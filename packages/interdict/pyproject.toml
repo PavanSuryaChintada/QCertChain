@@ -1,0 +1,17 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "interdict"
+version = "0.1.0"
+description = "Maximum-coverage takedown planning: CP-SAT, greedy, simulated annealing and QAOA on one QUBO formulation."
+license = {text = "MIT"}
+requires-python = ">=3.11"
+dependencies = ["ortools==9.11.4210", "numpy"]
+
+[project.optional-dependencies]
+quantum = ["qiskit==1.2.4", "qiskit-aer==0.15.1"]
+
+[tool.setuptools.packages.find]
+where = ["src"]
