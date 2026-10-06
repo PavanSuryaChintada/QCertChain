@@ -23,6 +23,9 @@ class CertRecord:
     san_count: int
     seen_at: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
     source: str = "certstream"
+    # when OUR ingest received it. seen_at is the upstream aggregator's stamp (measured ~14 s earlier, a
+    # constant delay inside certstream-server-go): keeping both splits upstream latency from ours.
+    received_at: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
 
     def to_json(self) -> str:
         # Hand-built dict: dataclasses.asdict deep-copies and capped ingest near 2k/s.
@@ -34,13 +37,15 @@ class CertRecord:
             "serial": self.serial, "san_count": self.san_count,
             "seen_at": self.seen_at.isoformat() if self.seen_at else None,
             "source": self.source,
+            "received_at": self.received_at.isoformat() if self.received_at else None,
         })
 
     @staticmethod
     def from_json(s: str) -> "CertRecord":
         d = json.loads(s)
-        for k in ("not_before", "not_after", "seen_at"):
-            d[k] = datetime.fromisoformat(d[k]) if d[k] else None
+        for k in ("not_before", "not_after", "seen_at", "received_at"):
+            if k in d:
+                d[k] = datetime.fromisoformat(d[k]) if d[k] else None
         return CertRecord(**d)
 
 

@@ -195,3 +195,24 @@ def test_app_lifespan_restores_global_solver_flag(db):
     with TestClient(main.app):
         assert interdict.router.ISOLATE_QAOA is True
     assert interdict.router.ISOLATE_QAOA is False  # no leak into other code sharing the process
+
+
+async def test_queue_depth_is_consumer_lag_not_stream_length():
+    """Real Redis (scratch db 14): fakeredis 2.26 mis-reports XINFO GROUPS 'pending' after XACK."""
+    import redis.asyncio as aioredis
+
+    from services.api.routes.stream import read_state
+    r = aioredis.from_url("redis://localhost:6379/14", decode_responses=True)
+    try:
+        await r.ping()
+    except Exception:
+        pytest.skip("no local Redis")
+    await r.flushdb()
+    for i in range(10):
+        await r.xadd("certs:raw", {"cert": str(i)})
+    await r.xgroup_create("certs:raw", "triage", id="0")
+    got = await r.xreadgroup("triage", "c1", {"certs:raw": ">"}, count=7)
+    await r.xack("certs:raw", "triage", *[eid for _, es in got for eid, _ in es])
+    st = await read_state(r)
+    assert st.queue_depth["certs_raw"] == 3  # 10 in the stream, 7 processed: 3 waiting
+    await r.flushdb()

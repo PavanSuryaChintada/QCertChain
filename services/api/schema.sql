@@ -63,6 +63,8 @@ create table if not exists domains (
     or jsonb_array_length(coalesce(confirm_reasons->'signals', '[]'::jsonb)) > 0)
 );
 create index if not exists domains_status_idx  on domains (status, triage_score desc);
+alter table domains add column if not exists verdict_at timestamptz;
+alter table domains add column if not exists received_at timestamptz;  -- when OUR ingest received the cert  -- when ANY verdict was reached (response time)
 create index if not exists domains_etld1_idx   on domains (etld1);
 create index if not exists domains_campaign_idx on domains (campaign_id);
 create index if not exists domains_seen_idx    on domains (first_seen desc);

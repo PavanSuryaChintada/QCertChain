@@ -40,3 +40,10 @@ async def test_replay_source_labelled_in_db_and_feed(db):
     c = CertRecord("fpR", ["hdfc-secure-update.click"], 0, None, NOW, None, None, 1, NOW, "replay").to_json()
     await process_batch([c], redis=r, conn=db)
     assert db.execute(sa.text("select source from domains")).scalar() == "replay"
+
+
+async def test_candidate_stores_our_receipt_time(db):
+    r = fr.FakeRedis(decode_responses=True)
+    await process_batch([entry("fpX", ["sbi-verify-kyc.top"])], redis=r, conn=db)
+    row = db.execute(sa.text("select ct_seen_at, received_at, candidate_at from domains")).one()
+    assert row.received_at is not None and row.received_at <= row.candidate_at

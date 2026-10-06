@@ -70,3 +70,12 @@ def test_parse_and_serialise_fast_enough_for_3000_per_sec():
         best = min(best, time.perf_counter() - t)
     rate = len(msgs) / best
     assert rate > 6000, f"{rate:.0f}/s"
+
+
+def test_record_carries_our_receipt_time_separately_from_ct_seen():
+    from datetime import datetime, timezone
+    before = datetime.now(timezone.utc)
+    r = parse_message(FIX)
+    assert r.received_at >= before and r.seen_at != r.received_at
+    back = CertRecord.from_json(r.to_json())
+    assert back.received_at == r.received_at

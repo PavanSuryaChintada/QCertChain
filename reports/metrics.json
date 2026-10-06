@@ -1,0 +1,426 @@
+{
+ "triage_rules": {
+  "provenance": "rules (hand-set TRD weights; trained model rejected by hard checks)",
+  "threshold": 0.45,
+  "recall_all_global_phishing": {
+   "value": 0.0,
+   "n": 2767,
+   "dataset": "PhishTank verified + OpenPhish, temporal test third"
+  },
+  "recall_on_phishing_naming_our_40_brands": {
+   "value": 0.0,
+   "n": 9,
+   "missed_examples": [
+    "amazon-refund.cc",
+    "amazon-annulation.com",
+    "amazon-paiement.com",
+    "hdfc8-7v8vtyu.vercel.app",
+    "amazonstocksgo.co",
+    "prime-amazonfr.com",
+    "amazon-video-musique.com",
+    "chouhdfcom.com",
+    "yon0sbl.vercel.app"
+   ],
+   "dataset": "all positives in which triage detects one of our 40 brands (token, lookalike or homoglyph)"
+  },
+  "note_global_recall": "the public feeds are dominated by brands outside our list of 40 (e.g. Bradesco, Allegro); a brand-list triage scores those 0 by design, so global recall measures feed composition",
+  "false_positive_rate": {
+   "value": 0.0,
+   "n": 60000,
+   "dataset": "Tranco 1M random sample (held out)"
+  },
+  "precision_at_1_in_1000_base_rate": {
+   "value": 0.0,
+   "method": "TPR*0.001/(TPR*0.001+FPR*0.999)"
+  },
+  "hard_negative_fp_rate": {
+   "value": 0.024,
+   "n": 584,
+   "dataset": "Tranco domains containing a brand token, not the brand's own"
+  },
+  "latency_us_per_name": {
+   "p50": 294.5,
+   "p95": 1519.2,
+   "p99": 5333.8,
+   "max": 107937.1,
+   "n": 200000,
+   "dataset": "unique names from the 30-min CT capture",
+   "measured_at": "2026-10-06T14:30:31.302740+00:00"
+  },
+  "candidates_per_min_of_live_stream": {
+   "value": 1.5,
+   "dataset": "same capture"
+  },
+  "measured_at": "2026-10-06T18:41:59.062521+00:00"
+ },
+ "triage_model": {
+  "decision": "rules stay (provenance 'rules'): a hard check failed",
+  "passed_checks": false,
+  "hard_checks": {
+   "1_tranco_top1000_below_threshold": [
+    "aws.dev",
+    "amazon.dev"
+   ],
+   "2_brand_legit_domains_below_0.1": [
+    "onlinesbi.sbi"
+   ],
+   "3_hard_negative_fp_rate_below_5pct": 0.0,
+   "4_top_coefficient_share_below_0.40": 0.254,
+   "5_release_gate_phish_missed": [
+    "icicibannk-login.top"
+   ],
+   "5_release_gate_legit_flagged": [
+    "netbanking.hdfcbank.com"
+   ]
+  },
+  "temporal": {
+   "auc": 0.787,
+   "at_threshold": {
+    "threshold": 0.45,
+    "recall": 0.2103,
+    "fpr": 0.002517,
+    "precision_at_1_in_1000": 0.0772,
+    "hard_negative_fp_rate": 0.0,
+    "candidates_per_min_at_200k_certs": 544.9
+   },
+   "n_test_pos": 2767,
+   "n_test_neg": 60000
+  },
+  "campaign_disjoint": {
+   "auc": 0.8443,
+   "at_threshold": {
+    "threshold": 0.45,
+    "recall": 0.3249,
+    "fpr": 0.002583,
+    "precision_at_1_in_1000": 0.1118,
+    "hard_negative_fp_rate": 0.0,
+    "candidates_per_min_at_200k_certs": 581.1
+   }
+  },
+  "coefficients": {
+   "brand_token_exact": 0.2405,
+   "min_edit_distance": 0.2621,
+   "homoglyph_hit": -0.1154,
+   "tld_risk": 0.8089,
+   "keyword_count": 0.1474,
+   "hyphen_count": 0.4657,
+   "max_label_len": 0.6157,
+   "digit_ratio": 0.2731,
+   "subdomain_depth": 0.135,
+   "entropy": -0.1209,
+   "issuer_is_free_ca": 0.0,
+   "san_count": 0.0
+  },
+  "top_coefficient_share": 0.254,
+  "measured_at": "2026-10-06T23:46:43.330117"
+ },
+ "ingest": {
+  "replay_unique_certs_per_sec_into_redis": {
+   "value": 1839.6,
+   "method": "20 s replay at max speed, parse + fingerprint dedup + pipelined XADD, one process"
+  },
+  "live_capture": {
+   "server_entries_per_sec": 688.7,
+   "unique_certs_per_sec": 218.5,
+   "captured_per_sec": 500.8,
+   "duplicate_delivery_share": 0.5637,
+   "undelivered_share": 0.2728,
+   "tiled_share_of_entries": 0.3736
+  },
+  "live_outbound_load": {
+   "inbound_bytes_from_ct_logs": 3399000000,
+   "inbound_mbit_per_sec": 14.8,
+   "derived_tile_requests": 1870,
+   "derived_rfc6962_get_entries_requests": 3107,
+   "derived_checkpoint_polls_range": [
+    4531,
+    33984
+   ],
+   "derived_total_requests_per_sec_range": [
+    5.18,
+    21.21
+   ],
+   "method": "certstream-server-go exposes no HTTP request counter. Requests are derived: one full data tile per 256 tiled entries (partial tiles deferred up to 60 s, #104 fix); one get-entries per 256 RFC 6962 entries; one checkpoint poll per tiled log every 2-15 s. Inbound bytes are measured (docker stats RX of the certstream container)."
+  },
+  "measured_at": "2026-10-06T18:42:20.706685+00:00"
+ },
+ "confirmation": {
+  "precision": {
+   "value": 1.0,
+   "confirmed": 10
+  },
+  "recall": {
+   "value": 0.5,
+   "n_phishing": 20
+  },
+  "false_confirmations_of_legit_pages": 0,
+  "verdicts_by_truth": {
+   "phishing": {
+    "confirmed": 10,
+    "candidate": 10
+   },
+   "legit": {
+    "candidate": 10,
+    "dismissed": 10,
+    "unreachable": 5
+   }
+  },
+  "n": 45,
+  "dataset": "45 labelled pages served over real HTTP from 127.0.0.1: 10 known-kit phishing, 10 unknown-kit phishing, 10 legit brand-like logins posting to the brand, 10 blogs, 5 parked; kit knowledge from a disjoint sample",
+  "method": "real HTTP fetch + the production analyze_page gate (>= 2 strong signals)",
+  "measured_at": "2026-10-06T18:35:40.090399+00:00"
+ },
+ "email": {
+  "cold": {
+   "recall_malicious": "0/8",
+   "phishing_rated_suspicious": "7/8",
+   "phishing_rated_clean": "1/8",
+   "legit_rated_malicious": "0/5",
+   "legit_rated_suspicious": "1/5"
+  },
+  "warm": {
+   "recall_malicious": "6/8",
+   "phishing_rated_suspicious": "2/8",
+   "phishing_rated_clean": "0/8",
+   "legit_rated_malicious": "0/5",
+   "legit_rated_suspicious": "1/5"
+  },
+  "n_samples": 13,
+  "note": "synthetic labelled sample set (services/email/samples); small n \u2014 directional, not a benchmark",
+  "measured_at": "2026-10-06T16:48:37.884420+00:00",
+  "owner_decision_pending": "cold-start gate options A-D reported 2026-10-06; >=2-strong rule unchanged"
+ },
+ "lead_time": {
+  "matched_domains": 11,
+  "ct_first": 0,
+  "lead_hours": {
+   "p50": null,
+   "p95": null,
+   "max": null
+  },
+  "listed_before_ct_seen": 11,
+  "dataset": "our 30-min CT capture (2026-10-06 13:28-13:58 UTC) x PhishTank verified-online submission times, matched on the EXACT hostname named in the certificate",
+  "caveat": "a 30-minute window: only phishing certificates issued in that window can match; lead time is bounded by when PhishTank was downloaded",
+  "measured_at": "2026-10-06T18:44:00.339709+00:00"
+ },
+ "generated_at": "2026-10-06T18:50:32.166398+00:00",
+ "triage_threshold_options": {
+  "options": [
+   {
+    "threshold": 0.3,
+    "candidates_per_min_live": 17.0,
+    "hard_negative_fp_rate": 0.7209,
+    "brand_phishing_caught": "9/9",
+    "release_gate_legit_flagged": [],
+    "release_gate_phish_missed": []
+   },
+   {
+    "threshold": 0.35,
+    "candidates_per_min_live": 11.5,
+    "hard_negative_fp_rate": 0.7209,
+    "brand_phishing_caught": "8/9",
+    "release_gate_legit_flagged": [],
+    "release_gate_phish_missed": []
+   },
+   {
+    "threshold": 0.4,
+    "candidates_per_min_live": 2.0,
+    "hard_negative_fp_rate": 0.024,
+    "brand_phishing_caught": "0/9",
+    "release_gate_legit_flagged": [],
+    "release_gate_phish_missed": []
+   },
+   {
+    "threshold": 0.45,
+    "candidates_per_min_live": 1.5,
+    "hard_negative_fp_rate": 0.024,
+    "brand_phishing_caught": "0/9",
+    "release_gate_legit_flagged": [],
+    "release_gate_phish_missed": []
+   }
+  ],
+  "n_live_names": 200000,
+  "capture_span_min": 6.53,
+  "note": "rules weights unchanged; threshold remains SETTINGS.triage_threshold until the owner decides",
+  "measured_at": "2026-10-06T18:48:03.098774+00:00"
+ },
+ "response_time": {
+  "ct_seen_to_candidate_s": {
+   "p50": 22.565,
+   "p95": 41.002,
+   "max": 64.669991,
+   "n": 88
+  },
+  "candidate_to_verdict_s": {
+   "p50": 1.338,
+   "p95": 44.718,
+   "max": 59.590914,
+   "n": 84,
+   "target": "< 20 s (CLAUDE.md \u00a75)"
+  },
+  "verdicts_from_live_candidates": {
+   "unreachable": 76,
+   "dismissed": 7,
+   "candidate": 5
+  },
+  "evidence_created_to_anchored_s": {
+   "p50": "2044.784",
+   "p95": "2098.746",
+   "n": 400,
+   "note": "includes time queued while the anchor worker was not running"
+  },
+  "interdiction_cpsat_solve_ms_api": {
+   "p50": 131,
+   "max": 4544,
+   "n": 5
+  },
+  "window_since": "2026-10-06T18:27:51Z",
+  "dataset": "Supabase domains with source certstream/replay (seed excluded)",
+  "measured_at": "2026-10-06T18:48:39.753981+00:00"
+ },
+ "interdiction": {
+  "campaign": "d91961ec-b138-480f-b1a7-45028c896f35",
+  "domains": 400,
+  "candidate_nodes": 19,
+  "by_k": {
+   "2": {
+    "cpsat": {
+     "domains_killed": 342,
+     "coverage_pct": 85.5,
+     "solve_ms_median": 228,
+     "valid_runs": "3/3",
+     "errors": [],
+     "qubits": null
+    },
+    "qaoa": {
+     "domains_killed": 342,
+     "coverage_pct": 85.5,
+     "solve_ms_median": 7615,
+     "valid_runs": "3/3",
+     "errors": [],
+     "qubits": 12
+    },
+    "annealing": {
+     "domains_killed": 342,
+     "coverage_pct": 85.5,
+     "solve_ms_median": 310,
+     "valid_runs": "3/3",
+     "errors": [],
+     "qubits": null
+    },
+    "greedy": {
+     "domains_killed": 342,
+     "coverage_pct": 85.5,
+     "solve_ms_median": 1,
+     "valid_runs": "3/3",
+     "errors": [],
+     "qubits": null
+    }
+   },
+   "3": {
+    "cpsat": {
+     "domains_killed": 400,
+     "coverage_pct": 100.0,
+     "solve_ms_median": 162,
+     "valid_runs": "3/3",
+     "errors": [],
+     "qubits": null
+    },
+    "qaoa": {
+     "domains_killed": 400,
+     "coverage_pct": 100.0,
+     "solve_ms_median": 8747,
+     "valid_runs": "3/3",
+     "errors": [],
+     "qubits": 12
+    },
+    "annealing": {
+     "domains_killed": 400,
+     "coverage_pct": 100.0,
+     "solve_ms_median": 285,
+     "valid_runs": "3/3",
+     "errors": [],
+     "qubits": null
+    },
+    "greedy": {
+     "domains_killed": 400,
+     "coverage_pct": 100.0,
+     "solve_ms_median": 6,
+     "valid_runs": "3/3",
+     "errors": [],
+     "qubits": null
+    }
+   },
+   "4": {
+    "cpsat": {
+     "domains_killed": 400,
+     "coverage_pct": 100.0,
+     "solve_ms_median": 87,
+     "valid_runs": "3/3",
+     "errors": [],
+     "qubits": null
+    },
+    "qaoa": {
+     "domains_killed": 400,
+     "coverage_pct": 100.0,
+     "solve_ms_median": 6381,
+     "valid_runs": "3/3",
+     "errors": [],
+     "qubits": 12
+    },
+    "annealing": {
+     "domains_killed": 400,
+     "coverage_pct": 100.0,
+     "solve_ms_median": 164,
+     "valid_runs": "3/3",
+     "errors": [],
+     "qubits": null
+    },
+    "greedy": {
+     "domains_killed": 400,
+     "coverage_pct": 100.0,
+     "solve_ms_median": 1,
+     "valid_runs": "3/3",
+     "errors": [],
+     "qubits": null
+    }
+   },
+   "5": {
+    "cpsat": {
+     "domains_killed": 400,
+     "coverage_pct": 100.0,
+     "solve_ms_median": 58,
+     "valid_runs": "3/3",
+     "errors": [],
+     "qubits": null
+    },
+    "qaoa": {
+     "domains_killed": 400,
+     "coverage_pct": 100.0,
+     "solve_ms_median": 6069,
+     "valid_runs": "3/3",
+     "errors": [],
+     "qubits": 12
+    },
+    "annealing": {
+     "domains_killed": 400,
+     "coverage_pct": 100.0,
+     "solve_ms_median": 191,
+     "valid_runs": "3/3",
+     "errors": [],
+     "qubits": null
+    },
+    "greedy": {
+     "domains_killed": 400,
+     "coverage_pct": 100.0,
+     "solve_ms_median": 1,
+     "valid_runs": "3/3",
+     "errors": [],
+     "qubits": null
+    }
+   }
+  },
+  "method": "interdict.benchmark, 3 repetitions per k, in a standalone process, seeded campaign (synthetic, source=seed)",
+  "measured_at": "2026-10-06T18:50:32.163388+00:00"
+ }
+}

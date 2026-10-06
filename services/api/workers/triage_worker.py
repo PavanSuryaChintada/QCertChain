@@ -43,7 +43,8 @@ async def process_batch(raw_certs: list[str], *, redis, conn: sa.Connection) -> 
                 if cert_id is None:
                     cert_id = repo.upsert_cert(conn, rec)
                 domain_id, created = repo.upsert_candidate(conn, name=name, etld1=t.etld1, cert_id=cert_id, triage=t,
-                                                          source=rec.source, ct_seen_at=rec.seen_at)
+                                                          source=rec.source, ct_seen_at=rec.seen_at,
+                                                          received_at=rec.received_at)
                 if created:
                     stats["new_candidates"] += 1
                     new_ids.append(domain_id)

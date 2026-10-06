@@ -446,3 +446,27 @@ Format: **AI did** · **Owner decided** · **Verified by** · **Rulings** (AI ju
 
   Cause: the public phishing feeds barely cover Indian brands, so the model learned TLD and name shape, not brand impersonation.
 - **Favicons:** 32/40 brands collected. Unreachable, so no signal for them: Yes Bank, IDFC First, Google Pay, EPFO, IRCTC, Myntra, Meesho, Swiggy.
+
+## Task 24 — measurement (`scripts/evaluate.py` → `reports/metrics.json`)
+
+- **AI did:**
+  - Wrote the evaluation script. Every section records dataset, n, method and time, or `unavailable: <reason>`, never an estimate.
+  - Ran the **full live pipeline against Supabase** (self-hosted CT stream, triage, enrich with real page fetches, anchor worker) for measured windows.
+  - Added `verdict_at` and `received_at` so response time is measured, not inferred.
+- **Verified by:** `test_evaluate.py` (a failed section is unavailable, not a number; no balanced precision anywhere), plus TDD for each fix below.
+- **Bugs in my own evaluation, found before anything was reported:**
+  1. **Triage "recall 0.0" on the global feed** was feed composition (Bradesco, Allegro…), not triage. And my "our brands" filter matched `amazonaws` S3 buckets as Amazon. Recall is now measured only where triage itself detects one of our brands.
+  2. **Lead time "9,157 matches"** came from registrable-domain matching on shared platforms (secureserver.net, tinyurl.com). Now matched on the exact hostname named in the certificate.
+  3. A Redis scratch-database URL bug.
+- **Product bugs found by measuring, fixed test-first:**
+  - **`queue_depth.certs_raw` showed the Redis stream length (136k), not the triage backlog.** It now reports consumer-group lag + pending. The test runs on real Redis, because fakeredis 2.26 mis-reports XINFO pending after XACK. Measured lag: 0–3.
+  - **Unreachable sites were fetched twice** (Playwright timeout, then httpx). The first window measured p95 candidate→verdict at 44.7 s. httpx now runs only if Playwright itself is broken.
+  - **"CT seen" stamps run ~14.4 s behind receipt, with a constant offset** (14.08–14.63 s over 200 messages). That's a fixed delay in the upstream aggregator, not our pipeline. Receipt time is now recorded, splitting upstream latency from ours.
+- **Measured (first live window):**
+  - 88 live candidates, 84 verdicts: 76 unreachable, 7 dismissed.
+  - Ingest: 1,840 unique certificates/s per process, against 219/s live.
+  - Confirmation gate on 45 labelled pages: precision 1.0, recall 0.5. All misses are unknown-kit pages with only one strong signal.
+  - Interdiction on the seed, k = 2–5: all four solvers reach equal coverage. CP-SAT 58–228 ms, QAOA 6.1–8.7 s, annealing 164–310 ms, greedy ~1 ms.
+- **Findings reported to the owner, NOT changed:**
+  - **Triage recall on real phishing naming our brands is 0/9 at the TRD threshold 0.45.** At 0.35 it's 8/9, for 11.5 candidates/min vs 1.5. Recommendation: 0.35; awaiting a decision.
+  - **No CT-first lead-time case exists in a 30-minute capture** (11 exact-host matches, all listed earlier). The "hours ahead" headline cannot be claimed from our data.

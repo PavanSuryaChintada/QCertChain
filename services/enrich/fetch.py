@@ -140,9 +140,9 @@ async def fetch(domain: str, *, timeout_s: float, user_agent: str, limiter: Limi
         return RateLimited(host)
     if use_playwright:
         try:
-            got = await fetch_playwright(domain, timeout_s=timeout_s, user_agent=user_agent)
-            if isinstance(got, FetchedPage):
-                return got
-        except Exception:  # Playwright missing or browser crashed: httpx path, bundle marked partial
+            # A site Playwright could not reach is unreachable for httpx too: retrying only doubled the wait
+            # (measured p95 candidate->verdict 44.7 s). Return Playwright's verdict, page or Unreachable.
+            return await fetch_playwright(domain, timeout_s=timeout_s, user_agent=user_agent)
+        except Exception:  # Playwright itself missing or crashed: httpx path, bundle marked partial
             pass
     return await fetch_httpx(domain, timeout_s=timeout_s, user_agent=user_agent, transport=transport)

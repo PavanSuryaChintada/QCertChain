@@ -81,3 +81,12 @@ def test_known_kits_and_ops_log_and_anchor_queue(db):
     assert db.execute(sa.text("select message from ops_log")).scalar() == "hello"
     qid = repo.enqueue_anchor(db, "evidence", {"bundle_id": "b"})
     assert db.execute(sa.text("select payload from anchor_queue where id=:i"), {"i": qid}).scalar() == {"bundle_id": "b"}
+
+
+def test_every_verdict_is_timestamped_for_response_time_analysis(db):
+    for verdict, name in (("dismissed", "a-sbi-kyc.top"), ("unreachable", "b-sbi-kyc.top")):
+        t = triage(name)
+        d, _ = repo.upsert_candidate(db, name=name, etld1=t.etld1, cert_id=None, triage=t, source="certstream",
+                                     ct_seen_at=NOW)
+        repo.set_confirmation(db, d, ConfirmResult(verdict, 0.0, [Signal("x", "weak", "y")], 0))
+        assert db.execute(sa.text("select verdict_at from domains where id=:d"), {"d": d}).scalar() is not None

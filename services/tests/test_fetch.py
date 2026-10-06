@@ -56,3 +56,39 @@ async def test_rate_limited_host_not_fetched():
     r = await fetch("a.top", timeout_s=5, user_agent="UA", limiter=limiter, use_playwright=False,
                     transport=transport({"https://a.top/": lambda req: calls.append(1) or httpx.Response(200)}))
     assert isinstance(r, RateLimited) and calls == []
+
+
+async def test_unreachable_site_is_not_fetched_twice(monkeypatch):
+    """Playwright reached the network and the site is down: an httpx retry only doubles the wait."""
+    from services.enrich import fetch as f
+    calls = []
+
+    async def pw(domain, **kw):
+        calls.append("playwright")
+        return Unreachable("net::ERR_NAME_NOT_RESOLVED")
+
+    async def hx(domain, **kw):
+        calls.append("httpx")
+        return Unreachable("ConnectError")
+
+    monkeypatch.setattr(f, "fetch_playwright", pw)
+    monkeypatch.setattr(f, "fetch_httpx", hx)
+    r = await f.fetch("dead.example", timeout_s=5, user_agent="UA")
+    assert isinstance(r, Unreachable) and calls == ["playwright"]
+
+
+async def test_httpx_used_when_playwright_itself_is_broken(monkeypatch):
+    from services.enrich import fetch as f
+    calls = []
+
+    async def pw(domain, **kw):
+        raise RuntimeError("browser executable not found")
+
+    async def hx(domain, **kw):
+        calls.append("httpx")
+        return Unreachable("x")
+
+    monkeypatch.setattr(f, "fetch_playwright", pw)
+    monkeypatch.setattr(f, "fetch_httpx", hx)
+    await f.fetch("a.example", timeout_s=5, user_agent="UA")
+    assert calls == ["httpx"]

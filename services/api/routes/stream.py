@@ -18,10 +18,26 @@ STATE, MODE_REQ, LIVE = "stream:state", "stream:mode_request", "certs:live"
 STALE_AFTER_S = 15
 
 
+async def triage_lag(r) -> int:
+    """Certificates waiting for triage = entries after the triage group's last-delivered id plus delivered-but-
+    unacked ones. NOT the stream length: acked entries stay in the stream until trimmed."""
+    try:
+        groups = await r.xinfo_groups("certs:raw")
+    except Exception:
+        return await r.xlen("certs:raw") if await r.exists("certs:raw") else 0
+    g = next((x for x in groups if x.get("name") == "triage"), None)
+    if g is None:
+        return await r.xlen("certs:raw")
+    if g.get("lag") is not None:
+        return int(g["lag"]) + int(g.get("pending", 0))
+    after = await r.xrange("certs:raw", min=f"({g['last-delivered-id']}", max="+")
+    return len(after) + int(g.get("pending", 0))
+
+
 async def read_state(r) -> StreamState:
     st = await r.hgetall(STATE)
     req = await r.hgetall(MODE_REQ)
-    depth = {"certs_raw": await r.xlen("certs:raw"), "enrich": await r.llen("enrich:queue")}
+    depth = {"certs_raw": await triage_lag(r), "enrich": await r.llen("enrich:queue")}
     hb = datetime.fromisoformat(st["last_heartbeat"]) if st.get("last_heartbeat") else None
     # Ingest heartbeats every 5 s. Three missed beats = the process is gone: never show a dead stream as live.
     stale = hb is None or (datetime.now(timezone.utc) - hb).total_seconds() > STALE_AFTER_S
