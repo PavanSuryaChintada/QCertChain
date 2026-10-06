@@ -21,6 +21,9 @@ STREAM, STATE, MODE_REQ = "certs:raw", "stream:state", "stream:mode_request"
 HEARTBEAT_S = 5
 BATCH_MAX = 500        # records per pipeline flush
 FLUSH_EVERY_S = 0.1    # max latency added by batching
+# Trim cap: ~587 B per entry measured, so 500k entries ~ 290 MB of the 512 MB Redis (noeviction). That is
+# ~4.5 min of backlog at the measured 1,840 certs/s; triage keeps up, so the backlog is consumed history.
+STREAM_MAXLEN = 500_000
 
 
 def backoff_delays():
@@ -68,7 +71,7 @@ class _Ctx:
         batch, self.buf = self.buf, []
         async with self.r.pipeline(transaction=False) as p:
             for item in batch:
-                p.xadd(STREAM, {"cert": item}, maxlen=1_000_000, approximate=True)
+                p.xadd(STREAM, {"cert": item}, maxlen=STREAM_MAXLEN, approximate=True)
             await p.execute()
 
     async def write_state(self) -> None:

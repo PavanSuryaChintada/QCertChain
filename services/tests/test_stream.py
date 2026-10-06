@@ -100,3 +100,16 @@ async def test_replay_throughput_uses_batched_writes(tmp_path, monkeypatch):
     stop.set()
     await asyncio.wait_for(task, 5)
     assert calls["xadd"] == 0  # writes go through pipelines, never one round trip per cert
+
+
+def test_stream_cap_fits_in_redis_memory():
+    """Smoke-run finding: 1,000,000 entries x ~587 B (measured, MEMORY USAGE) = 560 MB > Redis maxmemory 512 MB with
+    noeviction, so XADD failed and ingest died. The trim cap must fit with headroom for the other keys."""
+    import re
+    from pathlib import Path
+
+    from services.ingest.stream import STREAM_MAXLEN
+    compose = Path("docker-compose.yml").read_text(encoding="utf-8")
+    maxmem_mb = int(re.search(r"--maxmemory (\d+)mb", compose).group(1))
+    measured_bytes_per_entry = 587
+    assert STREAM_MAXLEN * measured_bytes_per_entry <= 0.6 * maxmem_mb * 1024 * 1024
