@@ -292,3 +292,16 @@ Format: **AI did** · **Owner decided** · **Verified by** · **Rulings** (AI ju
   - Live smoke against **Supabase** through the session pooler: `/health`, `/metrics`, `/candidates`, `/stream/state`, and a 404 problem+json.
 - **Found by running it, fixed test-first:** `/stream/state` reported `connected` from a heartbeat hours old (my earlier smoke run left it in Redis). The console would have shown LIVE for a dead stream. Now three missed heartbeats (15 s) read as `down` with rate 0, in both `/stream/state` and `/metrics`.
 - **Incident:** the Supabase direct host (IPv6) stopped resolving from this network. Schema changes are now applied through the IPv4 session pooler, which supports DDL.
+
+## Task 17 — Solidity contracts (Hardhat)
+
+- **AI did:**
+  - Set up Hardhat 2.29.1 (Node 22) with BUILD_SPEC's config and a standard tsconfig.
+  - Wrote OrgRegistry, CampaignRegistry, EvidenceAnchor and Attestation verbatim from BUILD_SPEC §2–5, plus the accepted Attestation fix.
+  - Wrote the deploy script (`deployments/localhost.json` is the only place addresses live) and a Dockerfile that deploys on boot.
+  - Set the `.env` org keys to Hardhat accounts #1/#2. These are public local test keys; account #0 is the admin and is not an org.
+- **Verified by:**
+  - `npx hardhat test`: RED (no artifacts), then GREEN 18/18, including THE INHERITANCE TEST (`findByKit`) and THE TAMPER TEST (`verify` false for a tampered root).
+  - **The Attestation fix is proven, not assumed:** with BUILD_SPEC §5's original logic swapped back in, the test fails (only org1 is recorded and org2's dispute is lost); with the fix it passes.
+  - A local deploy registered orgs whose addresses equal those derived from the `.env` keys.
+- **Environment note:** the global npm registry is `registry.npmmirror.com`. The install took 13 minutes at 2–4 minutes per large package. Left unchanged; flagged to the owner.
