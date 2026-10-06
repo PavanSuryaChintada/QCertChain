@@ -138,3 +138,22 @@ Format: **AI did** · **Owner decided** · **Verified by** · **Rulings** (AI ju
   - A brute-force test asserts the ground state equals the true optimum on 25 random instances.
   - Qubits: ≤ 12 instead of 26.
   - Correction note added to `docs/NPHARD.md` §6; the original text is kept.
+
+## Task 9 — QAOA backend
+
+- **AI did:**
+  - Installed the pinned qiskit 1.2.4 and qiskit-aer 0.15.1 (clean install) and committed `requirements.lock`.
+  - Implemented `qubo_to_ising` (x = (1−z)/2, little-endian) and QAOA:
+    - p = 3 layers
+    - warm start biased toward the greedy plan (Ry, ε = 0.25)
+    - COBYLA with 150 iterations and a wall-clock timeout inside the cost function
+    - 1024 shots, keeping the best sampled bitstring
+    - a 24-qubit guard; qiskit imported lazily
+- **Verified by:**
+  - `test_ising.py`: RED (missing function), then GREEN 6/6. The **Ising energy plus offset equals the QUBO energy for every bitstring** (brute force), and the energy ordering is identical.
+  - Interdict suite: 597/597.
+- **Found by measuring, fixed test-first:**
+  - QAOA took 17–18 s on a 12-qubit campaign problem, over the 15 s target. Aer EstimatorV2 cost 190 ms per evaluation, almost all per-call overhead.
+  - Switched to one transpiled circuit with `save_expectation_value`: 57 ms per evaluation. Now 11.5 s.
+  - The test asserts under 15 s.
+- **Observation for the owner:** on a seed where every domain uses one of 3 registrars, "report to all 3 registrars" kills 400/400, and all four backends find it. Whether that's realistic depends on how many registrars real campaigns spread across. The seed was not tuned to make the problem harder.

@@ -72,6 +72,7 @@ def test_every_backend_fails_except_greedy_still_returns_plan(monkeypatch):
     def boom(p, **kw):
         raise RuntimeError("down")
 
+    monkeypatch.setitem(r.SOLVERS, "qaoa", boom)
     monkeypatch.setitem(r.SOLVERS, "cpsat", boom)
     plan = solve(P, backend="qaoa")
     assert plan.backend == "greedy" and plan.fell_back and plan.fallback_from == "qaoa" and plan.valid
