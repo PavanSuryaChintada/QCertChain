@@ -183,3 +183,15 @@ async def test_stale_heartbeat_reads_as_down():
     fresh = datetime.now(timezone.utc).isoformat()
     await r.hset("stream:state", "last_heartbeat", fresh)
     assert (await read_state(r)).connection == "connected"
+
+
+@pytest.mark.db
+def test_app_lifespan_restores_global_solver_flag(db):
+    import interdict.router
+    from fastapi.testclient import TestClient
+
+    from services.api import main
+    assert interdict.router.ISOLATE_QAOA is False
+    with TestClient(main.app):
+        assert interdict.router.ISOLATE_QAOA is True
+    assert interdict.router.ISOLATE_QAOA is False  # no leak into other code sharing the process

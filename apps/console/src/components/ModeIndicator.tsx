@@ -21,7 +21,7 @@ export function ModeIndicator({ mode, connection, certsPerSec, replayFile }: Pro
   return (
     <span className="inline-flex items-center gap-2" role="status" aria-label={label}
           style={{ fontFamily: "var(--font-data)", fontSize: 12, minWidth: 220 /* reserve space: no layout shift */ }}>
-      <span aria-hidden style={{ width: 10, height: 10, borderRadius: "50%", background: `var(${token})`, display: "inline-block" }} />
+      <span aria-hidden style={{ color: `var(${token})` }}>●</span>
       <span style={{ color: `var(${token})`, fontWeight: 500 }}>{label}</span>
     </span>
   );

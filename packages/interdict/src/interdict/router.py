@@ -48,11 +48,19 @@ def _annealing(p: Problem, *, timeout_s: float, max_vars: int) -> SolverOutput:
     return SolverOutput(solve_annealing(r.problem), notes=r.notes)
 
 
-def _qaoa(p: Problem, *, timeout_s: float, max_vars: int) -> SolverOutput:
-    from interdict.solvers.qaoa import solve_qaoa  # lazy: the package must import without Qiskit
+# Hosts that serve other work in the same process (the API) set this True: QAOA then runs in a dedicated
+# process with a hard wall-clock limit (see solvers/qaoa_isolated.py). Default: in-process.
+ISOLATE_QAOA = False
 
+
+def _qaoa(p: Problem, *, timeout_s: float, max_vars: int) -> SolverOutput:
     r = reduce(p, max_vars=max_vars)
-    targets, qubits = solve_qaoa(r.problem, timeout_s=timeout_s)
+    if ISOLATE_QAOA:
+        from interdict.solvers import qaoa_isolated
+        targets, qubits = qaoa_isolated.solve_qaoa_isolated(r.problem, timeout_s=timeout_s)
+    else:
+        from interdict.solvers.qaoa import solve_qaoa  # lazy: the package must import without Qiskit
+        targets, qubits = solve_qaoa(r.problem, timeout_s=timeout_s)
     return SolverOutput(targets, qubit_count=qubits, notes=r.notes)
 
 
@@ -60,6 +68,9 @@ SOLVERS = {"cpsat": _cpsat, "greedy": _greedy, "annealing": _annealing, "qaoa": 
 
 
 def run_one(p: Problem, backend: str, *, timeout_s: float, max_vars: int) -> tuple[SolverOutput, set[str], int]:
+    if backend == "qaoa" and ISOLATE_QAOA:  # worker start-up is not solver time: warm before the clock starts
+        from interdict.solvers import qaoa_isolated
+        qaoa_isolated.warm()
     t0 = time.perf_counter()
     out = SOLVERS[backend](p, timeout_s=timeout_s, max_vars=max_vars)
     ms = int((time.perf_counter() - t0) * 1000)

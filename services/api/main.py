@@ -15,10 +15,33 @@ from services.ingest.triage import warm
 PROBLEM = "application/problem+json"
 
 
+def _warm_solvers() -> None:
+    """Load OR-Tools (first CP-SAT call measured 4.5 s cold vs 0.4 s warm) and start the QAOA worker process."""
+    from interdict.solvers.cpsat import solve_cpsat
+    from interdict.types import Problem
+    solve_cpsat(Problem(("a",), {"d": frozenset({"a"})}, {"d": 1.0}, 1))
+    try:
+        from interdict.solvers import qaoa_isolated
+        qaoa_isolated.warm()
+    except Exception:  # Qiskit absent: QAOA falls back to CP-SAT by design
+        pass
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
+    import threading
+
+    import interdict.router
+    previous = interdict.router.ISOLATE_QAOA
+    interdict.router.ISOLATE_QAOA = True  # QAOA must not compete for this process's GIL (34 s vs 9.8 s measured)
     warm()  # allowlist + brand matchers: never on the first request
-    yield
+    threading.Thread(target=_warm_solvers, daemon=True).start()
+    try:
+        yield
+    finally:
+        interdict.router.ISOLATE_QAOA = previous
+        from interdict.solvers import qaoa_isolated
+        qaoa_isolated.shutdown()
 
 
 app = FastAPI(title="QCertChain API", version="0.1.0", lifespan=lifespan)

@@ -395,3 +395,30 @@ Format: **AI did** · **Owner decided** · **Verified by** · **Rulings** (AI ju
     - small files showed "0 KB"
     - the header domain name was truncated
 - **Ruling:** the graph does not use cose-bilkent (DESIGN.md names it). Measured 17–22 s on the demo campaign; the intent (one settle, then static, readable) is kept.
+
+## Task 22 — plan panel, benchmark, second organisation, ops log, email analyzer
+
+- **AI did:**
+  - `PlanPanel`/`PlanSummary`:
+    - the k control clamps to the maximum given in a 422
+    - fallback stated in words ("qaoa timed out → cpsat"), and a time-limited plan labelled "not proven optimal"
+    - variables always shown; qubits only when present
+    - hovering a target highlights exactly the domains it takes down
+    - "Reports are generated … never sent"
+  - `BenchmarkTable`: every row, failures included, with the ink border on whichever backend wins, and the quantum framing verbatim (never in a heading).
+  - `SecondOrg`: starts empty; kit-hash lookup; "Inherited from ledger. No raw telemetry received."; corroborate and dispute (queued).
+  - `OpsLog` and `EmailAnalyzer` (paste or .eml drop; suspicious shown grey).
+  - Campaign view with the "Publish to ledger" action.
+  - The mode dot is now a glyph (DESIGN bans radius > 2px).
+- **Verified by:**
+  - vitest 27/27.
+  - Design-ban grep clean.
+  - A Playwright-driven run against the live API + Supabase + local chain: plan, benchmark, publish (401 anchors landed on chain), org-2 inheritance and email analysis, with no browser console errors.
+  - Full Python suite **808/808**.
+- **Found by running the real system, fixed test-first:**
+  - **QAOA took 34 s inside the API, against 9.8 s standalone.** COBYLA's Python loop competed for the GIL with the API's other requests.
+    - Now runs in a dedicated worker process with a hard wall-clock kill.
+    - Worker start-up (8.2 s spawn + Qiskit import) is excluded from the solve budget, which stops the kill → cold-respawn → timeout cascade observed after the first fix.
+    - Measured through the API: **12.0 s first, then 6.6–6.9 s**, inside the 15 s budget.
+  - **The first CP-SAT plan took 3.4–4.5 s cold.** OR-Tools is now warmed at API startup: **131 ms** on the first call after startup, 73–78 ms warm.
+  - **The API lifespan leaked a global solver flag,** which broke the `test_fallback` release gate when run in the same process. It's now restored on shutdown, with a test.

@@ -67,3 +67,4 @@ textarea { padding: 8px 12px; font-family: var(--font-data); font-size: 12px; }
   *, *::before, *::after { animation: none !important; transition: none !important; }
 }
 @keyframes flare { from { color: var(--v-confirmed); } to { color: var(--ink-000); } }
+.sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }

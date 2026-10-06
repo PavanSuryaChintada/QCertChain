@@ -4,6 +4,9 @@ import { LeftRail } from "./layout/LeftRail";
 import { StreamRail } from "./layout/StreamRail";
 import { CampaignView } from "./views/CampaignView";
 import { DomainDetail } from "./views/DomainDetail";
+import { EmailAnalyzer } from "./views/EmailAnalyzer";
+import { OpsLog } from "./views/OpsLog";
+import { SecondOrg } from "./views/SecondOrg";
 
 function ConsoleMain() {
   const [params] = useSearchParams();
@@ -31,6 +34,9 @@ export default function App() {
       <main>
         <Routes>
           <Route path="/" element={<ConsoleMain />} />
+          <Route path="/email" element={<EmailAnalyzer />} />
+          <Route path="/org2" element={<SecondOrg />} />
+          <Route path="/ops" element={<OpsLog />} />
         </Routes>
       </main>
       <StreamRail />
