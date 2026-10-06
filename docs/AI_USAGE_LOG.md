@@ -192,3 +192,34 @@ Format: **AI did** · **Owner decided** · **Verified by** · **Rulings** (AI ju
   - **The hash does not move** when every string, colour, image URL and class/id/style/alt attribute is changed, or when the brand name is swapped.
   - **It does move** when one wrapper `<div>` is added.
   - Malformed HTML doesn't crash.
+
+## Task 12 — fetch, enrichers, confirmation gate
+
+- **AI did:**
+  - **`fetch.py`:**
+    - Playwright first, with an httpx fallback.
+    - Observe only: no interaction with the page.
+    - Redirects followed manually (≤ 5 hops, loops detected), with the chain recorded.
+    - Honest User-Agent; a per-host rate limiter is injected.
+  - **`enrichers.py`:**
+    - DNS, RDAP (registrar, abuse contact, registration date), Team Cymru ASN, and the stdlib TLS chain.
+    - Each enricher fails independently, and any failure sets `partial`.
+  - **`confirm.py`:**
+    - The pure `analyze_page` gate: confirmed needs ≥ 2 strong signals.
+      - strong: credential POST to a foreign origin, known-kit DOM hash, brand favicon
+      - moderate: brand in the title, obfuscated JS, password field
+      - weak: domain < 30 days old, free CA
+    - `confirm()` runs the fetch and the enrichers concurrently.
+- **Verified by:** `test_confirm` (14), `test_fetch` (5) and `test_enrichers` (6 incl. 2 live network): RED, then GREEN. Service suite: 119/119. Covered:
+  - one strong signal never confirms; moderate-only never confirms
+  - a POST to the brand's real domain, or to the same site, is not foreign
+  - after a redirect, the final URL is the origin
+  - parked pages and tiny error pages are `unreachable`; a blog is `dismissed`
+  - an unreachable fetch never guesses; a rate-limited host stays a candidate
+  - the fetch and the enrichers really run concurrently
+  - Live checks: DNS/ASN/RDAP/TLS against example.com; Playwright fetched example.com (HTTP 200, 37 KB screenshot).
+- **Rulings:**
+  - **ASN via Team Cymru, not pyasn.** pyasn needs MSVC on Windows; Team Cymru is the other spec-listed source.
+  - **The TLS issuer comes from a verified handshake (stdlib),** to avoid adding `cryptography`.
+  - **One or more strong signals without enough for confirmation stays `candidate`.** It is not dismissed.
+  - **Weak-only evidence is `dismissed`.** Free CA plus young domain describes a large share of all certificates.

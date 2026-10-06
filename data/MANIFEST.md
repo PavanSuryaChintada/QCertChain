@@ -10,5 +10,15 @@ Free does not mean unattributed (DATA.md §8). Every file under `data/`, where i
 | `certstream/config.yaml` | certstream-server-go v1.10.1 sample config, adapted | 2026-10-06 | Self-hosted CT aggregator (spec D8). |
 | `capture.jsonl` (git-ignored) | Certificate Transparency logs (RFC 6962 + static-ct tiled) via self-hosted certstream-server-go | 2026-10-06 | 30-minute capture; replay source. Per-operator volume in `reports/ct_capture/`. |
 
+## Enrichment sources (queried live, nothing stored here)
+
+| Source | Use | Notes |
+|---|---|---|
+| DNS via 1.1.1.1 / 8.8.8.8 (dnspython) | A, AAAA, NS, MX, TXT | |
+| RDAP — https://rdap.org (ICANN/IANA bootstrap) | registrar, registrar abuse contact, registration date | preferred over WHOIS (DATA.md §2) |
+| Team Cymru IP-to-ASN over DNS | ASN, AS name, country | **Used instead of pyasn**: pyasn needs Microsoft Visual C++ Build Tools to compile on Windows (install failed 2026-10-06). Both are listed in DATA.md §2. |
+| TLS handshake (stdlib `ssl`) | served certificate PEM, issuer | |
+| Playwright Chromium 131 headless shell | rendered DOM, full-page screenshot | httpx fallback → partial bundle |
+
 ## Attribution
 Certificate Transparency — RFC 6962 / C2SP static-ct-api, logs operated by Google, Cloudflare, Let's Encrypt, DigiCert, Sectigo, TrustAsia, Geomys, IPng Networks and others · certstream-server-go — d-Rickyy-b (MIT) · Tranco — KU Leuven · Public Suffix List — Mozilla (via tldextract snapshot)
