@@ -72,3 +72,30 @@ def test_status_is_one_batched_poll_with_component_states(api, seeded):
     assert all(c["status"] in ("ok", "degraded", "failed") and c["detail"] for c in s["components"].values())
     assert s["metrics"]["campaigns_active"] == 1 and "candidates_last_hour" in s["metrics"]
     assert {"regions", "endpoints"} <= set(s["health"])
+
+
+def test_scaling_benchmark_flags_every_extrapolated_value(api):
+    s = api.get("/scaling", headers=api.as_("demo1")).json()
+    if "unavailable" in s:
+        pytest.skip(s["unavailable"])
+    assert s["k_rule"] == "n/4" and [p["n"] for p in s["points"]] == [10, 15, 20, 25, 30, 40, 60, 80]
+    for p in s["points"]:
+        assert p["bruteforce_extrapolated"] == (p["n"] > 22) and p["k"] == max(2, p["n"] // 4)
+        assert p["cpsat_status"] in ("OPTIMAL", "FEASIBLE") and p["plans_log2"] > 0
+        if not p["bruteforce_extrapolated"]:
+            assert p["coverage"]["bruteforce"] == p["coverage"]["cpsat"]  # exhaustive proves CP-SAT optimal
+    t = s["thresholds"]
+    assert t["one_second"]["n"] < t["one_hour"]["n"] < t["one_year"]["n"]
+
+
+def test_benchmark_has_an_exhaustive_row_that_proves_the_optimum(api, seeded):
+    import math
+    b = api.get(f"/campaigns/{seeded}/benchmark?k=3").json()
+    bf = next(r for r in b["rows"] if r["backend"] == "bruteforce")
+    if bf["valid"]:
+        cp = next(r for r in b["rows"] if r["backend"] == "cpsat")
+        assert bf["domains_covered"] == cp["domains_covered"]  # the exhaustive optimum = CP-SAT's answer
+        assert bf["subsets_checked"] == math.comb(b["n_after_exact_reduction"], min(3, b["n_after_exact_reduction"]))
+        assert b["n_after_exact_reduction"] <= b["n_targetable"]
+    else:
+        assert bf["error"].startswith("skipped")

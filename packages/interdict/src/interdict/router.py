@@ -20,6 +20,7 @@ CHAINS = {
     "qaoa": ["qaoa", "cpsat", "greedy"],
     "annealing": ["annealing", "cpsat", "greedy"],
     "greedy": ["greedy"],
+    "bruteforce": ["bruteforce"],  # benchmark/proof only, never a production backend
 }
 
 
@@ -64,7 +65,21 @@ def _qaoa(p: Problem, *, timeout_s: float, max_vars: int) -> SolverOutput:
     return SolverOutput(targets, qubit_count=qubits, notes=r.notes)
 
 
-SOLVERS = {"cpsat": _cpsat, "greedy": _greedy, "annealing": _annealing, "qaoa": _qaoa}
+def _bruteforce(p: Problem, *, timeout_s: float, max_vars: int) -> SolverOutput:
+    """Exhaustive search after the EXACT part of the reduction only: identical domains merged, and nodes whose
+    coverage is a subset of another's removed (a dominated node is never strictly better). No top-C cut, so the
+    optimum found is the true optimum of the full problem."""
+    from interdict.reduce import exact_reduce
+    from interdict.solvers.bruteforce import solve_bruteforce
+    rp = exact_reduce(p)
+    kept = rp.nodes
+    targets, checked = solve_bruteforce(rp)
+    return SolverOutput(targets, notes=[
+        f"exhaustive: checked all {checked:,} plans of {min(p.k, len(kept))} targets after exact reduction "
+        f"({len(p.nodes)} -> {len(kept)} nodes: identical domains merged, dominated nodes removed)"])
+
+
+SOLVERS = {"cpsat": _cpsat, "greedy": _greedy, "annealing": _annealing, "qaoa": _qaoa, "bruteforce": _bruteforce}
 
 
 def run_one(p: Problem, backend: str, *, timeout_s: float, max_vars: int) -> tuple[SolverOutput, set[str], int]:

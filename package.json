@@ -1,0 +1,8 @@
+{
+  "name": "qcertchain",
+  "private": true,
+  "description": "Root scripts. The console app has its own package.json in apps/console.",
+  "scripts": {
+    "finalize": "node scripts/finalize.mjs"
+  }
+}

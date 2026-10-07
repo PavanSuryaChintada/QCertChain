@@ -1,0 +1,187 @@
+{
+ "generated_at": "2026-10-07T10:54:12.078579+00:00",
+ "k_rule": "n/4",
+ "k": "n/4",
+ "method": "Synthetic campaigns, 15 domains per targetable node, Zipf-shaped sharing, budget k = n/4. CP-SAT, greedy and QAOA are timed at every n. Exhaustive search checks all C(n, k) plans; it is timed for n <= 22 and extrapolated above (C(n, k) x the measured cost per plan). QAOA runs on the reduced problem (<= 12 qubits).",
+ "machine": "AMD64 Family 23 Model 24 Stepping 1, AuthenticAMD, 4 logical CPUs, Python 3.11.9",
+ "fit": {
+  "ns_per_subset": 8401.28,
+  "samples": 6
+ },
+ "thresholds": {
+  "one_second": {
+   "n": 24
+  },
+  "one_hour": {
+   "n": 40
+  },
+  "one_year": {
+   "n": 56
+  }
+ },
+ "points": [
+  {
+   "n": 10,
+   "k": 2,
+   "subsets_log2": 10,
+   "plans_log2": 5.49,
+   "plans_at_k": 45,
+   "cpsat_ms": 1200.2,
+   "cpsat_status": "OPTIMAL",
+   "greedy_ms": 0,
+   "coverage": {
+    "cpsat": 208.0,
+    "greedy": 208.0,
+    "bruteforce": 208.0,
+    "qaoa": 208.0
+   },
+   "bruteforce_ms": 0.4,
+   "bruteforce_extrapolated": false,
+   "qaoa_ms": 5824,
+   "qaoa_note": "on the reduced problem (10 qubits): ",
+   "bruteforce_estimate_ms": 0.378
+  },
+  {
+   "n": 15,
+   "k": 3,
+   "subsets_log2": 15,
+   "plans_log2": 8.83,
+   "plans_at_k": 455,
+   "cpsat_ms": 1151.9,
+   "cpsat_status": "OPTIMAL",
+   "greedy_ms": 0,
+   "coverage": {
+    "cpsat": 314.0,
+    "greedy": 314.0,
+    "bruteforce": 314.0,
+    "qaoa": 312.0
+   },
+   "bruteforce_ms": 1.8,
+   "bruteforce_extrapolated": false,
+   "qaoa_ms": 8081,
+   "qaoa_note": "on the reduced problem (12 qubits): weight 10 unreachable by the kept 12 candidate nodes",
+   "bruteforce_estimate_ms": 3.823
+  },
+  {
+   "n": 20,
+   "k": 5,
+   "subsets_log2": 20,
+   "plans_log2": 13.92,
+   "plans_at_k": 15504,
+   "cpsat_ms": 1006.7,
+   "cpsat_status": "OPTIMAL",
+   "greedy_ms": 0,
+   "coverage": {
+    "cpsat": 431.0,
+    "greedy": 431.0,
+    "bruteforce": 431.0,
+    "qaoa": 429.0
+   },
+   "bruteforce_ms": 149.2,
+   "bruteforce_extrapolated": false,
+   "qaoa_ms": 7497,
+   "qaoa_note": "on the reduced problem (12 qubits): weight 28 unreachable by the kept 12 candidate nodes",
+   "bruteforce_estimate_ms": 130.253
+  },
+  {
+   "n": 25,
+   "k": 6,
+   "subsets_log2": 25,
+   "plans_log2": 17.43,
+   "plans_at_k": 177100,
+   "cpsat_ms": 1056.7,
+   "cpsat_status": "OPTIMAL",
+   "greedy_ms": 1,
+   "coverage": {
+    "cpsat": 589.0,
+    "greedy": 589.0,
+    "qaoa": 580.0
+   },
+   "bruteforce_ms": 1487.867,
+   "bruteforce_extrapolated": true,
+   "qaoa_ms": 7959,
+   "qaoa_note": "on the reduced problem (12 qubits): weight 61 unreachable by the kept 12 candidate nodes",
+   "bruteforce_estimate_ms": 1487.867
+  },
+  {
+   "n": 30,
+   "k": 7,
+   "subsets_log2": 30,
+   "plans_log2": 20.96,
+   "plans_at_k": 2035800,
+   "cpsat_ms": 721.6,
+   "cpsat_status": "OPTIMAL",
+   "greedy_ms": 1,
+   "coverage": {
+    "cpsat": 698.0,
+    "greedy": 698.0,
+    "qaoa": 666.0
+   },
+   "bruteforce_ms": 17103.332,
+   "bruteforce_extrapolated": true,
+   "qaoa_ms": 5971,
+   "qaoa_note": "on the reduced problem (12 qubits): weight 126 unreachable by the kept 12 candidate nodes",
+   "bruteforce_estimate_ms": 17103.332
+  },
+  {
+   "n": 40,
+   "k": 10,
+   "subsets_log2": 40,
+   "plans_log2": 29.66,
+   "plans_at_k": 847660528,
+   "cpsat_ms": 671.0,
+   "cpsat_status": "OPTIMAL",
+   "greedy_ms": 5,
+   "coverage": {
+    "cpsat": 938.0,
+    "greedy": 938.0,
+    "qaoa": 916.0
+   },
+   "bruteforce_ms": 7121435.956,
+   "bruteforce_extrapolated": true,
+   "qaoa_ms": 8767,
+   "qaoa_note": "on the reduced problem (12 qubits): weight 211 unreachable by the kept 12 candidate nodes",
+   "bruteforce_estimate_ms": 7121435.956
+  },
+  {
+   "n": 60,
+   "k": 15,
+   "subsets_log2": 60,
+   "plans_log2": 45.6,
+   "plans_at_k": 53194089192720,
+   "cpsat_ms": 1506.4,
+   "cpsat_status": "OPTIMAL",
+   "greedy_ms": 13,
+   "coverage": {
+    "cpsat": 1441.0,
+    "greedy": 1441.0,
+    "qaoa": 1351.0
+   },
+   "bruteforce_ms": 446898595496.565,
+   "bruteforce_extrapolated": true,
+   "qaoa_ms": 10511,
+   "qaoa_note": "on the reduced problem (12 qubits): weight 417 unreachable by the kept 12 candidate nodes",
+   "bruteforce_estimate_ms": 446898595496.565
+  },
+  {
+   "n": 80,
+   "k": 20,
+   "subsets_log2": 80,
+   "plans_log2": 61.62,
+   "plans_at_k": 3535316142212174320,
+   "cpsat_ms": 1912.2,
+   "cpsat_status": "OPTIMAL",
+   "greedy_ms": 26,
+   "coverage": {
+    "cpsat": 1931.0,
+    "greedy": 1931.0,
+    "qaoa": 1673.0
+   },
+   "bruteforce_ms": 2.9701191289636364e+16,
+   "bruteforce_extrapolated": true,
+   "qaoa_ms": 7000,
+   "qaoa_note": "on the reduced problem (12 qubits): weight 702 unreachable by the kept 12 candidate nodes",
+   "bruteforce_estimate_ms": 2.9701191289636364e+16
+  }
+ ]
+}

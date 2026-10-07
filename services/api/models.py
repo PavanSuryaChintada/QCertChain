@@ -194,6 +194,9 @@ class SweepOut(BaseModel):
     search_space_log2: int
     cached: bool
     points: list[SweepPoint]
+    uncoverable_domain_ids: list[int] = []   # no takedownable infrastructure: no budget reaches them
+    domains_total: int = 0
+    coverable_total: int = 0
 
 
 # ---- interdiction ----------------------------------------------------------------------------------

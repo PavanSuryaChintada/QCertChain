@@ -43,7 +43,8 @@ def seed_campaign(c: sa.Connection, *, label: str, domains: int = 400, ips: int 
                   shared_dns_fraction: float = 0.08, seed: int = 42,
                   evidence_dir: Path | str | None = None, signing_key_hex: str | None = None,
                   ip_base: int = 10, shared_ips: list[str] | None = None,
-                  shared_nameservers: list[str] | None = None) -> str:
+                  shared_nameservers: list[str] | None = None, tail_domains: int = 0, tail_registrars: int = 8,
+                  unreachable_domains: int = 0) -> str:
     """shared_ips / shared_nameservers: infrastructure deliberately reused from another org's seeded campaign
     (listed first, so the Zipf draw puts the most domains on it). Same safety rules: documentation IPs and
     reserved .example names only."""
@@ -75,25 +76,27 @@ def seed_campaign(c: sa.Connection, *, label: str, domains: int = 400, ips: int 
 
     rows, staged = [], []  # staged: (name, result, page, enrichment)
     seen_names: set[str] = set()
-    while len(staged) < domains:
-        brand = rng.choice(chosen)
-        token = max(brand.tokens, key=len) if rng.random() < 0.5 else brand.tokens[0]
-        name = f"{token}-{rng.choice(WORDS)}-{rng.choice(WORDS)}-{rng.randint(1, 9999)}.example"
-        if name in seen_names:
-            continue
+
+    def stage(infra) -> None:
+        """One synthetic domain from the kit; `infra(rng)` returns (ips, asn, nameservers, registrar, note)."""
+        while True:
+            brand = rng.choice(chosen)
+            token = max(brand.tokens, key=len) if rng.random() < 0.5 else brand.tokens[0]
+            name = f"{token}-{rng.choice(WORDS)}-{rng.choice(WORDS)}-{rng.randint(1, 9999)}.example"
+            if name not in seen_names:
+                break
         seen_names.add(name)
         html = TEMPLATE.format(brand=brand.name, bg=rng.choice(("#f4f4f4", "#ffffff", "#eef2f7")),
                                accent=rng.choice(PALETTE), slug=token, tagline=rng.choice(("Hum Hai Na", "Secure", "")),
                                collector=COLLECTOR, ref=f"{label}-{rng.randint(1, 99999)}")
         page = FetchedPage(f"https://{name}/", f"https://{name}/login", 200, html,
                            {"x-qcertchain-seed": "synthetic"}, [f"https://{name}/"], None, None, [], "httpx")
-        ip = _zipf(rng, ip_list)
-        ns = [] if rng.random() < shared_dns_fraction else [_zipf(rng, ns_list)]  # shared DNS: not attacker infra
+        ips, asn, ns, registrar, note = infra(rng)
         reg_at = now - timedelta(days=rng.randint(1, 20))
-        e = Enrichment(ip_addresses=[ip], asn=asn_of[ip], asn_name=f"DOC-AS{asn_of[ip]} (seed)", country="ZZ",
-                       nameservers=ns or [SHARED_DNS], registrar=_zipf(rng, reg_list),
-                       abuse_email=None, registered_at=reg_at, dom_hash=page_kit_hash(html),
-                       cert_issuer="Let's Encrypt", partial=True, errors={"seed": "synthetic: no screenshot, no TLS"})
+        e = Enrichment(ip_addresses=ips, asn=asn, asn_name=f"DOC-AS{asn} (seed)" if asn else None, country="ZZ",
+                       nameservers=ns, registrar=registrar, abuse_email=None, registered_at=reg_at,
+                       dom_hash=page_kit_hash(html), cert_issuer="Let's Encrypt", partial=True,
+                       errors={"seed": "synthetic: no screenshot, no TLS" + (f"; {note}" if note else "")})
         result = analyze_page(page, name, brand, known, {}, reg_at, "Let's Encrypt", now=now)
         t = triage(name)
         rows.append({"name": name, "etld1": t.etld1, "source": "seed", "ct_seen_at": reg_at,
@@ -101,6 +104,33 @@ def seed_campaign(c: sa.Connection, *, label: str, domains: int = 400, ips: int 
                      "status": result.verdict if result.verdict != "candidate" else "candidate",
                      "confirm_reasons": result.reasons(), "confidence": result.confidence})
         staged.append((name, result, page, e))
+
+    def main_infra(r):
+        ip = _zipf(r, ip_list)
+        ns = [] if r.random() < shared_dns_fraction else [_zipf(r, ns_list)]  # shared DNS: not attacker infra
+        return [ip], asn_of[ip], ns or [SHARED_DNS], _zipf(r, reg_list), None
+
+    tail_regs = [f"Small Registrar {i + 1} (seed)" for i in range(max(1, tail_registrars))]
+
+    def tail_infra(r, _i=iter(range(tail_domains))):
+        # its OWN documentation IP, behind the shared DNS provider, at one of several small registrars: reachable,
+        # but every takedown here buys few domains. This is the long tail that makes the budget a real tradeoff.
+        i = next(_i)
+        return ([f"{DOC_NETS[1]}{150 + i}"], DOC_ASNS[-1], [SHARED_DNS], tail_regs[i % len(tail_regs)], "long tail")
+
+    def unreachable_infra(r):
+        # only shared infrastructure: the shared DNS provider (never a target, decision D9), no attributable origin
+        # IP, registrar redacted. Same kit, so the same campaign, and no takedown reaches it at any budget.
+        return [], None, [SHARED_DNS], None, "no takedownable infrastructure: shared DNS only, registrar redacted"
+
+    if tail_domains > 100:
+        raise ValueError("tail_domains must stay inside the 203.0.113.150-249 documentation block")
+    for _ in range(domains):
+        stage(main_infra)
+    for _ in range(tail_domains):
+        stage(tail_infra)
+    for _ in range(unreachable_domains):
+        stage(unreachable_infra)
 
     ids = repo.bulk_insert_domains(c, rows)
     repo.bulk_save_enrichment(c, [(ids[n], e) for n, _, _, e in staged if n in ids])

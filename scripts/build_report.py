@@ -12,7 +12,164 @@ QUANTUM = ("Takedown-set selection is formulated as a QUBO. It runs on OR-Tools 
 
 
 def na(sec: dict) -> str | None:
-    return f"not measured — {sec['unavailable']}" if isinstance(sec, dict) and "unavailable" in sec else None
+    return f"not measured: {sec['unavailable']}" if isinstance(sec, dict) and "unavailable" in sec else None
+
+
+def _n(x) -> str:
+    return f"{x:,}" if isinstance(x, int) else v(x)
+
+
+def _partial(sec: dict) -> str:
+    w = sec.get("window") or {}
+    if sec.get("state") == "partial" or w.get("state") == "partial":
+        return f"**PARTIAL capture, still recording** ({w.get('from')} → {w.get('to')}, {w.get('hours')} h). "
+    return ""
+
+
+def lead_sentence(lt: dict) -> str:
+    """One clause for the summary, from the measured lead-time section only."""
+    if na(lt):
+        return f"lead time over the public phishing feeds is {na(lt)}"
+    ex = lt.get("exact_hostname", {})
+    if ex.get("status") == "measured":
+        h = ex["lead_hours"]
+        return (f"CT showed phishing hosts a median {h['median']} h before OpenPhish listed them (n = {h['n']}, exact "
+                "hostname, gap exclusions applied)")
+    return f"lead time over OpenPhish is {ex.get('status', 'not measured: no data')}"
+
+
+def render_capture(cc: dict) -> list[str]:
+    L: list[str] = []
+    if na(cc):
+        return [na(cc)]
+    w, msgs = cc["window"], cc["messages"]
+    L.append(f"{_partial(cc)}Window {w['from']} → {w['to']} ({w['hours']} h); {_n(msgs['total'])} certstream messages "
+             f"in {len(cc['runs'])} recorder runs (one gzip member each). Dataset: {cc['dataset']}. Measured "
+             f"{cc['measured_at']}.")
+    L.append("")
+    g = cc["gap"]
+    if g["gaps"]:
+        spans = "; ".join(f"{x['from']} → {x['to']} (**{x['minutes']} min**)" for x in g["gaps"])
+        L.append(f"Capture gap: {spans}, {g['total_minutes']} min in total. Every other silence between messages was "
+                 f"under {g['largest_other_interarrival_s']} s.")
+    else:
+        L.append(f"Capture gap: none (no silence of {g['threshold_s']} s or more between messages).")
+    rl = g.get("recorder_log") or {}
+    if rl.get("largest_silence"):
+        s = rl["largest_silence"]
+        L.append(f"Recorder log cross-check: its largest silence is {s['from']} → {s['to']} ({s['minutes']} min); "
+                 f"{rl['reconnects']} websocket reconnects; {rl['openphish_polls']} OpenPhish polls, "
+                 f"{rl['openphish_poll_failures']} failed.")
+    L.append("")
+    cv = cc["coverage"]
+    outside_all = cv["minutes_in_window"] - cv["minutes_inside_gaps"]
+    L.append("Coverage = minutes with at least one certificate ÷ minutes in the window "
+             f"({cv['minutes_in_window']:,} minutes, {cv['minutes_inside_gaps']} of them inside the gap).")
+    L.append("")
+    L.append("| CT log operator | Coverage | Coverage outside the gap | Messages |")
+    L.append("|---|---|---|---|")
+    L.append(f"| **All operators** | **{cv['pct']}%** | "
+             f"{round(100 * cv['minutes_covered'] / outside_all, 2) if outside_all else '—'}% | {_n(msgs['total'])} |")
+    for op, d in cv["per_operator"].items():
+        L.append(f"| {op} | {d['pct']}% | {d['pct_outside_gaps']}% | {_n(d.get('messages'))} |")
+    L.append("")
+    L.append(cv.get("note", ""))
+    L.append("")
+    du = cc["duplicates"]
+    L.append(f"Duplicates: {_n(du.get('same_certificate', 0))} messages repeat a certificate already in the capture "
+             f"({_n(du.get('same_certificate_across_runs', 0))} across a restart). Of those, "
+             f"{_n(du.get('same_log_entry_redelivered', 0))} are the same log entry delivered twice "
+             f"({_n(du.get('same_log_entry_redelivered_across_runs', 0))} across a restart); the rest are the same "
+             "certificate from another CT log. n = "
+             f"{_n(du.get('n_messages'))} messages.")
+    L.append("")
+    ca = cc["candidates_at_threshold"]
+    L.append(f"Triage of the whole capture with the deployed rules at **{ca['threshold']}**: **{_n(ca['certificates'])} "
+             f"candidate certificates**, **{_n(ca['unique_names'])} unique candidate names** "
+             f"({_n(ca['messages'])} messages; n = {_n(ca['unique_certificates_triaged'])} unique certificates "
+             f"triaged). {ca['coverage_note']}.")
+    fx = cc.get("replay_fixture")
+    if fx:
+        L.append("")
+        L.append(f"Replay fixture `{fx['path']}`: {_n(fx['messages'])} messages sorted by `seen`, "
+                 f"{_n(fx['duplicates_removed'])} duplicates removed, {_n(fx['kept_scored'])} scored (≥ "
+                 f"{fx.get('keep_score')}) + {_n(fx['kept_background_sample'])} background sample "
+                 f"({100 * fx.get('sample_rate', 0):g} %). Replay at 360× takes "
+                 f"**{fx['replay_seconds_at_speed']['360'] / 60:.1f} min** ({fx['replay_note']}).")
+    return L
+
+
+def render_live(lv: dict) -> list[str]:
+    if na(lv):
+        return [na(lv)]
+    c, o = lv["candidates"], lv["org_verdicts"]
+    L = [f"{_partial(lv)}Window {lv['window']['from']} → {lv['window']['to']} (the capture window); first candidate "
+         f"{c['first_candidate_at']}, last {c['last_candidate_at']}. Measured {lv['measured_at']}.", ""]
+    L.append("| Count at threshold " + str(lv["threshold"]) + " | Value | n | Data |")
+    L.append("|---|---|---|---|")
+    L.append(f"| Live candidates from CT | {_n(c['value'])} | — | {c['dataset']} |")
+    for k in ("confirmed", "dismissed", "unreachable"):
+        L.append(f"| {o['org']} {k} | {_n(o[k])} | {_n(o['n_candidates'])} candidates | {o['dataset']} |")
+    L.append("")
+    L.append(f"All {o['org']} statuses: `{json.dumps(o['by_status'])}`.")
+    pg = lv.get("pipeline_largest_gap")
+    if pg:
+        L.append(f"The pipeline's own largest gap between candidates: {pg['from']} → {pg['to']} ({pg['minutes']} min).")
+    rd = lv.get("redelivery") or {}
+    if rd:
+        L.append(f"Re-deliveries: {_n(rd.get('candidate_rows_touched_again'))} candidate rows were seen again "
+                 f"(`last_seen` > `first_seen`), {_n(rd.get('touched_again_across_the_gap'))} of them across the gap. "
+                 f"{rd.get('note', '')}.")
+    return L
+
+
+def render_lead(lt: dict, old: dict | None) -> list[str]:
+    if na(lt):
+        return [na(lt)]
+    ex, et = lt["exact_hostname"], lt.get("etld1")
+    L = [f"{_partial(lt)}Dataset: {lt['dataset']}. Match: {lt['match_rule']}. Listing time: "
+         f"{lt['listing_time_resolution']}. Measured {lt['measured_at']}.", ""]
+    if ex["status"] == "measured":
+        h = ex["lead_hours"]
+        L.append(f"**Lead time, exact hostname: median {h['median']} h** (p25 {h['p25']} h, p75 {h['p75']} h, max "
+                 f"{h['max']} h; n = {h['n']} CT-first hosts).")
+    else:
+        L.append(f"**Exact hostname: {ex['status']}.**")
+    L.append("")
+    L.append("Exclusions (each OpenPhish entry falls under the first rule that applies):")
+    L.append("")
+    L.append("| Rule | Exact hostname | eTLD+1 (separate) |")
+    L.append("|---|---|---|")
+    for k, desc in lt["rules"].items():
+        L.append(f"| {k.split('_')[0]}: {desc} | {_n(ex['excluded'].get(k, 0))} | "
+                 f"{_n(et['excluded'].get(k, 0)) if et else '—'} |")
+    for k, label in (("retained_matched_ct_first", "Retained: seen in CT before listing"),
+                     ("retained_matched_listed_first", "Retained: listed before CT showed it"),
+                     ("retained_unmatched", "Retained: no CT sighting (not in this capture)")):
+        L.append(f"| {label} | {_n(ex[k])} | {_n(et[k]) if et else '—'} |")
+    L.append(f"| Entries | {_n(ex['entries'])} hosts | {_n(et['entries']) if et else '—'} eTLD+1s |")
+    L.append("")
+    if et:
+        if et["status"] == "measured":
+            h = et["lead_hours"]
+            L.append(f"eTLD+1 (reported separately, never mixed with the exact match): median {h['median']} h "
+                     f"(p25 {h['p25']}, p75 {h['p75']}, max {h['max']}; n = {h['n']}).")
+        else:
+            L.append(f"eTLD+1 (reported separately, never mixed with the exact match): {et['status']}.")
+    w = lt.get("W") or {}
+    if w:
+        L.append(f"W = {w['seconds'] / 60:.0f} min: {w['derivation']}.")
+    if "unmatched_allowlisted_not_indexed" in ex:
+        L.append(f"{ex['unmatched_allowlisted_not_indexed']} of the {ex['entries']} hosts (before exclusions) are on "
+                 "allowlisted domains, which the first-seen index does not store by design, so they cannot match.")
+    L.append(f"OpenPhish: {_n(lt.get('openphish_urls'))} URLs ({_n(lt.get('openphish_hosts'))} hosts) over "
+             f"{lt.get('polls_in_log')} polls; new URLs first appeared in {lt.get('polls_that_added_new_urls')} of them.")
+    if old and not na(old):
+        L.append("")
+        L.append(f"The earlier check (kept as `lead_time_phishtank_30min`): {old.get('matched_domains')} PhishTank "
+                 f"hostnames had their own certificate in a 30-minute capture and {old.get('ct_first')} were seen in "
+                 "CT first; no lead time was claimed from it.")
+    return L
 
 
 def v(x, nd=None):
@@ -54,8 +211,7 @@ def render(m: dict) -> str:
         "bundle re-verified and every one-byte tamper was caught and named, and the takedown optimiser plans a "
         "400-domain campaign in under a quarter of a second. The weak points are upstream: at the "
         "specified triage threshold the rules missed every real phishing domain naming our brands that the public "
-        "feeds contained, and a 30-minute CT capture could not demonstrate a lead time over the feeds. Both are "
-        "stated below with the numbers and the open decision.")
+        f"feeds contained, and {lead_sentence(lt)}. Both are stated below with the numbers and the open decision.")
     add("")
 
     add("## How it works")
@@ -273,15 +429,24 @@ def render(m: dict) -> str:
         add("The second-organisation view queries the ledger by kit fingerprint and receives the campaign's size, "
             "reporter and transaction — never the first organisation's domains or telemetry.")
     add("")
+    add("### CT capture (24 hours): integrity and coverage")
+    add("")
+    for line in render_capture(m.get("ct_capture", {"unavailable": "section missing (run npm run finalize)"})):
+        add(line)
+    add("")
+    tl = m.get("live_pipeline_counts", {"unavailable": "section missing (run npm run finalize)"})
+    add(f"### Live pipeline counts at threshold {tl.get('threshold', 0.35) if isinstance(tl, dict) else 0.35}")
+    add("")
+    for line in render_live(tl):
+        add(line)
+    add("")
     add("### Lead time over phishing feeds")
     add("")
-    if na(lt):
-        add(na(lt))
-    else:
-        add(f"{lt['matched_domains']} phishing hostnames from PhishTank had their own certificate in our capture; "
-            f"{lt['ct_first']} were seen in CT before being listed (the rest were certificate renewals for hosts "
-            "already reported). The capture covers 30 minutes, so only certificates issued in that window can match. "
-            "**No lead time is claimed from this data.**")
+    if isinstance(lt, dict) and "exact_hostname" not in lt and not na(lt):
+        # an old-format result (the 30-min PhishTank check) under the old key
+        lt = {"unavailable": "the 24-hour lead time has not been computed yet (run npm run finalize)"}
+    for line in render_lead(lt, m.get("lead_time_phishtank_30min")):
+        add(line)
     add("")
 
     add("## Trust boundaries")
@@ -386,6 +551,7 @@ def render(m: dict) -> str:
     add("cd contracts && npx hardhat node & npx hardhat run scripts/deploy.ts --network localhost")
     add("cd apps/console && npm run dev                   # http://localhost:5180")
     add("python -m scripts.evaluate && python -m scripts.build_report")
+    add("npm run finalize        # after the 24 h capture: integrity, live counts, lead time, fixture, this report")
     add("```")
     add("")
     return "\n".join(L) + "\n"

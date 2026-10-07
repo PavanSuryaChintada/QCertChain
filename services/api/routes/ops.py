@@ -66,6 +66,19 @@ async def status(s: Scope = Depends(get_scope), r=Depends(get_redis), ledger=Dep
             "components": _components(stream, counts, ledger_up), "health": report()}
 
 
+@router.get("/scaling")
+def scaling():
+    """The scaling benchmark (scripts/scaling_benchmark.py): synthetic campaigns n = 10..80, k = n/4. Platform data,
+    readable with any key; nothing in it is organisation data. Extrapolated values are flagged per point."""
+    import json
+
+    from services.config import ROOT
+    p = ROOT / "reports/scaling.json"
+    if not p.exists():
+        return {"unavailable": "reports/scaling.json not generated yet (python -m scripts.scaling_benchmark)"}
+    return json.loads(p.read_text(encoding="utf-8"))
+
+
 @router.get("/metrics/report")
 def metrics_report(s: Scope = Depends(get_scope)):
     """The measured evaluation (reports/metrics.json, produced by scripts/evaluate.py). Platform-level numbers,

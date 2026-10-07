@@ -28,7 +28,11 @@ def seed(c: sa.Connection, *, org: int, evidence_dir: Path | str, signing_key_he
 # HDFC-themed campaign on the same kit, sharing Bank One's top hosting IP and first nameserver. Deterministic:
 # every reset produces the same names, the same infrastructure, the same plans.
 DEMO_SEEDS = (
-    ("org1", dict(label="titli-kit", domains=400, ips=12, asns=3, nameservers=4, registrars=3, brands=["ICICI Bank"])),
+    # 400 on the main clusters + 40 long-tail domains (own IP, shared DNS, 8 small registrars) + 30 unreachable
+    # (shared DNS only). Measured with CP-SAT: k=5 covers 382 of 470 with a nameserver+registrar mix, the knee is near
+    # k=4-6, and 30 can never be reached. Plans change composition as k grows (not nested). A real tradeoff.
+    ("org1", dict(label="titli-kit", domains=400, ips=12, asns=3, nameservers=4, registrars=10, brands=["ICICI Bank"],
+                  tail_domains=40, tail_registrars=8, unreachable_domains=30)),
     ("org2", dict(label="hdfc-kit", domains=50, ips=6, asns=2, nameservers=3, registrars=3, brands=["HDFC Bank"],
                   ip_base=100, shared_ips=["198.51.100.10"], shared_nameservers=["ns1.titli-kit-dns.example"])),
 )

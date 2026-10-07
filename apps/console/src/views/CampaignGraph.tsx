@@ -13,11 +13,19 @@ const DOMAIN_FILL: Record<DomainStatus, string> = {
 };
 
 
-/** Domains layer: memoised on the covered set, so moving the slider redraws only what changed. */
-const Domains = memo(function Domains({ layout, killed }: { layout: Layout; killed: ReadonlySet<number> }) {
+const NONE: ReadonlySet<number> = new Set();
+
+/**
+ * Domains layer: memoised on the covered set, so moving the slider redraws only what changed. A domain whose only
+ * infrastructure is non-targetable (shared DNS) is a finding, not an error: a small hollow square in ink-3.
+ */
+const Domains = memo(function Domains({ layout, killed, uncoverable }: { layout: Layout; killed: ReadonlySet<number>; uncoverable: ReadonlySet<number> }) {
   return (
     <g data-layer="domains">
       {layout.domains.map((d) => {
+        if (uncoverable.has(d.id)) {
+          return <rect key={d.id} x={d.x - 2.5} y={d.y - 2.5} width={5} height={5} fill="var(--paper)" stroke="var(--ink-3)" strokeWidth={1} data-uncoverable="true" />;
+        }
         const dark = killed.has(d.id);
         return <circle key={d.id} cx={d.x} cy={d.y} r={2.25} fill={dark ? "var(--hairline)" : DOMAIN_FILL[d.status]} data-dark={dark || undefined} />;
       })}
@@ -25,18 +33,20 @@ const Domains = memo(function Domains({ layout, killed }: { layout: Layout; kill
   );
 });
 
-export function CampaignGraphSvg({ graph, selected, killed }: {
+export function CampaignGraphSvg({ graph, selected, killed, uncoverable = NONE }: {
   graph: G;
   /** node_id -> rank, for the targets selected at the current k */
   selected: ReadonlyMap<number, number>;
   killed: ReadonlySet<number>;
+  /** domains no takedown at any k can reach */
+  uncoverable?: ReadonlySet<number>;
 }) {
   const layout = useMemo(() => layoutGraph(graph), [graph]);
   const pos = useMemo(() => new Map(layout.infra.map((n) => [n.id, n])), [layout]);
   const dark = killed.size;
   return (
     <svg viewBox={`0 0 ${layout.width} ${layout.height}`} width="100%" style={{ display: "block", maxHeight: 640 }}
-         role="img" aria-label={`Campaign graph: ${graph.domains.length} domains on ${graph.nodes.length} infrastructure nodes; ${selected.size} targets selected, ${dark} domains covered.`}>
+         role="img" aria-label={`Campaign graph: ${graph.domains.length} domains on ${graph.nodes.length} infrastructure nodes; ${selected.size} targets selected, ${dark} domains covered${uncoverable.size ? `; ${uncoverable.size} domains reachable by no takedown` : ""}.`}>
       <g data-layer="links">
         {layout.links.map((l) => {
           const a = pos.get(l.from), b = pos.get(l.to);
@@ -45,7 +55,7 @@ export function CampaignGraphSvg({ graph, selected, killed }: {
           return <line key={`${l.from}-${l.to}`} x1={a.x} y1={a.y} x2={b.x} y2={b.y} stroke="var(--hairline)" strokeWidth={1} />;
         })}
       </g>
-      <Domains layout={layout} killed={killed} />
+      <Domains layout={layout} killed={killed} uncoverable={uncoverable} />
       <g data-layer="infra">
         {layout.infra.map((n) => {
           const rank = selected.get(n.id);
@@ -87,7 +97,7 @@ export function CampaignGraphSvg({ graph, selected, killed }: {
   );
 }
 
-export function GraphLegend() {
+export function GraphLegend({ uncoverable = 0 }: { uncoverable?: number }) {
   const sw = (svg: React.ReactNode) => <svg width="16" height="16" aria-hidden="true" style={{ flex: "none" }}>{svg}</svg>;
   const li = (svg: React.ReactNode, text: string) => <li style={{ display: "inline-flex", gap: 8, alignItems: "center" }}>{sw(svg)}{text}</li>;
   return (
@@ -98,6 +108,8 @@ export function GraphLegend() {
       {li(<circle cx="8" cy="8" r="3" fill="var(--confirmed)" />, "Confirmed domain")}
       {li(<circle cx="8" cy="8" r="3" fill="var(--candidate)" />, "Suspicious - not verified")}
       {li(<circle cx="8" cy="8" r="3" fill="var(--hairline)" />, "Covered: goes dark under this plan")}
+      {uncoverable > 0 && li(<rect x="5.5" y="5.5" width="5" height="5" fill="var(--paper)" stroke="var(--ink-3)" strokeWidth="1" />,
+        `No takedownable infrastructure, only shared DNS: no plan reaches these ${uncoverable} (hollow small square)`)}
     </ul>
   );
 }

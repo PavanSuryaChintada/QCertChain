@@ -18,7 +18,7 @@ import sqlalchemy as sa
 from interdict.types import Problem
 
 TAKEDOWN_ROUTE = {"ip": "hosting", "nameserver": "dns", "registrar": "registrar"}  # spec D9
-SWEEP_KS = range(1, 11)  # the console's budget slider: k = 1..10
+SWEEP_KS = range(1, 16)  # the budget slider: k = 1..15, far enough to reach full reachable coverage
 
 
 def build_snapshot(c: sa.Connection, campaign_id: str) -> dict:
@@ -45,7 +45,11 @@ def build_snapshot(c: sa.Connection, campaign_id: str) -> dict:
         edges.append([r["did"], r["nid"], round(float(r["ew"]), 2)])
         if targetable:
             deps[str(r["did"])].append(r["nid"])
-    graph = {"domains": list(domains.values()), "nodes": list(nodes.values()), "edges": edges}
+    # domains with NO takedownable infrastructure (only shared DNS, CDN, a redacted registrar): no budget reaches
+    # them. A finding, not a failure: it is decision D9 made visible.
+    uncoverable = sorted(int(d) for d, ns in deps.items() if not ns)
+    graph = {"domains": list(domains.values()), "nodes": list(nodes.values()), "edges": edges,
+             "uncoverable_domain_ids": uncoverable}
     problem = {"nodes": {str(n[0]): [n[1], n[2]] for n in nodes.values() if n[4]}, "deps": deps, "weights": weights}
     payload = json.dumps(graph, separators=(",", ":"))
     c.execute(sa.text("""

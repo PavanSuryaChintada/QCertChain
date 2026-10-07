@@ -53,5 +53,8 @@ def campaign_sweep(campaign_id: str, s: Scope = Depends(get_scope)):
         campaign_or_404(s, campaign_id)
         repo_campaigns.build_snapshot(s, campaign_id)
         sw = repo_campaigns.sweep(s, campaign_id)
+    unc = sw["graph"].get("uncoverable_domain_ids", [])
+    total = len(sw["graph"]["domains"])
     return {"campaign_id": campaign_id, "n_targetable": sw["n_targetable"], "search_space_log2": sw["n_targetable"],
-            "cached": sw["cached"], "points": sw["sweep"]}
+            "cached": sw["cached"], "points": sw["sweep"], "uncoverable_domain_ids": unc, "domains_total": total,
+            "coverable_total": total - len(unc)}

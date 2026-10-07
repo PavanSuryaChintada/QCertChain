@@ -1,6 +1,7 @@
 """Interdiction plans and the honest benchmark (NPHARD.md, API_CONTRACT §4)."""
 from __future__ import annotations
 
+import math
 import uuid
 
 from datetime import datetime, timezone
@@ -107,14 +108,21 @@ def campaign_benchmark(campaign_id: str, k: int = Query(5, ge=1, le=10),
         raise HTTPException(409, "No shared infrastructure — nothing to interdict.")
     if k > len(p.nodes):
         raise HTTPException(422, f"k={k} exceeds the {len(p.nodes)} takedown candidates (max {len(p.nodes)})")
-    rows = benchmark(p, max_vars=SETTINGS.max_qubo_variables)
+    from interdict.reduce import exact_reduce
+    rp = exact_reduce(p)
+    rows = benchmark(p, backends=("cpsat", "qaoa", "annealing", "greedy", "bruteforce"),
+                     max_vars=SETTINGS.max_qubo_variables)
     cp = next((r for r in rows if r.backend == "cpsat" and r.valid), None)
     out = {"campaign_id": campaign_id, "k": k, "computed_at": datetime.now(timezone.utc).isoformat(),
            "rows": [{"backend": r.backend, "domains_covered": r.domains_killed, "domains_total": r.domains_total,
                      "targets_used": len(r.targets), "solve_ms": r.solve_ms, "valid": r.valid, "is_best": r.is_best,
                      "gap_vs_cpsat_pct": (round(100 * (cp.domains_killed - r.domains_killed) / cp.domains_killed, 2)
                                           if cp and cp.domains_killed and r.valid else None),
-                     "error": r.error, "notes": r.notes} for r in rows],
+                     "error": r.error, "notes": r.notes,
+                     "subsets_checked": (math.comb(len(rp.nodes), min(k, len(rp.nodes)))
+                                         if r.backend == "bruteforce" and r.valid else None)} for r in rows],
+           "n_after_exact_reduction": len(rp.nodes),
+           "n_targetable": len(p.nodes), "plans_at_k": math.comb(len(p.nodes), min(k, len(p.nodes))),
            "formulation": formulation(p, max_vars=SETTINGS.max_qubo_variables),
            "framing": f"{FRAMING_SENTENCE} {QUANTUM_FRAMING} {GREEDY_GUARANTEE}."}
     repo_plans.save_benchmark(s, campaign_id, k, out)
@@ -142,5 +150,8 @@ def plan_benchmark(plan_id: str, s: Scope = Depends(get_scope)):
             "rows": [{"backend": r.backend, "objective": r.objective, "domains_killed": r.domains_killed,
                       "coverage_pct": r.coverage_pct, "solve_ms": r.solve_ms, "valid": r.valid,
                       "qubit_count": r.qubit_count, "n_variables": r.n_variables, "is_best": r.is_best,
-                      "error": r.error, "notes": r.notes} for r in rows],
+                      "error": r.error, "notes": r.notes,
+                     "subsets_checked": (math.comb(len(p.nodes), min(k, len(p.nodes)))
+                                         if r.backend == "bruteforce" and r.valid else None)} for r in rows],
+           "n_targetable": len(p.nodes), "plans_at_k": math.comb(len(p.nodes), min(k, len(p.nodes))),
             "note": f"{QUANTUM_FRAMING} Every backend is reported, losses included; {GREEDY_GUARANTEE}."}

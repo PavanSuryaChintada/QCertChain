@@ -14,6 +14,19 @@ export function niceTicks(min: number, max: number, n = 5): number[] {
   return out;
 }
 
+/** Log10 scale from a positive domain [d0, d1] onto a pixel range [r0, r1]. */
+export function logScale(d0: number, d1: number, r0: number, r1: number): (v: number) => number {
+  const a = Math.log10(d0), b = Math.log10(d1);
+  return (v) => r0 + ((Math.log10(v) - a) / (b - a || 1)) * (r1 - r0);
+}
+
+/** Push direct labels apart vertically so none is closer than `gap` px to its neighbour; keeps their order. */
+export function spreadLabels<T extends { y: number }>(items: T[], gap = 13): T[] {
+  const out = [...items].sort((p, q) => p.y - q.y).map((i) => ({ ...i }));
+  for (let i = 1; i < out.length; i++) if (out[i].y - out[i - 1].y < gap) out[i].y = out[i - 1].y + gap;
+  return out;
+}
+
 export function LineChart({ series, width = 560, height = 240, xLabel, yLabel, xFmt = String, yFmt = String, yMin, yMax,
   marker, label, extra }: {
   series: Series[]; width?: number; height?: number; xLabel: string; yLabel: string;

@@ -11,7 +11,7 @@ def metrics(**over):
 
 def test_unavailable_section_says_not_measured_never_a_number():
     md = render(metrics(lead_time={"unavailable": "ConnectionError: crt.sh unreachable"}))
-    assert "not measured — ConnectionError: crt.sh unreachable" in md
+    assert "not measured: ConnectionError: crt.sh unreachable" in md
 
 
 def test_numbers_come_from_metrics():
@@ -104,3 +104,70 @@ def test_limits_name_http_only_and_compromised_sites_separately():
     md = render(metrics())
     lim = md[md.index("## Limits"):]
     assert "HTTP-only phishing" in lim and "compromised legitimate site" in lim and "out of CT scope" in lim
+
+
+# ---- the 24-hour capture sections (npm run finalize) ------------------------------------------------------------
+def _finalized(tmp_path, n_ct_first=12):
+    from scripts import finalize as fz
+    from services.tests.test_finalize import stub_triage, synthetic_capture
+    fx, db, log = synthetic_capture(tmp_path, n_ct_first)
+    a = fz.analyze(fx, db, log, fixture_out=tmp_path / "fx.jsonl.gz", skip_live=True, threshold=0.35,
+                   triage_fn=stub_triage)
+    a["live_pipeline_counts"] = {
+        "threshold": 0.35, "state": "partial", "window": a["ct_capture"]["window"],
+        "candidates": {"value": 1311, "first_candidate_at": "2026-10-07T06:37:03Z", "last_candidate_at": "x",
+                       "dataset": "Supabase domains"},
+        "org_verdicts": {"org": "org1", "by_status": {"dismissed": 80}, "confirmed": 0, "dismissed": 80,
+                         "unreachable": 255, "n_candidates": 1311, "dataset": "domain_verdicts"},
+        "pipeline_largest_gap": {"from": "a", "to": "b", "minutes": 39.8},
+        "redelivery": {"candidate_rows_touched_again": 137, "touched_again_across_the_gap": 13, "note": "n"},
+        "measured_at": "t"}
+    return fz.merge_metrics(metrics(), a)
+
+
+def _sec(md, head):
+    s = md[md.index(head):]
+    return s[:s.index("\n#", 5)]
+
+
+def test_capture_section_reports_coverage_gap_duplicates_and_partial(tmp_path):
+    m = _finalized(tmp_path)
+    md = render(m)
+    sec = _sec(md, "### CT capture")
+    assert "PARTIAL capture" in sec and "Capture gap:" in sec and "min**" in sec
+    assert "| **All operators** |" in sec and "| Google |" in sec and "| Let's Encrypt |" in sec
+    assert "Duplicates: 1 messages" in sec and "across a restart" in sec
+    assert "1 candidate certificates" in sec and "12 unique candidate names" in sec
+    assert "Replay at 360× takes" in sec
+
+
+def test_live_counts_section(tmp_path):
+    md = render(_finalized(tmp_path))
+    sec = _sec(md, "### Live pipeline counts at threshold 0.35")
+    assert "| Live candidates from CT | 1,311 |" in sec and "| org1 dismissed | 80 | 1,311 candidates |" in sec
+    assert "39.8 min" in sec
+
+
+def test_lead_time_section_measured_with_exclusions_and_resolution(tmp_path):
+    md = render(_finalized(tmp_path))
+    sec = _sec(md, "### Lead time over phishing feeds")
+    assert "Lead time, exact hostname: median" in sec and "n = 12" in sec
+    assert "+/-30 min" in sec and "| E1: " in sec and "| E4: " in sec and "eTLD+1 (reported separately" in sec
+    assert "lead_time_phishtank_30min" in sec
+
+
+def test_lead_time_section_not_measured_below_10(tmp_path):
+    md = render(_finalized(tmp_path, n_ct_first=4))
+    sec = _sec(md, "### Lead time over phishing feeds")
+    assert "not measured: 4 CT-first matches" in sec and "median" not in sec.split("eTLD+1")[0]
+    assert "lead time over OpenPhish is not measured: 4 CT-first" in md  # the summary says so too
+
+
+def test_new_sections_missing_render_not_measured():
+    m = metrics()
+    for k in ("ct_capture", "live_pipeline_counts"):
+        m.pop(k, None)
+    m["lead_time"] = {"unavailable": "no capture"}
+    md = render(m)
+    assert md.count("not measured: section missing (run npm run finalize)") == 2
+    assert "not measured: no capture" in _sec(md, "### Lead time over phishing feeds")

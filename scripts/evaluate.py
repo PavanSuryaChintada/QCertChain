@@ -283,9 +283,42 @@ def interdiction():
     return out
 
 
-# ---- lead time: CT certificate vs public phishing-feed listing ---------------------------------------------
+# ---- the 24-hour CT capture (scripts/record_ct.py) — computed once by scripts/finalize.py ----------------------
+_CAPTURE: dict = {}
+
+
+def _capture_analysis(analysis: dict | None = None) -> dict:
+    """One pass over the capture serves all three sections; `npm run finalize` passes its analysis in."""
+    if analysis is not None:
+        return analysis
+    if "a" not in _CAPTURE:
+        from scripts.finalize import analyze
+        _CAPTURE["a"] = analyze()
+    return _CAPTURE["a"]
+
+
 @section
-def lead_time():
+def ct_capture(analysis: dict | None = None):
+    """Capture integrity: window, runs, gap, coverage per CT log operator, duplicates, candidates at the threshold."""
+    return _capture_analysis(analysis)["ct_capture"]
+
+
+@section
+def live_pipeline_counts(analysis: dict | None = None):
+    """The live pipeline's candidates and the pipeline org's verdicts in the capture window (Supabase, read-only)."""
+    return _capture_analysis(analysis)["live_pipeline_counts"]
+
+
+@section
+def lead_time(analysis: dict | None = None):
+    """Lead time of a CT sighting over the OpenPhish listing, with the gap exclusions (finalize.RULES). Fewer than 10
+    CT-first matches -> "not measured: <reason>", never an estimate."""
+    return _capture_analysis(analysis)["lead_time"]
+
+
+# ---- lead time: CT certificate vs public phishing-feed listing (the original 30-min PhishTank check) ----------
+@section
+def lead_time_phishtank_30min():
     first_ct: dict[str, float] = {}
     with open(ROOT / "data/capture.jsonl", encoding="utf-8") as f:
         for line in f:
@@ -434,7 +467,8 @@ def evidence_ledger():
 
 SECTIONS = {"evidence_ledger": evidence_ledger, "triage_threshold_options": triage_threshold_options, "triage_rules": triage_rules, "triage_model": triage_model, "ingest": ingest,
             "confirmation": confirmation, "email": email, "response_time": response_time,
-            "interdiction": interdiction, "lead_time": lead_time}
+            "interdiction": interdiction, "lead_time_phishtank_30min": lead_time_phishtank_30min,
+            "ct_capture": ct_capture, "live_pipeline_counts": live_pipeline_counts, "lead_time": lead_time}
 
 if __name__ == "__main__":
     ap = argparse.ArgumentParser()
@@ -442,6 +476,9 @@ if __name__ == "__main__":
     ap.add_argument("--only")
     a = ap.parse_args()
     existing = json.loads(OUT.read_text(encoding="utf-8")) if OUT.exists() else {}
+    old = existing.get("lead_time")
+    if isinstance(old, dict) and "PhishTank" in str(old.get("dataset", "")):
+        existing.setdefault("lead_time_phishtank_30min", old)  # the old result keeps its own key
     for name, fn in SECTIONS.items():
         if a.only and name not in a.only.split(","):
             continue

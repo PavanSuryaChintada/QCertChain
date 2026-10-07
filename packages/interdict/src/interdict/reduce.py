@@ -77,3 +77,12 @@ def reduce(p: Problem, C: int = 12, max_vars: int = 24) -> Reduced:
     if lost > 0:
         notes.append(f"weight {lost:g} unreachable by the kept {len(top)} candidate nodes")
     return Reduced(rp, groups_map, notes)
+
+
+def exact_reduce(p: Problem) -> Problem:
+    """Only the EXACT steps: merge domains with identical dependencies, drop nodes covering nothing or a subset of
+    another node's coverage. The optimum of the result is the optimum of p (no top-C cut)."""
+    cp, _ = collapse(p)
+    kept = _prune(cp)
+    keep = set(kept)
+    return Problem(kept, {g: frozenset(s & keep) for g, s in cp.deps.items()}, cp.weights, p.k)

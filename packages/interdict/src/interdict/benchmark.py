@@ -39,8 +39,8 @@ def benchmark(p: Problem, backends=("cpsat", "qaoa", "annealing", "greedy"), tim
                                      round(100 * len(killed) / total, 2) if total else 0.0, ms, True,
                                      out.targets, n_vars, out.qubit_count, notes=out.notes))
         except Exception as e:
-            rows.append(BenchmarkRow(b, 0.0, 0, total, 0.0, 0, False, [], n_vars, None,
-                                     error=f"{type(e).__name__}: {e}"))
+            msg = str(e) if str(e).startswith("skipped") else f"{type(e).__name__}: {e}"
+            rows.append(BenchmarkRow(b, 0.0, 0, total, 0.0, 0, False, [], n_vars, None, error=msg))
     valid = [r for r in rows if r.valid]
     if valid:
         max(valid, key=lambda r: (r.objective, -r.solve_ms)).is_best = True

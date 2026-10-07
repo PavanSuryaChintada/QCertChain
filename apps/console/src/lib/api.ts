@@ -5,7 +5,7 @@ export const API_URL: string = (import.meta.env.VITE_API_URL as string | undefin
 
 export type DomainStatus = "candidate" | "confirmed" | "dismissed" | "unreachable";
 export type EmailVerdict = "malicious" | "suspicious" | "clean";
-export type Backend = "cpsat" | "qaoa" | "annealing" | "greedy";
+export type Backend = "cpsat" | "qaoa" | "annealing" | "greedy" | "bruteforce";
 export type Source = "certstream" | "replay" | "seed" | "email" | "sample";
 export type ComponentStatus = "ok" | "degraded" | "failed";
 export type KeyKind = "org" | "demo" | "admin";
@@ -92,13 +92,19 @@ export type GraphEdge = [number, number, number];
 export interface CampaignGraph {
   campaign_id: string; n_targetable: number; search_space_log2: number;
   domains: GraphDomain[]; nodes: GraphNode[]; edges: GraphEdge[]; targets: [number, number][]; built_at: string;
+  /** domains whose only infrastructure is non-targetable (shared DNS): no plan at any k reaches them */
+  uncoverable_domain_ids?: number[];
 }
 export interface SweepTarget { node_id: number; kind: NodeKind; value: string; kills: number; route: Route }
 export interface SweepPoint {
   k: number; backend: Backend; domains_killed: number; domains_total: number; coverage_pct: number; solve_ms: number;
   valid: boolean; notes: string[]; targets: SweepTarget[]; killed_ids: number[];
 }
-export interface Sweep { campaign_id: string; n_targetable: number; search_space_log2: number; cached: boolean; points: SweepPoint[] }
+export interface Sweep {
+  campaign_id: string; n_targetable: number; search_space_log2: number; cached: boolean; points: SweepPoint[];
+  /** domains no takedown at any k can reach, and the ceiling that leaves */
+  uncoverable_domain_ids?: number[]; coverable_total?: number; domains_total?: number;
+}
 export interface Target { rank: number; node_id: number; kind: string; value: string; kills: number; takedown_route: string }
 export interface Plan {
   plan_id: string; campaign_id: string; budget_k: number; backend: Backend; fell_back: boolean; fallback_from: string | null;
@@ -108,13 +114,32 @@ export interface Plan {
 export interface BenchmarkRow {
   backend: Backend; domains_covered: number | null; domains_total: number | null; targets_used: number | null;
   solve_ms: number | null; gap_vs_cpsat_pct: number | null; valid: boolean; is_best: boolean; error: string | null; notes: string[];
+  /** bruteforce only: the k-target plans checked, C(n, k) */
+  subsets_checked?: number | null;
 }
 export interface Formulation {
   qubo_variables: number; qubit_count: number; circuit_depth: number | null; p_layers: number; shots: number; warm_start: string;
   reduction: { original_nodes: number; original_domains: number; collapsed_groups: number; kept_nodes: number;
     pruned_nodes: number; unreachable_weight: number; notes: string[] };
 }
-export interface Benchmark { campaign_id: string; k: number; cached: boolean; computed_at: string; rows: BenchmarkRow[]; formulation: Formulation; framing: string }
+export interface Benchmark {
+  campaign_id: string; k: number; cached: boolean; computed_at: string; rows: BenchmarkRow[]; formulation: Formulation; framing: string;
+  n_targetable?: number; /** C(n, k): the plans an exhaustive search checks at this budget */ plans_at_k?: number;
+}
+/** One synthetic campaign size on GET /scaling. Times are ms; bruteforce_ms is extrapolated from the fit when flagged. */
+export interface ScalingPoint {
+  n: number; k?: number; subsets_log2: number; plans_log2?: number;
+  bruteforce_ms: number | null; bruteforce_extrapolated: boolean;
+  cpsat_ms: number | null; cpsat_status: string | null; greedy_ms: number | null;
+  qaoa_ms: number | null; qaoa_note: string | null;
+  coverage: { cpsat: number | null; greedy: number | null; qaoa: number | null; bruteforce: number | null };
+}
+export interface Scaling {
+  generated_at: string; k: number | string | null; k_rule?: string; method: string; machine: string;
+  fit: { ns_per_subset: number };
+  thresholds: { one_second: { n: number | null }; one_hour: { n: number | null }; one_year: { n: number | null } };
+  points: ScalingPoint[];
+}
 
 // ---------- evidence ----------
 export interface Artifact { name: string; sha256: string; size_bytes: number | null; url: string }
@@ -275,6 +300,7 @@ export const api = {
   sweep: (id: string, signal?: AbortSignal) => get<Sweep>(`/campaigns/${encodeURIComponent(id)}/sweep`, signal),
   benchmark: (id: string, k: number, run: boolean, signal?: AbortSignal) =>
     get<Benchmark>(`/campaigns/${encodeURIComponent(id)}/benchmark${qs({ k, run })}`, signal),
+  scaling: (signal?: AbortSignal) => get<Scaling | Unavailable>("/scaling", signal),
   interdict: (id: string, k: number, backend: Backend) => post<Plan>(`/campaigns/${encodeURIComponent(id)}/interdict`, { k, backend }),
   plan: (id: string, signal?: AbortSignal) => get<Plan>(`/plans/${id}`, signal),
 

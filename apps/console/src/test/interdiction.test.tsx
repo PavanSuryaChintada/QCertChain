@@ -1,5 +1,5 @@
 import { act, fireEvent, render, screen } from "@testing-library/react";
-import { InterdictionWorkbench, SearchSpace, SolversTable, FormulationPanel, QUANTUM_FRAMING } from "../views/CampaignView";
+import { InterdictionWorkbench, GrowthHeadline, SolversTable, FormulationPanel, QUANTUM_FRAMING } from "../views/CampaignView";
 import { searchSpaceExponent } from "../lib/format";
 import type { BenchmarkRow } from "../lib/api";
 import { GRAPH, SWEEP, renderWith } from "./fixtures";
@@ -23,7 +23,7 @@ it("moving the k slider re-renders targets from the precomputed sweep, after a 1
   expect(whyNodes()).toEqual(["1", "2"]);
   expect(selectedInGraph().sort()).toEqual(["1", "2"]);
   expect(document.querySelectorAll("circle[data-dark]")).toHaveLength(6);
-  expect(screen.getByTestId("headline").textContent).toBe("2 takedowns cover 6/6 domains in ~31 ms");
+  expect(screen.getByTestId("headline").textContent).toBe("k = 2 covers 6 of 6 domains");
   expect(screen.getAllByText("Hosting abuse", { selector: "td" })).toHaveLength(2);
   expect(f).not.toHaveBeenCalled();
 });
@@ -37,13 +37,13 @@ it("only the last of several quick moves is applied", () => {
   fireEvent.change(s, { target: { value: "3" } });
   act(() => { vi.advanceTimersByTime(160); });
   expect(whyNodes()).toEqual(["1", "2", "3"]);
-  expect(screen.getByTestId("search-space").textContent).toContain("solved in 405 ms");
+  expect(screen.getByTestId("search-space").textContent).toContain("solved exactly in 405 ms");
 });
 
-it("2^n comes from search_space_log2, not from n_targetable", () => {
-  render(<SearchSpace log2={23} solveMs={405} />);
+it("2^n comes from search_space_log2, not from n_targetable; plans at k are C(n, k)", () => {
+  render(<GrowthHeadline n={19} k={5} log2={23} solveMs={405} backend="cpsat" scaling={undefined} />);
   expect(screen.getByTestId("search-space-exp").textContent).toBe("23");
-  expect(screen.getByTestId("search-space").textContent).toBe("223 candidate subsets, solved in 405 ms");
+  expect(screen.getByTestId("plans-here").textContent).toBe("11,628");
   expect(screen.getByTestId("search-space").getAttribute("aria-label")).toContain("2 to the power 23");
   renderWith(<InterdictionWorkbench graph={GRAPH} sweep={{ ...SWEEP, n_targetable: 3, search_space_log2: 41 }} initialK={1} />);
   expect(screen.getAllByTestId("search-space-exp").map((e) => e.textContent)).toContain("41");

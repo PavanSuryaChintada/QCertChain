@@ -46,6 +46,7 @@ def graph_json(s: Scope, campaign_id: str) -> str | None:
         select json_build_object(
                  'campaign_id', s.campaign_id, 'n_targetable', s.n_targetable, 'search_space_log2', s.n_targetable,
                  'domains', s.graph->'domains', 'nodes', s.graph->'nodes', 'edges', s.graph->'edges',
+                 'uncoverable_domain_ids', coalesce(s.graph->'uncoverable_domain_ids', '[]'::jsonb),
                  'built_at', s.built_at,
                  'targets', (select coalesce(json_agg(json_build_array(t.node_id, t.rank) order by t.rank), '[]'::json)
                                from plan_targets t
@@ -63,7 +64,11 @@ def sweep_json(s: Scope, campaign_id: str) -> str | None:
         return None
     return s.conn.execute(sa.text("""
         select json_build_object('campaign_id', campaign_id, 'n_targetable', n_targetable,
-                                 'search_space_log2', n_targetable, 'cached', true, 'points', sweep)::text
+                                 'search_space_log2', n_targetable, 'cached', true, 'points', sweep,
+                                 'uncoverable_domain_ids', coalesce(graph->'uncoverable_domain_ids', '[]'::jsonb),
+                                 'domains_total', jsonb_array_length(graph->'domains'),
+                                 'coverable_total', jsonb_array_length(graph->'domains')
+                                   - jsonb_array_length(coalesce(graph->'uncoverable_domain_ids', '[]'::jsonb)))::text
         from campaign_snapshots where campaign_id = :c and org_id = :org and sweep is not null"""),
         {"c": campaign_id, "org": s.org_id}).scalar()
 
@@ -98,7 +103,7 @@ def sweep(s: Scope, campaign_id: str) -> dict | None:
         uuid.UUID(campaign_id)
     except ValueError:
         return None
-    r = s.conn.execute(sa.text("""select sweep, problem, n_targetable, sweep_built_at from campaign_snapshots
+    r = s.conn.execute(sa.text("""select sweep, problem, n_targetable, sweep_built_at, graph from campaign_snapshots
                                   where campaign_id = :c and org_id = :org"""),
                        {"c": campaign_id, "org": s.org_id}).mappings().one_or_none()
     if r is None:
