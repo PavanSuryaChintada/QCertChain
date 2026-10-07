@@ -32,6 +32,8 @@ class Settings:
     evidence_dir: str = "data/evidence"
     collector_private_key: str = ""
     chain_rpc: str = "http://localhost:8545"
+    # chain tests write to their OWN node so they never leave records on the demo chain
+    test_chain_rpc: str = "http://127.0.0.1:8546"
     org_private_key: str = ""
     org2_private_key: str = ""
     raw_cert_retention_h: int = 24

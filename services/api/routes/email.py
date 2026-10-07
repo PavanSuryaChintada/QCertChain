@@ -5,6 +5,7 @@ from typing import Literal
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Request
 
+from services.api import cursor
 from services.api.deps import Scope, get_redis, get_scope
 from services.api.repos import email as repo_email
 from services.ingest.triage import _brands
@@ -63,10 +64,10 @@ async def analyze_email(request: Request, s: Scope = Depends(get_scope), r=Depen
 
 @router.get("/email/analyses")
 def list_analyses(verdict: Literal["malicious", "suspicious", "clean"] | None = None,
-                  limit: int = Query(50, ge=1, le=500), offset: int = Query(0, ge=0), s: Scope = Depends(get_scope)):
-    rows = repo_email.list_(s, verdict=verdict, limit=limit, offset=offset)
-    return {"items": [_row_out(x) for x in rows], "total": rows[0]["total"] if rows else 0,
-            "limit": limit, "offset": offset}
+                  limit: int = cursor.LimitQ, cursor_: str | None = Query(None, alias="cursor", max_length=512), s: Scope = Depends(get_scope)):
+    rows = repo_email.list_(s, verdict=verdict, limit=limit, after=cursor.decode(cursor_, 2))
+    p = cursor.page(rows, limit, lambda r: [r["received_at"], r["id"]])
+    return {**p, "items": [_row_out(x) for x in p["items"]]}
 
 
 @router.get("/email/analyses/{analysis_id}")

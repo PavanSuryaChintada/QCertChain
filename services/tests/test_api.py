@@ -68,14 +68,33 @@ def test_benchmark_all_rows_one_best(api, seeded):
 
 
 def test_graph_marks_targets_after_plan(api, seeded):
-    api.post(f"/campaigns/{seeded}/interdict", json={"k": 3})
+    plan = api.post(f"/campaigns/{seeded}/interdict", json={"k": 3}).json()
     g = api.get(f"/campaigns/{seeded}/graph").json()
-    nodes = g["elements"]["nodes"]
-    assert any(n["data"].get("is_target") for n in nodes) and not g["truncated"]
-    dom = [n for n in nodes if n["data"]["kind"] == "domain"]
-    assert len(dom) == 60 and all(n["data"]["status"] == "confirmed" for n in dom)
-    ids = {n["data"]["id"] for n in nodes}
-    assert all(e["data"]["source"] in ids and e["data"]["target"] in ids for e in g["elements"]["edges"])
+    assert len(g["domains"]) == 60 and all(status == "confirmed" for _, _, status in g["domains"])
+    node_ids = {n[0] for n in g["nodes"]}
+    dom_ids = {d[0] for d in g["domains"]}
+    assert all(d in dom_ids and n in node_ids for d, n, _ in g["edges"])
+    assert [t[0] for t in g["targets"]] == [t["node_id"] for t in plan["targets"]]
+    targetable = {n[0] for n in g["nodes"] if n[4]}
+    assert {n[1] for n in g["nodes"] if n[4]} <= {"ip", "nameserver", "registrar"}  # D9: only these are targets
+    assert g["n_targetable"] == len(targetable) == g["search_space_log2"]
+
+
+def test_sweep_is_precomputed_for_seeds_and_matches_a_live_solve(api, seeded):
+    sw = api.get(f"/campaigns/{seeded}/sweep").json()
+    assert sw["cached"] is True and [p["k"] for p in sw["points"]] == list(range(1, len(sw["points"]) + 1))
+    covered = [p["domains_killed"] for p in sw["points"]]
+    assert covered == sorted(covered)  # more budget never covers less
+    live = api.post(f"/campaigns/{seeded}/interdict", json={"k": 3, "backend": "greedy"}).json()
+    assert live["domains_killed"] <= sw["points"][2]["domains_killed"]  # CP-SAT is optimal, greedy cannot beat it
+    cached = api.post(f"/campaigns/{seeded}/interdict", json={"k": 3, "backend": "cpsat"}).json()
+    assert cached["domains_killed"] == sw["points"][2]["domains_killed"]
+    assert any("precomputed" in n for n in cached["notes"])  # a cached answer says so
+
+
+def test_graph_payload_is_compact(api, seeded):
+    r = api.get(f"/campaigns/{seeded}/graph")
+    assert len(r.content) < 200 * 1024 * 60 / 400  # scaled: the 400-domain budget is 200 KB
 
 
 def _bundle(api):

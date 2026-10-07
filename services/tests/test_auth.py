@@ -46,7 +46,7 @@ def test_keys_are_stored_hashed_never_plaintext(api, db):
 def test_demo_key_is_read_only_for_its_org(api, seeded):
     demo = api.as_("demo1")
     assert api.get(f"/campaigns/{seeded}", headers=demo).status_code == 200
-    assert api.get("/campaigns", headers=demo).json()["total"] == 1
+    assert len(api.get("/campaigns", headers=demo).json()["items"]) == 1
     assert api.get(f"/campaigns/{seeded}", headers=api.as_("org2")).status_code == 404  # the demo org is org1 only
     bid = api.get(f"/domains/{_a_domain(api, seeded)}").json()["evidence_bundle_id"]
     assert api.get(f"/evidence/{bid}/verify", headers=demo).json()["valid"] is True  # verification is a GET
@@ -101,7 +101,7 @@ def test_ledger_writes_sign_as_the_keys_org_and_reject_as_org(api, seeded):
 
 def _a_domain(api, campaign_id) -> int:
     g = api.get(f"/campaigns/{campaign_id}/graph").json()
-    return int(next(n["data"]["id"] for n in g["elements"]["nodes"] if n["data"]["kind"] == "domain")[2:])
+    return g["domains"][0][0]
 
 
 @pytest.mark.db

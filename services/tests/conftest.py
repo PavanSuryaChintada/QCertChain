@@ -41,7 +41,7 @@ def api(db, tmp_path):
     from fastapi.testclient import TestClient
 
     from services.api import auth, deps, main
-    from services.api.db import set_org_context
+    from services.api.db import set_org_context, unbind_org
 
     server = fakeredis.FakeServer()
     key = nacl.signing.SigningKey.generate().encode().hex()
@@ -50,9 +50,12 @@ def api(db, tmp_path):
             "demo1": auth.create_key(db, "demo", "org1"), "admin": auth.create_key(db, "admin", None)}
 
     def conn():
-        yield db
-        if db.in_transaction():
-            set_org_context(db, 1)  # back to the fixture's default after a request
+        try:
+            yield db
+        finally:  # the test shares ONE transaction across requests: undo the request's scope, even on errors
+            if db.in_transaction():
+                unbind_org(db)
+                set_org_context(db, 1)  # back to the fixture's default
 
     main.app.dependency_overrides[deps.get_conn] = conn
     main.app.dependency_overrides[deps.get_redis] = lambda: fakeredis.aioredis.FakeRedis(server=server,

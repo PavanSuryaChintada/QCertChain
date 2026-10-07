@@ -3,9 +3,10 @@ from __future__ import annotations
 
 from fastapi import APIRouter, Depends, HTTPException, Query
 
+from services.api import cursor
 from services.api.deps import Scope, get_redis, get_scope
 from services.api.repos import domains as repo_domains
-from services.api.models import (CandidateItem, ConfirmationOut, DomainDetail, DomainStatus, EnrichmentOut, Page,
+from services.api.models import (CandidateCounts, CandidateItem, ConfirmationOut, DomainDetail, DomainStatus, EnrichmentOut, Page,
                                  SignalOut, TriageOut)
 from services.config import SETTINGS
 
@@ -14,11 +15,16 @@ router = APIRouter()
 
 @router.get("/candidates", response_model=Page[CandidateItem])
 def candidates(status: DomainStatus | None = None, min_score: float | None = Query(None, ge=0, le=1),
-               limit: int = Query(50, ge=1, le=500), offset: int = Query(0, ge=0), s: Scope = Depends(get_scope)):
-    rows = repo_domains.list_candidates(s, status=status, min_score=min_score, limit=limit, offset=offset)
-    total = rows[0]["total"] if rows else 0
-    return {"items": [{k: v for k, v in r.items() if k != "total"} for r in rows], "total": total,
-            "limit": limit, "offset": offset}
+               limit: int = cursor.LimitQ, cursor_: str | None = Query(None, alias="cursor", max_length=512), s: Scope = Depends(get_scope)):
+    rows = repo_domains.list_candidates(s, status=status, min_score=min_score, limit=limit,
+                                        after=cursor.decode(cursor_, 2))
+    return cursor.page(rows, limit, lambda r: [r["first_seen"], r["id"]])
+
+
+@router.get("/candidates/counts", response_model=CandidateCounts)
+def candidate_counts(s: Scope = Depends(get_scope)):
+    """Counts per status for the segmented filter (one statement), instead of a total on every page."""
+    return repo_domains.counts(s)
 
 
 @router.get("/domains/{domain_id}", response_model=DomainDetail)

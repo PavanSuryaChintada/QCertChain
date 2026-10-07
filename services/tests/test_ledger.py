@@ -111,11 +111,16 @@ def test_by_kit_chain_down_is_503_with_queue_depth(api, seeded, db):
 
 # ---- real chain (Hardhat node + deployments/localhost.json) ------------------------------------------
 def _real_ledger():
+    """The TEST chain (TEST_CHAIN_RPC, default :8546), never the demo chain: tests must not leave records that a
+    demo's kit-hash lookup would then show."""
+    import dataclasses
+
     from services.api.ledger_service import Ledger
     from services.config import SETTINGS
-    led = Ledger.from_settings(SETTINGS)
+    led = Ledger.from_settings(dataclasses.replace(SETTINGS, chain_rpc=SETTINGS.test_chain_rpc))
     if not led.available():
-        pytest.skip("no Hardhat node at CHAIN_RPC")
+        pytest.skip(f"no Hardhat test node at {SETTINGS.test_chain_rpc} "
+                    "(cd contracts && npx hardhat node --port 8546, then deploy with CHAIN_RPC pointing at it)")
     return led
 
 

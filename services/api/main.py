@@ -7,9 +7,11 @@ from contextlib import asynccontextmanager
 from fastapi import Depends, FastAPI, HTTPException, Request
 from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.middleware.gzip import GZipMiddleware
 from fastapi.responses import JSONResponse
 
 from services.api.deps import get_principal, rate_limit
+from services.api.timing import TimingMiddleware
 from services.api.routes import admin, campaigns, domains, email, evidence, ledger, ops, plans, stream
 from services.ingest.triage import warm
 
@@ -36,7 +38,8 @@ async def lifespan(app: FastAPI):
     previous = interdict.router.ISOLATE_QAOA
     interdict.router.ISOLATE_QAOA = True  # QAOA must not compete for this process's GIL (34 s vs 9.8 s measured)
     warm()  # allowlist + brand matchers: never on the first request
-    threading.Thread(target=_warm_solvers, daemon=True).start()
+    app.state.warmup = threading.Thread(target=_warm_solvers, daemon=True)  # tests join it before timing
+    app.state.warmup.start()
     try:
         yield
     finally:
@@ -48,6 +51,8 @@ async def lifespan(app: FastAPI):
 # No public /docs or /openapi.json: every route except /health requires a key.
 app = FastAPI(title="QCertChain API", version="0.1.0", lifespan=lifespan, docs_url=None, redoc_url=None,
               openapi_url=None)
+app.add_middleware(TimingMiddleware)
+app.add_middleware(GZipMiddleware, minimum_size=1024)  # graph and list payloads compress ~5-10x
 app.add_middleware(CORSMiddleware,
                    allow_origins=[o for o in os.environ.get("CONSOLE_ORIGINS", "http://localhost:5180").split(",") if o],
                    allow_methods=["*"], allow_headers=["*"])
@@ -76,7 +81,9 @@ async def validation_problem(request: Request, exc: RequestValidationError):
 
 @app.get("/health")
 def health():
-    return {"status": "ok", "service": "qcertchain-api"}
+    """Unauthenticated by design: liveness, per-endpoint p95, and where the API and database run (no data)."""
+    from services.api.health import report
+    return report()
 
 
 # Every router requires a valid key (401 otherwise). Org routers additionally take a Scope (deps.get_scope).

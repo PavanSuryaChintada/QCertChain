@@ -1,6 +1,8 @@
 """Interdiction plans and the honest benchmark (NPHARD.md, API_CONTRACT §4)."""
 from __future__ import annotations
 
+import uuid
+
 from fastapi import APIRouter, Depends, HTTPException
 
 from interdict.benchmark import GREEDY_GUARANTEE, benchmark
@@ -8,43 +10,27 @@ from interdict.router import solve
 from interdict.types import Problem
 from services.api.deps import Scope, get_scope
 from services.api.models import BenchmarkOut, InterdictRequest, PlanOut
+from services.api.repos import campaigns as repo_campaigns
 from services.api.repos import plans as repo_plans
 from services.api.routes.campaigns import campaign_or_404
 from services.config import SETTINGS
-from services.graph.build import TAKEDOWN_ROUTE
+from services.graph.snapshot import plan_summary, to_problem
 
 router = APIRouter()
 QUANTUM_FRAMING = ("Takedown-set selection is formulated as a QUBO. It runs on OR-Tools CP-SAT in production; "
                    "the same formulation runs on QAOA. Quantum is not in the critical path.")
 
 
-def build_problem(s: Scope, campaign_id: str, k: int) -> tuple[Problem, dict[str, dict]]:
-    """Nodes = takedownable infrastructure (ip / nameserver / registrar) of the campaign's domains."""
-    rows = repo_plans.problem_rows(s, campaign_id, list(TAKEDOWN_ROUTE))
-    deps: dict[str, set[str]] = {}
-    weights: dict[str, float] = {}
-    meta: dict[str, dict] = {}
-    for r in rows:
-        d = str(r["did"])
-        deps.setdefault(d, set())
-        weights[d] = float(r["w"])
-        if r["nid"] is not None:
-            n = str(r["nid"])
-            deps[d].add(n)
-            meta[n] = {"node_id": r["nid"], "kind": r["kind"], "value": r["value"]}
-    return Problem(tuple(sorted(meta, key=int)), {d: frozenset(s) for d, s in deps.items()}, weights, k), meta
-
-
-def ranked_targets(p: Problem, targets: list[str]) -> list[tuple[str, int]]:
-    """Rank by marginal kills (greedy order over the chosen set): the column sums to domains_killed."""
-    out, dead, left = [], set(), list(targets)
-    while left:
-        best = max(left, key=lambda t: (len(p.coverage([t]) - dead), -int(t)))
-        gain = p.coverage([best]) - dead
-        out.append((best, len(gain)))
-        dead |= gain
-        left.remove(best)
-    return out
+def build_problem(s: Scope, campaign_id: str, k: int) -> tuple[Problem, dict[str, dict], list | None]:
+    """Nodes = takedownable infrastructure (ip / nameserver / registrar) of the campaign's domains, read from the
+    precomputed snapshot. Returns (problem, node meta, cached CP-SAT sweep or None)."""
+    snap = repo_plans.problem(s, campaign_id)
+    if snap is None:
+        campaign_or_404(s, campaign_id)
+        repo_campaigns.build_snapshot(s, campaign_id)
+        snap = repo_plans.problem(s, campaign_id)
+    p, meta = to_problem(snap["problem"], k)
+    return p, meta, snap["sweep"]
 
 
 def _plan_out(s: Scope, plan_id: str) -> dict:
@@ -62,22 +48,41 @@ def _plan_out(s: Scope, plan_id: str) -> dict:
 
 @router.post("/campaigns/{campaign_id}/interdict", response_model=PlanOut)
 def interdict(campaign_id: str, body: InterdictRequest, s: Scope = Depends(get_scope)):
-    campaign_or_404(s, campaign_id)
-    p, meta = build_problem(s, campaign_id, body.k)
+    p, meta, sweep = build_problem(s, campaign_id, body.k)
     if not p.nodes:
         raise HTTPException(409, "No shared infrastructure — nothing to interdict.")
     if body.k > len(p.nodes):
         raise HTTPException(422, f"k={body.k} exceeds the {len(p.nodes)} takedown candidates (max {len(p.nodes)})")
-    plan = solve(p, backend=body.backend, timeout_s=body.timeout_s, max_vars=SETTINGS.max_qubo_variables)
-    ranked = ranked_targets(p, plan.targets)
-    plan_id = repo_plans.insert_plan(s, campaign_id, body.k, plan, [
-        {"n": meta[t]["node_id"], "r": i + 1, "k": kills, "route": TAKEDOWN_ROUTE[meta[t]["kind"]]}
-        for i, (t, kills) in enumerate(ranked)])
-    msg = f"plan {plan_id[:4]} solved · {plan.backend} · {plan.solve_ms}ms · {len(plan.killed)}/{plan.domains_total}"
-    if plan.fell_back:
-        msg += f" · {plan.fallback_from} → {plan.backend}"
-    repo_plans.log(s, "interdict", msg, context={"plan_id": plan_id})
-    return _plan_out(s, plan_id)
+    cached = next((x for x in (sweep or []) if x["k"] == body.k), None) if body.backend == "cpsat" else None
+    if cached is not None:
+        # The production solver's answer for this k was computed when the snapshot was built. solve_ms is the time
+        # measured THEN, and the notes say so: nothing is re-timed or invented.
+        out = {**cached, "fell_back": False, "fallback_from": None, "n_variables": len(p.nodes), "qubit_count": None,
+               "objective": float(cached["domains_killed"]), "killed_domain_ids": cached["killed_ids"],
+               "notes": [*cached["notes"], "cached result of the precomputed CP-SAT budget sweep"]}
+        targets = cached["targets"]
+    else:
+        plan = solve(p, backend=body.backend, timeout_s=body.timeout_s, max_vars=SETTINGS.max_qubo_variables)
+        summ = plan_summary(p, meta, plan)
+        out = {**summ, "fell_back": plan.fell_back, "fallback_from": plan.fallback_from,
+               "n_variables": plan.n_variables, "qubit_count": plan.qubit_count, "objective": plan.objective,
+               "killed_domain_ids": summ["killed_ids"]}
+        targets = summ["targets"]
+    plan_id = str(uuid.uuid4())
+    msg = (f"plan {plan_id[:4]} solved · {out['backend']} · {out['solve_ms']}ms · "
+           f"{out['domains_killed']}/{out['domains_total']}")
+    if out["fell_back"]:
+        msg += f" · {out['fallback_from']} → {out['backend']}"
+    repo_plans.insert_plan(s, plan_id, campaign_id, body.k, out, [
+        {"n": t["node_id"], "r": i + 1, "k": t["kills"], "route": t["route"]} for i, t in enumerate(targets)], msg)
+    return {"plan_id": plan_id, "campaign_id": campaign_id, "budget_k": body.k, "backend": out["backend"],
+            "fell_back": out["fell_back"], "fallback_from": out["fallback_from"], "objective": out["objective"],
+            "domains_killed": out["domains_killed"], "domains_total": out["domains_total"],
+            "coverage_pct": out["coverage_pct"], "n_variables": out["n_variables"], "qubit_count": out["qubit_count"],
+            "solve_ms": out["solve_ms"], "valid": out["valid"],
+            "targets": [{"rank": i + 1, "node_id": t["node_id"], "kind": t["kind"], "value": t["value"],
+                         "kills": t["kills"], "takedown_route": t["route"]} for i, t in enumerate(targets)],
+            "killed_domain_ids": out["killed_domain_ids"], "notes": out["notes"]}
 
 
 @router.get("/plans/{plan_id}", response_model=PlanOut)
@@ -88,7 +93,7 @@ def get_plan(plan_id: str, s: Scope = Depends(get_scope)):
 @router.post("/plans/{plan_id}/benchmark", response_model=BenchmarkOut)
 def plan_benchmark(plan_id: str, s: Scope = Depends(get_scope)):
     plan = _plan_out(s, plan_id)
-    p, _ = build_problem(s, plan["campaign_id"], plan["budget_k"])
+    p, _, _ = build_problem(s, plan["campaign_id"], plan["budget_k"])
     rows = benchmark(p, max_vars=SETTINGS.max_qubo_variables)
     repo_plans.insert_benchmarks(s, plan_id, [
         {"backend": r.backend, "obj": r.objective, "killed": r.domains_killed, "cov": r.coverage_pct,

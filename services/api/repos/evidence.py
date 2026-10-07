@@ -8,24 +8,30 @@ from services.api.deps import Scope
 
 
 def bundle(s: Scope, bundle_id: str) -> tuple[dict, list[dict]] | None:
+    """The bundle and its artifact hashes in one statement."""
     try:
         uuid.UUID(bundle_id)
     except ValueError:
         return None
     b = s.conn.execute(sa.text("""
-        select id::text, domain_id, campaign_id::text, bundle_root, signature, collector_pk, artifact_dir, partial,
-               created_at, anchored_tx, anchored_at
-        from evidence_bundles where id = :id and org_id = :org"""), {"id": bundle_id, "org": s.org_id}
+        select b.id::text, b.domain_id, b.campaign_id::text, b.bundle_root, b.signature, b.collector_pk, b.artifact_dir,
+               b.partial, b.created_at, b.anchored_tx, b.anchored_at,
+               (select coalesce(json_agg(json_build_object('name', a.name, 'sha256', a.sha256,
+                                                           'size_bytes', a.size_bytes) order by a.name), '[]'::json)
+                  from evidence_artifacts a where a.bundle_id = b.id and a.org_id = :org) as artifacts
+        from evidence_bundles b where b.id = :id and b.org_id = :org"""), {"id": bundle_id, "org": s.org_id}
     ).mappings().one_or_none()
     if b is None:
         return None
-    arts = s.conn.execute(sa.text("""select name, sha256, size_bytes from evidence_artifacts
-                                     where bundle_id = :id and org_id = :org order by name"""),
-                          {"id": bundle_id, "org": s.org_id}).mappings().all()
-    return dict(b), [dict(a) for a in arts]
+    b = dict(b)
+    return b, b.pop("artifacts")
 
 
 def latest_report(s: Scope, bundle_id: str) -> dict | None:
+    try:
+        uuid.UUID(bundle_id)
+    except ValueError:
+        return None
     r = s.conn.execute(sa.text("""select recipient, body, created_at, sent from abuse_reports
                                   where bundle_id = :id and org_id = :org order by created_at desc limit 1"""),
                        {"id": bundle_id, "org": s.org_id}).mappings().one_or_none()

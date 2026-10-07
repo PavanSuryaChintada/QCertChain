@@ -3,6 +3,19 @@
 **Not deployed yet.** Deployment is an outward-facing action and waits for the owner's explicit go-ahead
 with Railway and Vercel tokens (spec D6). Nothing here has been run against a hosted account.
 
+## Regions: everything in Singapore
+
+Supabase runs in `ap-southeast-1` (Singapore). A cross-region hop costs 150–250 ms per query before any work
+happens, so every service is pinned next to it:
+
+- Railway: every `deploy/railway/*.json` sets `multiRegionConfig` to `asia-southeast1-eqsg3a` (Railway's
+  Singapore region). Confirm the region id in the Railway dashboard at deploy time; ids can change.
+- Vercel: `apps/console/vercel.json` sets `"regions": ["sin1"]`. The console is static, so its files come from
+  Vercel's global CDN anyway; the browser talks to the API in Singapore.
+
+`GET /health` shows the API's region, the database's region, whether they are in the same city, and the measured
+API-to-database round trip. Check it after deploying: a co-located round trip is a few milliseconds.
+
 ## Access control
 
 Every route except `GET /health` requires an `X-API-Key` header (owner decision, 2026-10-07). Before deploying,

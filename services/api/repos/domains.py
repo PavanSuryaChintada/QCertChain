@@ -5,16 +5,30 @@ import sqlalchemy as sa
 from services.api.deps import Scope
 
 
-def list_candidates(s: Scope, *, status: str | None, min_score: float | None, limit: int, offset: int) -> list[dict]:
-    """Shared public-feed candidates plus this org's private ones, each with THIS org's verdict only."""
+def list_candidates(s: Scope, *, status: str | None, min_score: float | None, limit: int,
+                    after: list | None) -> list[dict]:
+    """Shared public-feed candidates plus this org's private ones, each with THIS org's verdict only.
+    Keyset on (first_seen, id) desc; returns limit + 1 rows (the extra one only signals a next page)."""
     return [dict(r) for r in s.conn.execute(sa.text("""
         select id, name, etld1, status, triage_score, brand_matched, confidence, campaign_id::text, first_seen, source,
-               count(*) over () as total
+               triage_reasons
         from org_domains
         where (cast(:status as text) is null or status = :status)
           and (cast(:min_score as real) is null or triage_score >= :min_score)
-        order by first_seen desc, id desc limit :limit offset :offset"""),
-        {"status": status, "min_score": min_score, "limit": limit, "offset": offset}).mappings()]
+          and (cast(:af as timestamptz) is null or (first_seen, id) < (cast(:af as timestamptz), cast(:ai as bigint)))
+        order by first_seen desc, id desc limit :limit"""),
+        {"status": status, "min_score": min_score, "limit": limit + 1,
+         "af": after[0] if after else None, "ai": after[1] if after else None}).mappings()]
+
+
+def counts(s: Scope) -> dict:
+    """Per-status counts for the segmented filter, in one statement."""
+    return dict(s.conn.execute(sa.text("""
+        select count(*) as all, count(*) filter (where status = 'candidate') as candidate,
+               count(*) filter (where status = 'confirmed') as confirmed,
+               count(*) filter (where status = 'dismissed') as dismissed,
+               count(*) filter (where status = 'unreachable') as unreachable
+        from org_domains""")).mappings().one())
 
 
 def detail(s: Scope, domain_id: int) -> dict | None:

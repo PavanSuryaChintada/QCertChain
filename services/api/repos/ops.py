@@ -20,11 +20,14 @@ def metrics(s: Scope) -> dict:
         {"org": s.org_id}).mappings().one())
 
 
-def log_page(s: Scope, *, since: datetime | None, channel: str | None, limit: int, offset: int) -> list[dict]:
-    """Platform messages (org_id null: the shared feed) and this org's own. Never another org's."""
+def log_page(s: Scope, *, since: datetime | None, channel: str | None, limit: int, after: list | None) -> list[dict]:
+    """Platform messages (org_id null: the shared feed) and this org's own. Never another org's.
+    Keyset on id desc; returns limit + 1 rows."""
     return [dict(r) for r in s.conn.execute(sa.text("""
-        select id, at, channel, severity, message, context, count(*) over () as total from ops_log
+        select id, at, channel, severity, message, context from ops_log
         where (org_id is null or org_id = :org)
           and (cast(:since as timestamptz) is null or at > :since) and (cast(:ch as text) is null or channel = :ch)
-        order by id desc limit :limit offset :offset"""),
-        {"org": s.org_id, "since": since, "ch": channel, "limit": limit, "offset": offset}).mappings()]
+          and (cast(:ai as bigint) is null or id < :ai)
+        order by id desc limit :limit"""),
+        {"org": s.org_id, "since": since, "ch": channel, "limit": limit + 1,
+         "ai": after[0] if after else None}).mappings()]

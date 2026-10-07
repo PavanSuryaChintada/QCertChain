@@ -54,8 +54,7 @@ def verify(bundle_id: str, s: Scope = Depends(get_scope)):
 
 @router.get("/evidence/{bundle_id}/report", response_model=ReportOut)
 def report(bundle_id: str, s: Scope = Depends(get_scope)):
-    _bundle_or_404(s, bundle_id)
-    r = repo_evidence.latest_report(s, bundle_id)
+    r = repo_evidence.latest_report(s, bundle_id)  # org-filtered: another org's bundle has no report here
     if r is None:
         raise HTTPException(404, f"no report for bundle {bundle_id}")
     assert r["sent"] is False  # the schema forbids anything else; this is belt and braces

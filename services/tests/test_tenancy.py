@@ -26,7 +26,7 @@ SPOOF = open("services/email/samples/p01_display_spoof_dmarc_fail.eml", "rb").re
 def org1_world(api, seeded, db):
     """Everything org 1 owns, created through org 1's own key."""
     graph = api.get(f"/campaigns/{seeded}/graph").json()
-    domain_id = int(next(n["data"]["id"] for n in graph["elements"]["nodes"] if n["data"]["kind"] == "domain")[2:])
+    domain_id = graph["domains"][0][0]
     detail = api.get(f"/domains/{domain_id}").json()
     bundle = detail["evidence_bundle_id"]
     art = api.get(f"/evidence/{bundle}").json()["artifacts"][0]["name"]
@@ -58,13 +58,13 @@ def test_org2_cannot_read_any_org1_resource_and_gets_404_not_403(api, org1_world
 @pytest.mark.db
 def test_org2_listings_contain_nothing_of_org1(api, org1_world):
     org2 = api.as_("org2")
-    assert api.get("/campaigns", headers=org2).json()["total"] == 0
-    assert api.get("/email/analyses", headers=org2).json()["total"] == 0
-    names = {c["name"] for c in api.get("/candidates?limit=500", headers=org2).json()["items"]}
+    assert api.get("/campaigns", headers=org2).json()["items"] == []
+    assert api.get("/email/analyses", headers=org2).json()["items"] == []
+    names = {c["name"] for c in api.get("/candidates?limit=200", headers=org2).json()["items"]}
     assert not any(n.endswith(".example") for n in names), "org1's seeded (private) domains leaked"
     m = api.get("/metrics", headers=org2).json()
     assert m["campaigns_active"] == 0 and m["domains_confirmed"] == 0
-    logs = api.get("/ops/log?limit=1000", headers=org2).json()["items"]
+    logs = api.get("/ops/log?limit=200", headers=org2).json()["items"]
     assert not any(w in x["message"] for x in logs for w in ("seeded campaign", "email ", "plan ")), logs[:3]
 
 
@@ -88,8 +88,8 @@ def test_org2_reads_shared_candidates_but_never_org1s_verdict_on_them(api, db):
     strong = [Signal("credential_post_foreign_origin", "strong", "x"), Signal("kit_dom_hash_match", "strong", "y")]
     repo.set_confirmation(db, did, ConfirmResult("confirmed", 0.95, strong, 2))  # org1 confirms it
 
-    own = {c["id"]: c for c in api.get("/candidates?limit=500").json()["items"]}
-    other = {c["id"]: c for c in api.get("/candidates?limit=500", headers=api.as_("org2")).json()["items"]}
+    own = {c["id"]: c for c in api.get("/candidates?limit=200").json()["items"]}
+    other = {c["id"]: c for c in api.get("/candidates?limit=200", headers=api.as_("org2")).json()["items"]}
     assert own[did]["status"] == "confirmed"
     assert did in other, "shared public-feed candidate must be visible to org2"
     assert other[did]["status"] == "candidate" and other[did]["confidence"] is None, \
@@ -139,8 +139,7 @@ def two_orgs(api, seeded):
 
 def _graph_labels(api, cid, who):
     g = api.get(f"/campaigns/{cid}/graph", headers=api.as_(who)).json()
-    return ({n["data"]["label"] for n in g["elements"]["nodes"] if n["data"]["kind"] == "domain"},
-            {n["data"]["label"] for n in g["elements"]["nodes"] if n["data"]["kind"] != "domain"})
+    return {d[1] for d in g["domains"]}, {n[2] for n in g["nodes"]}
 
 
 @pytest.mark.db
@@ -160,7 +159,7 @@ def test_consortium_steps_a_and_b_two_populated_orgs_neither_sees_the_other(api,
     # (b) each org asks for the other's campaign by id: 404 both ways
     assert api.get(f"/campaigns/{o1}", headers=api.as_("org2")).status_code == 404
     assert api.get(f"/campaigns/{o2}", headers=api.as_("org1")).status_code == 404
-    assert api.get("/campaigns", headers=api.as_("org1")).json()["total"] == 1
+    assert len(api.get("/campaigns", headers=api.as_("org1")).json()["items"]) == 1
 
 
 @pytest.mark.chain

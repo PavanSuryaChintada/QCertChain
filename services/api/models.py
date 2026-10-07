@@ -28,10 +28,18 @@ class Problem(BaseModel):
 
 
 class Page(BaseModel, Generic[T]):
+    """Keyset pagination: pass next_cursor back as ?cursor= for the next page; null = last page."""
     items: list[T]
-    total: int
     limit: int
-    offset: int
+    next_cursor: str | None = None
+
+
+class CandidateCounts(BaseModel):
+    all: int
+    candidate: int
+    confirmed: int
+    dismissed: int
+    unreachable: int
 
 
 # ---- stream ----------------------------------------------------------------------------------------
@@ -139,10 +147,47 @@ class CampaignOut(BaseModel):
 
 
 class GraphOut(BaseModel):
+    """Compact campaign graph (precomputed). domains: [id, name, status]; nodes: [id, kind, value, domain_count,
+    targetable] (targetable = ip / nameserver / registrar, the takedown routes); edges: [domain_id, node_id,
+    weight]; targets: [node_id, rank] of the latest plan."""
     campaign_id: str
-    truncated: bool
-    node_count: int
-    elements: dict
+    n_targetable: int
+    search_space_log2: int          # 2^n candidate takedown sets for n targetable nodes
+    domains: list[list]
+    nodes: list[list]
+    edges: list[list]
+    targets: list[list]
+    built_at: datetime
+
+
+class SweepTarget(BaseModel):
+    node_id: int
+    kind: str
+    value: str
+    kills: int
+    route: str
+
+
+class SweepPoint(BaseModel):
+    k: int
+    backend: str
+    domains_killed: int
+    domains_total: int
+    coverage_pct: float
+    solve_ms: int
+    valid: bool
+    notes: list[str]
+    targets: list[SweepTarget]
+    killed_ids: list[int]
+
+
+class SweepOut(BaseModel):
+    """CP-SAT for every budget k = 1..10 (fewer if there are fewer targetable nodes): the slider is a lookup."""
+    campaign_id: str
+    n_targetable: int
+    search_space_log2: int
+    cached: bool
+    points: list[SweepPoint]
 
 
 # ---- interdiction ----------------------------------------------------------------------------------

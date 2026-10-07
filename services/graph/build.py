@@ -11,12 +11,12 @@ from evidence.merkle import leaf_hash, merkle_root
 from services.config import SETTINGS
 from services.enrich.enrichers import Enrichment
 from services.graph.cluster import cluster
+from services.graph.snapshot import TAKEDOWN_ROUTE, build_snapshot
 
 # How strongly a shared attribute implies the same operator (TRD §4; registrar: spec D9).
 EDGE_WEIGHTS = {"kit_hash": 1.0, "favicon_hash": 0.85, "ip": 0.80, "nameserver": 0.60, "asn": 0.35,
                 "cert_issuer": 0.15, "registrar": 0.15}
-# Takedown targets are ip / nameserver / registrar only (spec D9).
-TAKEDOWN_ROUTE = {"ip": "hosting", "nameserver": "dns", "registrar": "registrar"}
+# Takedown targets are ip / nameserver / registrar only (spec D9): TAKEDOWN_ROUTE, from services.graph.snapshot.
 
 # Shared infrastructure (review I6): millions of unrelated sites sit behind these. Sharing one says nothing
 # about the operator, so it never becomes an edge — otherwise every Cloudflare-fronted kit is one "campaign".
@@ -100,4 +100,6 @@ def recluster(c: sa.Connection) -> list[str]:
                   {"cid": cid, "ids": sorted(cl.domain_ids)})
         used.add(cid)
         out.append(cid)
+    for cid in out:  # the graph endpoint and the slider read these; rebuilt whenever membership may change
+        build_snapshot(c, cid)
     return out

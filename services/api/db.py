@@ -24,15 +24,15 @@ def engine() -> sa.Engine:
 
 
 def bind_org(c: sa.Connection, org_id: int | None) -> None:
-    """Scope the current transaction to one org (None = no org: sees only shared rows)."""
-    c.execute(sa.text("select set_config('app.org_id', :o, true)"), {"o": str(org_id) if org_id else ""})
-    c.execute(sa.text("set local role qcc_app"))
+    """Scope the current transaction to one org (None = no org: sees only shared rows). ONE round trip:
+    set_config('role', ...) is SET LOCAL ROLE; both revert when the transaction ends."""
+    c.execute(sa.text("select set_config('app.org_id', :o, true), set_config('role', 'qcc_app', true)"),
+              {"o": str(org_id) if org_id else ""})
 
 
 def unbind_org(c: sa.Connection) -> None:
     """Undo bind_org inside a still-open transaction (tests share one transaction across requests)."""
-    c.execute(sa.text("reset role"))
-    c.execute(sa.text("select set_config('app.org_id', '', true)"))
+    c.execute(sa.text("reset role; select set_config('app.org_id', '', true)"))
 
 
 def set_org_context(c: sa.Connection, org_id: int | None) -> None:

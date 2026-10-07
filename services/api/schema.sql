@@ -455,6 +455,25 @@ do $$ begin
   end if;
 end $$;
 
+-- ===============================================================
+-- CAMPAIGN SNAPSHOTS  ·  precomputed when clustering changes a campaign (T14/T15). The graph endpoint is a
+-- read, not a join over every edge; the k-sweep makes the budget slider a lookup, not a solve.
+-- ===============================================================
+create table if not exists campaign_snapshots (
+  org_id         bigint not null default current_org() references organisations(id),
+  campaign_id    uuid not null,
+  graph          jsonb not null,     -- compact: domains [[id,name,status]], nodes [...], edges [[domain,node,w]]
+  problem        jsonb not null,     -- targetable nodes, per-domain dependencies, weights (the solver input)
+  n_targetable   int not null,       -- n in "2^n candidate subsets"
+  payload_bytes  int,
+  sweep          jsonb,              -- [{k, domains_killed, coverage_pct, targets, killed_ids, solve_ms, status}]
+  sweep_built_at timestamptz,
+  built_at       timestamptz not null default now(),
+  primary key (org_id, campaign_id),
+  constraint snapshots_campaign_same_org foreign key (org_id, campaign_id) references campaigns (org_id, id)
+    on delete cascade
+);
+
 -- What an org sees of a domain: shared or its own private rows, with ITS verdict (or 'candidate').
 create or replace view org_domains with (security_invoker = true) as
 select d.id, d.name, d.etld1, d.cert_id, d.first_seen, d.last_seen, d.source, d.ct_seen_at, d.candidate_at,
@@ -509,7 +528,7 @@ revoke insert, update, delete on organisations, certificates from qcc_app;
 do $$
 declare t text;
 begin
-  foreach t in array array['domain_verdicts','enrichment','infra_nodes','graph_edges','campaigns','interdiction_plans',
+  foreach t in array array['domain_verdicts','campaign_snapshots','enrichment','infra_nodes','graph_edges','campaigns','interdiction_plans',
                            'plan_targets','benchmarks','evidence_bundles','evidence_artifacts','abuse_reports',
                            'email_analyses','known_kits','ledger_events','anchor_queue'] loop
     execute format('drop policy if exists org_isolation on %I', t);

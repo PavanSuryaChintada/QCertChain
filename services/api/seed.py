@@ -21,6 +21,7 @@ from services.enrich.enrichers import Enrichment
 from services.enrich.fetch import FetchedPage
 from services.enrich.fingerprint import kit_hash as page_kit_hash
 from services.graph.build import edges_for, recluster
+from services.graph.snapshot import build_sweep
 from services.ingest.brands import load_brands
 from services.ingest.triage import triage
 
@@ -119,6 +120,7 @@ def seed_campaign(c: sa.Connection, *, label: str, domains: int = 400, ips: int 
                 for n, r, pg, e in staged if n in ids and r.verdict == "confirmed"]
     insert_bundles(c, prepared)
     cid = camp[ids[staged[0][0]]].campaign_id
+    build_sweep(c, str(cid))  # seeded campaigns are demo-ready: the whole budget sweep is precomputed
     repo.log(c, "system", f"seeded campaign '{label}': {len(ids)} domains (source=seed, synthetic)",
              context={"campaign_id": str(cid), "campaigns_after_recluster": len(campaign_ids)})
     return str(cid)

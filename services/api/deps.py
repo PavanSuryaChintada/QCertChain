@@ -17,7 +17,7 @@ import sqlalchemy as sa
 from fastapi import Depends, HTTPException, Request
 
 from services.api import auth
-from services.api.db import bind_org, engine, unbind_org
+from services.api.db import bind_org, engine
 from services.config import SETTINGS
 
 READ_METHODS = ("GET", "HEAD", "OPTIONS")
@@ -54,12 +54,8 @@ def get_scope(p: auth.Principal = Depends(get_principal), c: sa.Connection = Dep
     if p.kind == "admin" or p.org_id is None:
         # The admin key holds no org: org data does not exist for it. 404, like any other unknown resource.
         raise HTTPException(404, "Not found")
-    bind_org(c, p.org_id)
-    try:
-        yield Scope(c, p.org_id, p.org_slug or "", p.kind)
-    finally:
-        if c.in_transaction():
-            unbind_org(c)
+    bind_org(c, p.org_id)  # reverts with the request's transaction (get_conn); nothing to undo here
+    yield Scope(c, p.org_id, p.org_slug or "", p.kind)
 
 
 def require_admin(p: auth.Principal = Depends(get_principal)) -> auth.Principal:

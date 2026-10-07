@@ -1,0 +1,103 @@
+{
+ "environment": {
+  "db_round_trip_p95_ms": 21.4,
+  "ci": false,
+  "budgets_enforced": false
+ },
+ "org1 GET campaigns": {
+  "p95_ms": 236.2,
+  "budget_ms": 150,
+  "within_budget": false,
+  "data_queries": 1
+ },
+ "org1 GET candidates": {
+  "p95_ms": 212.6,
+  "budget_ms": 150,
+  "within_budget": false,
+  "data_queries": 1
+ },
+ "org1 GET email": {
+  "p95_ms": 1083.0,
+  "budget_ms": 150,
+  "within_budget": false,
+  "data_queries": 1
+ },
+ "org1 GET domains": {
+  "p95_ms": 124.9,
+  "budget_ms": 150,
+  "within_budget": true,
+  "data_queries": 1
+ },
+ "org1 GET campaigns/graph": {
+  "p95_ms": 242.7,
+  "budget_ms": 300,
+  "within_budget": true,
+  "data_queries": 1
+ },
+ "org1 GET campaigns/sweep": {
+  "p95_ms": 243.0,
+  "budget_ms": 300,
+  "within_budget": true,
+  "data_queries": 1
+ },
+ "org1 POST campaigns/interdict": {
+  "p95_ms": 345.8,
+  "budget_ms": 500,
+  "within_budget": true,
+  "data_queries": 2
+ },
+ "org1 GET evidence/verify": {
+  "p95_ms": 138.7,
+  "budget_ms": 400,
+  "within_budget": true,
+  "data_queries": 1
+ },
+ "org2 GET campaigns": {
+  "p95_ms": 203.4,
+  "budget_ms": 150,
+  "within_budget": false,
+  "data_queries": 1
+ },
+ "org2 GET candidates": {
+  "p95_ms": 230.6,
+  "budget_ms": 150,
+  "within_budget": false,
+  "data_queries": 1
+ },
+ "org2 GET email": {
+  "p95_ms": 134.8,
+  "budget_ms": 150,
+  "within_budget": true,
+  "data_queries": 1
+ },
+ "org2 GET domains": {
+  "p95_ms": 159.1,
+  "budget_ms": 150,
+  "within_budget": false,
+  "data_queries": 1
+ },
+ "org2 GET campaigns/graph": {
+  "p95_ms": 88.6,
+  "budget_ms": 300,
+  "within_budget": true,
+  "data_queries": 1
+ },
+ "org2 GET campaigns/sweep": {
+  "p95_ms": 183.7,
+  "budget_ms": 300,
+  "within_budget": true,
+  "data_queries": 1
+ },
+ "org2 POST campaigns/interdict": {
+  "p95_ms": 109.2,
+  "budget_ms": 500,
+  "within_budget": true,
+  "data_queries": 2
+ },
+ "org2 GET evidence/verify": {
+  "p95_ms": 99.5,
+  "budget_ms": 400,
+  "within_budget": true,
+  "data_queries": 1
+ }
+}

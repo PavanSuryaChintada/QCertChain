@@ -123,7 +123,7 @@ def test_api_analyze_json_multipart_and_limits(api):
     big = api.post("/email/analyze", json={"raw": "x" * (2 * 1024 * 1024 + 1)})
     assert big.status_code == 413
     listed = api.get("/email/analyses?verdict=suspicious").json()
-    assert listed["total"] == 2 and api.get(f"/email/analyses/{r.json()['id']}").json()["id"] == r.json()["id"]
+    assert len(listed["items"]) == 2 and api.get(f"/email/analyses/{r.json()['id']}").json()["id"] == r.json()["id"]
 
 
 def test_display_name_matching_ignores_spacing_and_punctuation():
