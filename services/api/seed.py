@@ -40,7 +40,12 @@ def _zipf(rng: random.Random, items: list, s: float = 1.3):
 def seed_campaign(c: sa.Connection, *, label: str, domains: int = 400, ips: int = 12, asns: int = 3,
                   nameservers: int = 4, registrars: int = 3, brands: list[str] | None = None,
                   shared_dns_fraction: float = 0.08, seed: int = 42,
-                  evidence_dir: Path | str | None = None, signing_key_hex: str | None = None) -> str:
+                  evidence_dir: Path | str | None = None, signing_key_hex: str | None = None,
+                  ip_base: int = 10, shared_ips: list[str] | None = None,
+                  shared_nameservers: list[str] | None = None) -> str:
+    """shared_ips / shared_nameservers: infrastructure deliberately reused from another org's seeded campaign
+    (listed first, so the Zipf draw puts the most domains on it). Same safety rules: documentation IPs and
+    reserved .example names only."""
     rng = random.Random(f"{label}:{seed}")
     evidence_dir = evidence_dir or SETTINGS.evidence_dir
     key = signing_key_hex or SETTINGS.collector_private_key
@@ -48,9 +53,15 @@ def seed_campaign(c: sa.Connection, *, label: str, domains: int = 400, ips: int 
     chosen = [b for b in idx.brands if b.name in (brands or ["ICICI Bank"])] or [idx.brands[0]]
     slug = "".join(ch for ch in label.lower() if ch.isalnum() or ch == "-") or "seed"
 
-    ip_list = [f"{DOC_NETS[i % 2]}{10 + i}" for i in range(ips)]
+    shared_ips, shared_nameservers = list(shared_ips or []), list(shared_nameservers or [])
+    if not all(ip.startswith(DOC_NETS) for ip in shared_ips):
+        raise ValueError("shared_ips must be RFC 5737 documentation addresses")
+    if not all(ns.endswith(".example") for ns in shared_nameservers):
+        raise ValueError("shared_nameservers must use the reserved .example TLD")
+    ip_list = shared_ips + [f"{DOC_NETS[i % 2]}{ip_base + i}" for i in range(ips)]
+    ip_list = list(dict.fromkeys(ip_list))
     asn_of = {ip: DOC_ASNS[i % max(1, min(asns, len(DOC_ASNS)))] for i, ip in enumerate(ip_list)}
-    ns_list = [f"ns{i + 1}.{slug}-dns.example" for i in range(nameservers)]
+    ns_list = list(dict.fromkeys(shared_nameservers + [f"ns{i + 1}.{slug}-dns.example" for i in range(nameservers)]))
     reg_list = [f"Registrar {chr(65 + i)} (seed)" for i in range(registrars)]
     kit_label = f"{slug} (seed kit)"
 

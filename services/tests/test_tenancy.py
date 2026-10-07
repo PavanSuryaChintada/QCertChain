@@ -122,3 +122,64 @@ def test_org2_sees_org1_anchored_hashes_on_chain_but_not_its_rows(api, seeded, d
     # and org2 can corroborate what it found, by chain id, signed as org2
     c = api.post(f"/ledger/corroborate/{rec['chain_campaign_id']}", headers=api.as_("org2"))
     assert c.status_code == 202 and c.json()["as_org"] == "org2"
+
+
+# ---- the consortium moment: two populated orgs, overlapping infrastructure, discovered only via the chain -----
+ORG1_IP, ORG1_NS = "198.51.100.10", "ns1.smoke-dns.example"  # the 'smoke' seed's top IP and first nameserver
+
+
+@pytest.fixture
+def two_orgs(api, seeded):
+    r = api.post("/admin/seed", headers=api.as_("admin"), json={
+        "label": "hdfc-kit", "domains": 50, "ips": 6, "asns": 2, "nameservers": 3, "brands": ["HDFC Bank"],
+        "org": "org2", "ip_base": 100, "shared_ips": [ORG1_IP], "shared_nameservers": [ORG1_NS]})
+    assert r.status_code == 200, r.text
+    return {"org1": seeded, "org2": r.json()["campaign_id"]}
+
+
+def _graph_labels(api, cid, who):
+    g = api.get(f"/campaigns/{cid}/graph", headers=api.as_(who)).json()
+    return ({n["data"]["label"] for n in g["elements"]["nodes"] if n["data"]["kind"] == "domain"},
+            {n["data"]["label"] for n in g["elements"]["nodes"] if n["data"]["kind"] != "domain"})
+
+
+@pytest.mark.db
+def test_consortium_steps_a_and_b_two_populated_orgs_neither_sees_the_other(api, two_orgs):
+    o1, o2 = two_orgs["org1"], two_orgs["org2"]
+    # (a) org 2 queries its own campaign: populated, and only its own domains
+    mine = api.get("/campaigns", headers=api.as_("org2")).json()
+    assert [c["id"] for c in mine["items"]] == [o2] and mine["items"][0]["domain_count"] >= 40
+    d2, infra2 = _graph_labels(api, o2, "org2")
+    d1, infra1 = _graph_labels(api, o1, "org1")
+    assert d2 and all(n.startswith("hdfc") for n in d2) and not d1 & d2
+    # the overlap is real: same hosting IP, same nameserver, same kit — in each org's OWN graph
+    assert {ORG1_IP, ORG1_NS} <= infra1 & infra2
+    k1 = api.get(f"/campaigns/{o1}").json()["kit_hash"]
+    k2 = api.get(f"/campaigns/{o2}", headers=api.as_("org2")).json()["kit_hash"]
+    assert k1 == k2
+    # (b) each org asks for the other's campaign by id: 404 both ways
+    assert api.get(f"/campaigns/{o1}", headers=api.as_("org2")).status_code == 404
+    assert api.get(f"/campaigns/{o2}", headers=api.as_("org1")).status_code == 404
+    assert api.get("/campaigns", headers=api.as_("org1")).json()["total"] == 1
+
+
+@pytest.mark.chain
+@pytest.mark.db
+def test_consortium_step_c_org2_finds_org1_report_by_kit_hash_on_chain(api, two_orgs, db):
+    from services.api import deps, main
+    from services.api.workers.anchor_worker import process_due
+    from services.tests.test_ledger import _real_ledger
+    led = _real_ledger()
+    main.app.dependency_overrides[deps.get_ledger] = lambda: led
+    assert api.post(f"/ledger/publish/{two_orgs['org1']}").status_code == 202
+    db.execute(sa.text("delete from anchor_queue where kind = 'evidence'"))
+    assert process_due(db, led) == 1
+    # (c) org 2 takes the kit hash from ITS OWN campaign and asks the ledger
+    kit = api.get(f"/campaigns/{two_orgs['org2']}", headers=api.as_("org2")).json()["kit_hash"]
+    found = api.get(f"/ledger/by-kit/{kit}", headers=api.as_("org2")).json()
+    rec = next(x for x in found["campaigns"] if x["reporter"]["name"] == "Bank One SOC" and x["domain_count"] == 60)
+    assert rec["kit_hash"] == kit and len(rec["ioc_root"]) == 64 and 0 < rec["confidence"] <= 100
+    assert rec["published_at"] and rec["yours"] is False and rec["campaign_id"] is None
+    flat = repr(rec)
+    assert ".example" not in flat and ORG1_IP not in flat and "<html" not in flat  # no names, no IPs, no content
+    assert found["local_telemetry_received"] is False

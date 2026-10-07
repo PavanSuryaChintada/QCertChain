@@ -9,6 +9,7 @@ from typing import Literal
 
 import sqlalchemy as sa
 from fastapi import APIRouter, Depends, HTTPException
+from pydantic import Field
 
 from services.api.deps import get_conn, get_evidence_dir, get_redis, get_signing_key, require_admin
 from services.api.models import ModeRequest, SeedRequest, StreamState
@@ -20,6 +21,10 @@ router = APIRouter(prefix="/admin", dependencies=[Depends(require_admin)])
 
 class AdminSeedRequest(SeedRequest):
     org: Literal["org1", "org2"] = "org1"
+    # deliberately shared infrastructure (the consortium demo: org2's campaign overlaps org1's)
+    ip_base: int = Field(10, ge=1, le=200)
+    shared_ips: list[str] = Field(default_factory=list, max_length=10)
+    shared_nameservers: list[str] = Field(default_factory=list, max_length=10)
 
 
 @router.post("/seed")
@@ -29,9 +34,15 @@ def seed(body: AdminSeedRequest, c: sa.Connection = Depends(get_conn), evidence_
     oid = repo_admin.org_id(c, body.org)
     if oid is None:
         raise HTTPException(404, f"org {body.org} not found")
-    ack = repo_admin.seed(c, org=oid, evidence_dir=evidence_dir, signing_key_hex=key, label=body.label,
-                          domains=body.domains, ips=body.ips, asns=body.asns, nameservers=body.nameservers,
-                          registrars=body.registrars, brands=body.brands)
+    if body.ip_base + body.ips > 250:
+        raise HTTPException(422, "ip_base + ips must stay inside the documentation /24 ranges")
+    try:
+        ack = repo_admin.seed(c, org=oid, evidence_dir=evidence_dir, signing_key_hex=key, label=body.label,
+                              domains=body.domains, ips=body.ips, asns=body.asns, nameservers=body.nameservers,
+                              registrars=body.registrars, brands=body.brands, ip_base=body.ip_base,
+                              shared_ips=body.shared_ips, shared_nameservers=body.shared_nameservers)
+    except ValueError as e:
+        raise HTTPException(422, str(e)) from None
     return {**ack, "org": body.org}
 
 

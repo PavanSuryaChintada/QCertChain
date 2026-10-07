@@ -75,3 +75,17 @@ def test_ai_assistance_is_declared_plainly():
     md = render(metrics())
     sec = md[md.index("## AI assistance"):]
     assert "AI coding agent" in sec and "human-directed" in sec and "docs/AI_USAGE_LOG.md" in sec
+
+
+def test_consortium_steps_are_numbered_in_the_report():
+    md = render(metrics())
+    sec = md[md.index("## Trust boundaries"):]
+    sec = sec[:sec.index("\n## ", 5)]
+    for step in ("1. ", "2. ", "3. "):
+        assert step in sec
+    assert "404" in sec and "kit hash" in sec and "no names" in sec.lower()
+
+
+def test_mutation_check_is_reported():
+    md = render(metrics())
+    assert "all 5 tenancy tests" in md and "row-level security" in md and "independently" in md

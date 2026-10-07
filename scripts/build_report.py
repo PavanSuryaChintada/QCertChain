@@ -273,6 +273,28 @@ def render(m: dict) -> str:
         "first-organisation campaign, graph, domain, evidence bundle, artifact, report, email analysis and plan, "
         "and can read the first organisation's anchored campaign on the chain.")
     add("")
+    add("**The consortium moment, in three steps.** Both organisations hold a populated, seeded campaign: Bank One "
+        "an ICICI-themed kit of 400 domains, Bank Two an HDFC-themed kit of 50 domains on the same kit, sharing one "
+        "hosting IP and one nameserver with Bank One's. Neither organisation can see the other; the overlap is "
+        "found only through the ledger.")
+    add("")
+    add("1. Bank Two lists its own campaigns and sees one campaign, its 50 `hdfc-*` domains and its own "
+        "infrastructure, which happens to include the shared IP and nameserver.")
+    add("2. Bank Two requests Bank One's campaign by id and gets 404. Bank One requesting Bank Two's gets 404 too.")
+    add("3. Bank Two takes the kit hash from its own campaign and queries the ledger. It finds Bank One's report: "
+        "IOC root, kit hash, domain count (400), confidence, reporter (Bank One SOC) and timestamp. No names, no "
+        "IP addresses, no page content, and not Bank One's local campaign id.")
+    add("")
+    add("Steps 1–3 are `test_consortium_steps_a_and_b_two_populated_orgs_neither_sees_the_other` and "
+        "`test_consortium_step_c_org2_finds_org1_report_by_kit_hash_on_chain`, and were repeated against the "
+        "hosted database with real keys.")
+    add("")
+    add("**Defence in depth, demonstrated.** The isolation tests were checked against two deliberate breakages. "
+        "Disabling the per-request organisation binding made all 5 tenancy tests fail, so the tests detect a "
+        "leak rather than pass for the wrong reason. Stripping the code's own organisation filters from the "
+        "repository queries still left the second organisation blocked, because row-level security in the "
+        "database enforces the boundary independently of the application code.")
+    add("")
     add("## Limits")
     add("")
     for s in [
