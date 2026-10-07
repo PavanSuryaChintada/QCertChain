@@ -196,12 +196,12 @@ python -m services.api.workers.triage_worker &
 python -m services.api.workers.enrich_worker &
 
 # stream, in replay mode so it is deterministic
-curl -sX POST localhost:8000/stream/mode -H 'content-type: application/json' \
+curl -sX POST localhost:8000/admin/stream/mode -H "X-API-Key: $QCC_KEY_ADMIN" -H 'content-type: application/json' \
      -d '{"mode":"replay","speed":5.0}' | jq
 python -m services.ingest.stream &
 
 sleep 60
-curl -s 'localhost:8000/candidates?limit=5' | jq '.total'
+curl -s -H "X-API-Key: $QCC_KEY_ORG1" 'localhost:8000/candidates?limit=5' | jq '.total'
 ```
 
 **✓ Checkpoint:** `total` is greater than zero.
@@ -209,10 +209,10 @@ curl -s 'localhost:8000/candidates?limit=5' | jq '.total'
 
 ```bash
 # seed a campaign and run the full contribution path
-CAMP=$(curl -sX POST localhost:8000/seed/campaign -H 'content-type: application/json' \
-  -d '{"label":"smoke","domains":400,"ips":12,"asns":3,"nameservers":4}' | jq -r .id)
+CAMP=$(curl -sX POST localhost:8000/admin/seed -H "X-API-Key: $QCC_KEY_ADMIN" -H 'content-type: application/json' \
+  -d '{"label":"smoke","domains":400,"ips":12,"asns":3,"nameservers":4,"org":"org1"}' | jq -r .campaign_id)
 
-curl -sX POST "localhost:8000/campaigns/$CAMP/interdict" -H 'content-type: application/json' \
+curl -sX POST "localhost:8000/campaigns/$CAMP/interdict" -H "X-API-Key: $QCC_KEY_ORG1" -H 'content-type: application/json' \
   -d '{"k":5,"backend":"cpsat"}' | jq '{domains_killed, coverage_pct, solve_ms}'
 ```
 

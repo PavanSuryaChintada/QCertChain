@@ -3,21 +3,23 @@ import { useState } from "react";
 import { ApiError, api, type ByKit } from "../lib/api";
 import { Hash, Num } from "../components/Mono";
 
-// A separate view rendered as a different organisation (apps/BUILD_SPEC.md §8). Starts empty.
-export function SecondOrg() {
+// The shared ledger, seen as whichever organisation is signed in. The chain is public to every member (hashes,
+// counts, reporter, timestamp); another organisation's rows are not reachable through the API at all.
+export function SharedLedger() {
   const [kit, setKit] = useState("");
   const status = useQuery({ queryKey: ["ledger-status"], queryFn: api.ledgerStatus, refetchInterval: 5000 });
   const look = useMutation<ByKit, Error, string>({ mutationFn: (k) => api.byKit(k.trim()) });
-  const corroborate = useMutation({ mutationFn: (campaignId: string) => api.corroborate(campaignId) });
-  const dispute = useMutation({ mutationFn: (root: string) => api.attest(root, "disputed", "org2") });
+  const corroborate = useMutation({ mutationFn: (chainId: string) => api.corroborate(chainId) });
+  const dispute = useMutation({ mutationFn: (root: string) => api.attest(root, "disputed") });
   const err = look.error instanceof ApiError ? look.error.problem : null;
-  const org2 = status.data?.orgs?.org2;
+  const me = status.data ? status.data.orgs[status.data.you] : undefined;
   return (
     <div className="p-6 max-w-[960px]">
-      <p className="panel-title" style={{ fontSize: 22 }}>{org2?.name ?? "Bank Two SOC"}</p>
+      <p className="panel-title" style={{ fontSize: 22 }}>Shared ledger</p>
       <p className="secondary">
-        Viewing as a second organisation{org2 && <> (<Hash v={org2.address} n={10} />)</>}. This organisation has none of
-        the first one's telemetry: only what it can read from the shared ledger.
+        Signed in as {me?.name ?? status.data?.you ?? "your organisation"}{me && <> (<Hash v={me.address} n={10} />)</>}.
+        The ledger holds hashes, counts, the reporter and a timestamp — never domain names, addresses or page content.
+        Another organisation's campaigns appear here as commitments only.
         {status.data && !status.data.available && " The ledger is not reachable right now."}
       </p>
       <form className="mt-4 flex gap-2" onSubmit={(e) => { e.preventDefault(); if (kit.trim()) look.mutate(kit); }}>
@@ -44,8 +46,9 @@ export function SecondOrg() {
                   : `Corroborated by ${c.corroborations.map((x) => x.name).join(", ")}.`}
               </p>
               <div className="mt-2 flex gap-2">
-                <button onClick={() => corroborate.mutate(c.campaign_id)}
-                        disabled={corroborate.isPending || !/^[0-9a-f-]{36}$/.test(c.campaign_id)}>Corroborate</button>
+                <button onClick={() => corroborate.mutate(c.chain_campaign_id)}
+                        disabled={corroborate.isPending || c.yours}
+                        title={c.yours ? "Your own campaign" : undefined}>Corroborate</button>
                 <button onClick={() => dispute.mutate(c.ioc_root)} disabled={dispute.isPending}>Dispute</button>
               </div>
               {(corroborate.isSuccess || dispute.isSuccess) && (

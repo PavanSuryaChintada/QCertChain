@@ -102,8 +102,9 @@ class Ledger:
             min(int(domain_count), 65535), max(0, min(int(confidence), 100)))
         return self._send(fn, as_org)
 
-    def corroborate(self, campaign_id: str, as_org: str = "org2") -> str:
-        return self._send(self.c["CampaignRegistry"].functions.corroborate(b32_id(campaign_id)), as_org)
+    def corroborate(self, chain_campaign_id_hex: str, as_org: str) -> str:
+        """By CHAIN id (from find_by_kit): the corroborating org never holds the reporter's local campaign id."""
+        return self._send(self.c["CampaignRegistry"].functions.corroborate(b32_hex(chain_campaign_id_hex)), as_org)
 
     def anchor_evidence(self, bundle_id: str, root_hex: str, campaign_id: str | None, as_org: str = "org1") -> str:
         fn = self.c["EvidenceAnchor"].functions.anchor(

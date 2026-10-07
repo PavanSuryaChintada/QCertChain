@@ -49,8 +49,9 @@ def test_interdict_without_takedownable_infra_is_409(api, db):
     cid = db.execute(sa.text("insert into campaigns (label, domain_count) values ('CAMP-X', 2) returning id")).scalar()
     node = db.execute(sa.text("insert into infra_nodes (kind, value) values ('kit_hash', 'k') returning id")).scalar()
     for n in ("a.example", "b.example"):
-        d = db.execute(sa.text("insert into domains (name, etld1, campaign_id) values (:n, :n, :c) returning id"),
-                       {"n": n, "c": cid}).scalar()
+        d = db.execute(sa.text("insert into domains (name, etld1, origin_org_id) values (:n, :n, 1) returning id"),
+                       {"n": n}).scalar()
+        db.execute(sa.text("insert into domain_verdicts (domain_id, campaign_id) values (:d, :c)"), {"d": d, "c": cid})
         db.execute(sa.text("insert into graph_edges (domain_id, node_id, weight) values (:d, :n, 1.0)"),
                    {"d": d, "n": node})
     r = api.post(f"/campaigns/{cid}/interdict", json={"k": 2})
@@ -123,9 +124,12 @@ def test_report_never_sent(api, seeded):
 
 
 def test_stream_mode_switch_and_state(api):
-    r = api.post("/stream/mode", json={"mode": "replay", "speed": 2.0})
+    """Switching the SHARED ingest is a platform action: admin key only."""
+    admin = api.as_("admin")
+    r = api.post("/admin/stream/mode", json={"mode": "replay", "speed": 2.0}, headers=admin)
     assert r.status_code == 200 and r.json()["mode"] == "replay"
-    assert api.post("/stream/mode", json={"mode": "bogus"}).status_code == 422
+    assert api.post("/admin/stream/mode", json={"mode": "bogus"}, headers=admin).status_code == 422
+    assert api.get("/stream/state").json()["mode"] == "replay"
 
 
 def test_metrics_and_ops_log(api, seeded):

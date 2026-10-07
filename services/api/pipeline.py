@@ -107,8 +107,8 @@ def insert_bundles(c: sa.Connection, prepared: list[PreparedBundle]) -> None:
 
 def make_bundle(c: sa.Connection, domain_id: int, name: str, result: ConfirmResult, page: FetchedPage | None,
                 e: Enrichment, *, evidence_dir: Path | str, signing_key_hex: str, source: str) -> str:
-    camp = c.execute(sa.text("select d.campaign_id, c.label from domains d left join campaigns c on c.id = d.campaign_id "
-                             "where d.id = :d"), {"d": domain_id}).one()
+    camp = c.execute(sa.text("select d.campaign_id, c.label from org_domains d "
+                             "left join campaigns c on c.id = d.campaign_id where d.id = :d"), {"d": domain_id}).one()
     p = prepare_bundle(domain_id, name, result, page, e,
                        campaign_id=str(camp.campaign_id) if camp.campaign_id else None, campaign_label=camp.label,
                        evidence_dir=evidence_dir, signing_key_hex=signing_key_hex, source=source)

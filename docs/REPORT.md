@@ -121,6 +121,16 @@ The second-organisation view queries the ledger by kit fingerprint and receives 
 
 11 phishing hostnames from PhishTank had their own certificate in our capture; 0 were seen in CT before being listed (the rest were certificate renewals for hosts already reported). The capture covers 30 minutes, so only certificates issued in that window can match. **No lead time is claimed from this data.**
 
+## Trust boundaries
+
+The ledger and the API are different trust boundaries, on purpose.
+
+- **The ledger is deliberately public to every member organisation.** It carries hashes and counts only: the campaign's IOC Merkle root, the kit fingerprint, a domain count, a confidence, the reporting organisation and a timestamp — no domain names, IP addresses or page content. A second organisation can find the first one's campaign by kit fingerprint and corroborate or dispute it, without receiving any of its telemetry. That is the point of sharing through a ledger.
+- **The API and database are strictly org-scoped.** Every request carries an API key that maps to one organisation. Each request runs as a restricted database role with that organisation set, and row-level security filters every organisation-owned table: campaigns, verdicts, enrichment, the campaign graph, evidence, abuse reports, takedown plans, email analyses and ledger writes. Another organisation's resource returns 404, never 403, so a response does not even reveal that it exists.
+- **Shared by design:** certificates and candidates from the public CT feed. Each organisation sees only its own verdict on a shared candidate; whether another organisation confirmed it is never visible.
+
+Both halves are tested in `services/tests/test_tenancy.py`: the second organisation gets 404 on every first-organisation campaign, graph, domain, evidence bundle, artifact, report, email analysis and plan, and can read the first organisation's anchored campaign on the chain.
+
 ## Limits
 
 - HTTP-only phishing has no certificate and is invisible to CT monitoring.
@@ -138,6 +148,10 @@ The second-organisation view queries the ledger by kit fingerprint and receives 
 - Lookalike matching uses tokens of five or more characters; a flat edit distance of 2 on 3-letter tokens matches ordinary words.
 - The campaign graph uses a deterministic radial layout: force-directed layouts took 17–22 s on a 400-domain campaign.
 - Takedown targets are hosting IPs, nameservers and registrars only (hashes and whole networks cannot be taken down).
+
+## AI assistance
+
+This project was built with an AI coding agent (Claude Code). The agent wrote most of the code, tests and documentation, ran the measurements in this report, and reviewed its own work through a separate review pass. The work was human-directed: the project owner set the scope, made every product and architecture decision recorded in `docs/BUILD_DECISIONS.md` and the design spec, and reviewed the results. Every number in this report comes from `reports/metrics.json`, produced by `scripts/evaluate.py`, not from the agent's claims. The task-by-task log of what the agent did and how each step was verified is in `docs/AI_USAGE_LOG.md`.
 
 ## Reproduce
 

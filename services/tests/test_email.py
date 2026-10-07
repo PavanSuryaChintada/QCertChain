@@ -106,7 +106,7 @@ def test_persist_creates_candidates_never_confirmed(db):
     from services.email.analyze import db_lookup, persist_and_correlate
     v = analyze(SPOOF, brands=BR, lookup=db_lookup(db))
     aid, new_ids = persist_and_correlate(db, v, "analyst")
-    rows = db.execute(sa.text("select name, status, source from domains order by name")).all()
+    rows = db.execute(sa.text("select name, status, source from org_domains order by name")).all()
     assert rows and all(r.status == "candidate" and r.source == "email" for r in rows)
     assert {r.name for r in rows} >= {"sbi-kyc-update.example", "sbi-kyc-verify-17.example"}
     assert len(new_ids) == len(rows)

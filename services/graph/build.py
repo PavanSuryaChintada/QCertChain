@@ -61,17 +61,18 @@ def recluster(c: sa.Connection) -> list[str]:
     reuses the campaign most of its members already belong to. Returns campaign ids (largest first)."""
     edges = [(r.domain_id, r.node_id, r.weight) for r in c.execute(sa.text("""
         select e.domain_id, e.node_id, e.weight from graph_edges e
-        join domains d on d.id = e.domain_id where d.status = 'confirmed'"""))]
+        join org_domains d on d.id = e.domain_id
+        where d.status = 'confirmed' and e.org_id = current_org()"""))]
     clusters = cluster(edges, threshold=SETTINGS.cluster_edge_threshold)
     if not clusters:
         return []
     member_ids = sorted({d for cl in clusters for d in cl.domain_ids})
     dom = {r.id: r for r in c.execute(sa.text(
-        "select id, name, campaign_id, brand_matched from domains where id = any(:ids)"), {"ids": member_ids})}
+        "select id, name, campaign_id, brand_matched from org_domains where id = any(:ids)"), {"ids": member_ids})}
     node_ids = sorted({n for cl in clusters for n in cl.node_ids})
-    nodes = {r.id: r for r in c.execute(sa.text("select id, kind, value from infra_nodes where id = any(:ids)"),
-                                        {"ids": node_ids})}
-    n_existing = c.execute(sa.text("select count(*) from campaigns")).scalar_one()
+    nodes = {r.id: r for r in c.execute(sa.text(
+        "select id, kind, value from infra_nodes where id = any(:ids) and org_id = current_org()"), {"ids": node_ids})}
+    n_existing = c.execute(sa.text("select count(*) from campaigns where org_id = current_org()")).scalar_one()
     used: set[str] = set()
     out: list[str] = []
     for cl in clusters:
@@ -91,11 +92,12 @@ def recluster(c: sa.Connection) -> list[str]:
         else:
             c.execute(sa.text("""update campaigns set kit_hash = :kit, domain_count = :dc, infra_count = :ic,
                                  confidence = :conf, brands = :brands, ioc_root = :root, last_seen = now()
-                                 where id = :id"""), {**params, "id": cid})
-        c.execute(sa.text("""update domains set campaign_id = :cid,
-                             campaign_joined_at = case when campaign_id is distinct from :cid then now()
+                                 where id = :id and org_id = current_org()"""), {**params, "id": cid})
+        c.execute(sa.text("""update domain_verdicts set campaign_id = :cid,
+                             campaign_joined_at = case when campaign_id is distinct from cast(:cid as uuid) then now()
                                                        else campaign_joined_at end
-                             where id = any(:ids)"""), {"cid": cid, "ids": sorted(cl.domain_ids)})
+                             where domain_id = any(:ids) and org_id = current_org()"""),
+                  {"cid": cid, "ids": sorted(cl.domain_ids)})
         used.add(cid)
         out.append(cid)
     return out

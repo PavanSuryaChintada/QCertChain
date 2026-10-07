@@ -90,11 +90,12 @@ def test_publish_is_queued_not_blocking(api_ledger, seeded):
 
 @pytest.mark.db
 def test_attest_and_corroborate_validate_and_queue(api_ledger, seeded):
-    assert api_ledger.post("/ledger/attest", json={"subject_hash": "0x" + "ab" * 32, "verdict": "disputed",
-                                                    "as_org": "org2"}).status_code == 202
+    assert api_ledger.post("/ledger/attest", json={"subject_hash": "0x" + "ab" * 32, "verdict": "disputed"},
+                           headers=api_ledger.as_("org2")).status_code == 202
     assert api_ledger.post("/ledger/attest", json={"subject_hash": "nothex", "verdict": "disputed"}).status_code == 422
     assert api_ledger.post("/ledger/attest", json={"subject_hash": "0x" + "ab" * 32, "verdict": "maybe"}).status_code == 422
-    assert api_ledger.post(f"/ledger/corroborate/{seeded}", json={"as_org": "org2"}).status_code == 202
+    assert api_ledger.post(f"/ledger/corroborate/{'cd' * 32}", headers=api_ledger.as_("org2")).status_code == 202
+    assert api_ledger.post(f"/ledger/corroborate/{seeded}").status_code == 422  # a local id is not a chain id
 
 
 @pytest.mark.db
@@ -124,7 +125,8 @@ def test_real_inheritance_by_kit_with_reporter_and_corroboration():
     cid, kit, root = str(uuid.uuid4()), uuid.uuid4().hex * 2, uuid.uuid4().hex * 2
     tx = led.publish_campaign(cid, root, kit, 400, 94, as_org="org1")
     assert tx.startswith("0x")
-    led.corroborate(cid, as_org="org2")
+    from services.api.ledger_service import b32_id
+    led.corroborate(b32_id(cid).hex(), as_org="org2")
     found = led.find_by_kit(kit)
     assert len(found) == 1
     c = found[0]

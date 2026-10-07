@@ -505,3 +505,33 @@ Format: **AI did** · **Owner decided** · **Verified by** · **Rulings** (AI ju
 - **Verified by:** the full Python suite (services + packages), console vitest, and Hardhat tests (counts in the ledger).
 - **Kept, with tests:** lookalike and homoglyph both firing on a pure homograph. It is what lifts `xn--cicibank-shh.com`, `xn--pytm-53d.com` and similar over the threshold. A known miss is pinned: the Cyrillic-s `sbi.co.in` homograph scores 0.30. It awaits the owner's homoglyph-threshold decision.
 - **Deferred:** the 16 minor findings, listed in the final hand-off. API authentication is deferred to the deploy decision.
+
+## Tenant isolation and API keys (owner items 6 + 4, T1–T10)
+
+- **Found first, reported before any fix (owner instruction):** the API had no notion of an organisation. Any caller could read every campaign, domain, evidence bundle, artifact, report and email analysis. Ledger writes accepted `as_org` from the request body, so a caller could sign as another organisation. Direct Supabase access with the publishable key was already closed: RLS was on with no policies.
+- **Owner decisions applied:**
+  - Shared CT candidates are separate rows from org-owned verdicts.
+  - The seeded campaign belongs to org1.
+  - The admin key can seed and switch the stream, and reads no org data.
+- **AI did:**
+  - `organisations` and `api_keys` tables; keys are SHA-256 at rest and shown once.
+  - `org_id` (not null, indexed) on every org-owned table.
+  - `domain_verdicts` replaces the verdict columns on the shared `domains` table, and an `org_domains` view joins only the current org's verdict.
+  - Row-level security policies, with each request running as role `qcc_app` with `app.org_id` set.
+  - A scoped repository layer (`services/api/repos/`), so routes contain no SQL.
+  - An `X-API-Key` header on every route except `/health`, with org, demo (read-only) and admin keys.
+  - Cross-org requests return 404.
+  - The ledger signer is the key's org, and corroboration is by chain id.
+  - The console signs in with a key, reads the live feed over `fetch`, and loads the screenshot as a blob.
+- **Verified by:**
+  - `test_tenancy.py`: org2 gets 404 on 8 org-1 reads and 5 org-1 writes. Org2's listings contain nothing of org1. Org2 sees shared candidates without org1's verdict. Org2 reads org1's anchored campaign on the real chain, but gets 404 on its rows.
+  - `test_auth.py`: every route returns 401 without a key; the demo key is read-only; the admin key reads nothing; keys are hashed; revocation works; a forged `as_org` gets 422.
+  - `test_tenancy_static.py`: no database access in routes; only admin routes touch the privileged connection; an unscoped query on a scoped connection still sees one org.
+  - Mutation checks, both run:
+    - Removing the org binding turns all 5 tenancy tests red.
+    - Removing the repository's explicit org filters leaves the database's row-level security still isolating.
+- **Supabase migration:**
+  - Took a `pg_dump` backup first (`data/backups/`, gitignored).
+  - Rehearsed on the test database with old-schema data.
+  - Applied in one transaction: 731 verdicts moved; 402 domains are org1-private and 329 shared.
+  - Live curl matrix: org2 gets 404 on 6 org-1 resources, an empty email list, and 329 shared candidates with no org-1 verdicts.

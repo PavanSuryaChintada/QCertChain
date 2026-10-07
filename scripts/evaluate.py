@@ -215,14 +215,18 @@ def email():
 def response_time(since: str | None):
     import sqlalchemy as sa
 
-    from services.api.db import engine
+    from services.api.db import engine, set_org_context
+    from services.config import SETTINGS
     with engine().connect() as c:
+        # verdicts are org-owned: measure the pipeline operator's (the org that confirms the live feed)
+        set_org_context(c, c.execute(sa.text("select id from organisations where slug = :s"),
+                                     {"s": SETTINGS.pipeline_org}).scalar())
         rows = c.execute(sa.text("""
             select status, extract(epoch from candidate_at - ct_seen_at) as to_candidate,
                    extract(epoch from received_at - ct_seen_at) as upstream,
                    extract(epoch from candidate_at - received_at) as ours,
                    extract(epoch from verdict_at - candidate_at) as to_verdict
-            from domains where source in ('certstream','replay') and candidate_at >= coalesce(cast(:s as timestamptz), now() - interval '1 day')"""),
+            from org_domains where source in ('certstream','replay') and candidate_at >= coalesce(cast(:s as timestamptz), now() - interval '1 day')"""),
             {"s": since}).mappings().all()
         anchors = [r[0] for r in c.execute(sa.text(
             "select extract(epoch from anchored_at - created_at) from evidence_bundles where anchored_at is not null"))]

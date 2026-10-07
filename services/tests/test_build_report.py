@@ -61,3 +61,17 @@ def test_qubo_claim_is_scoped_and_qaoa_warm_start_disclosed():
     assert "exact x-only" not in md
     assert "exact up to second order" in md
     assert "warm start" in md and "greedy" in md
+
+
+def test_trust_boundaries_section_states_chain_public_and_api_org_scoped():
+    md = render(metrics())
+    sec = md[md.index("## Trust boundaries"):]
+    sec = sec[:sec.index("\n## ", 5)]
+    for must in ("deliberately public", "no domain names", "strictly org-scoped", "404", "different trust boundaries"):
+        assert must in sec, must
+
+
+def test_ai_assistance_is_declared_plainly():
+    md = render(metrics())
+    sec = md[md.index("## AI assistance"):]
+    assert "AI coding agent" in sec and "human-directed" in sec and "docs/AI_USAGE_LOG.md" in sec

@@ -99,7 +99,7 @@ def seed_campaign(c: sa.Connection, *, label: str, domains: int = 400, ips: int 
 
     campaign_ids = recluster(c)
     camp = {r.id: r for r in c.execute(sa.text(
-        "select d.id, d.campaign_id, c.label from domains d left join campaigns c on c.id = d.campaign_id "
+        "select d.id, d.campaign_id, c.label from org_domains d left join campaigns c on c.id = d.campaign_id "
         "where d.id = any(:ids)"), {"ids": sorted(ids.values())})}
     prepared = [prepare_bundle(ids[n], n, r, pg, e,
                                campaign_id=str(camp[ids[n]].campaign_id) if camp[ids[n]].campaign_id else None,

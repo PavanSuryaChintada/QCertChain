@@ -35,6 +35,10 @@ class Settings:
     org_private_key: str = ""
     org2_private_key: str = ""
     raw_cert_retention_h: int = 24
+    # tenancy: live public-feed candidates are confirmed on behalf of this org (the pipeline operator)
+    pipeline_org: str = "org1"
+    db_pool_size: int = 5
+    db_pool_overflow: int = 5
 
 
 def _parse_env_file(path: Path) -> dict[str, str]:

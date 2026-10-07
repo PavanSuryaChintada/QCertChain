@@ -53,7 +53,7 @@ def db_lookup(c: sa.Connection) -> Lookup:
     def look(etld1: str) -> DomainLookup:
         if etld1 not in cache:
             r = c.execute(sa.text("""
-                select d.id, d.status, d.campaign_id::text as cid, cp.label from domains d
+                select d.id, d.status, d.campaign_id::text as cid, cp.label from org_domains d
                 left join campaigns cp on cp.id = d.campaign_id
                 where d.etld1 = :e or d.name = :e
                 order by (d.status = 'confirmed') desc, d.campaign_id is null limit 1"""), {"e": etld1}).first()
@@ -71,8 +71,9 @@ def persist_and_correlate(c: sa.Connection, v: EmailVerdict, source: Literal["an
     for d in dict.fromkeys(x for x in (p.from_etld1, p.reply_to_etld1, *p.link_etld1s) if x):
         t = triage(d)
         if t.is_candidate:
+            # PRIVATE to this org: that an org received an email linking to a domain is its own business
             did, created = repo.upsert_candidate(c, name=d, etld1=t.etld1, cert_id=None, triage=t, source="email",
-                                                 ct_seen_at=None)
+                                                 ct_seen_at=None, private=True)
             if created:
                 new_ids.append(did)
     aid = str(uuid.uuid4())

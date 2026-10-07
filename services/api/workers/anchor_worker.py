@@ -3,6 +3,9 @@
 If the chain is down, items stay queued with exponential backoff (cap 60 s) and the UI shows the depth;
 detection, clustering and interdiction never wait on a transaction. AlreadyPublished / AlreadyAnchored
 mean the write already landed (e.g. a retry after a lost receipt): treated as done, idempotently.
+
+A trusted platform process across all orgs: every write is signed by the QUEUE ROW's org (its org_id),
+never by a payload field, and every row it touches is addressed by primary key AND that org_id.
 """
 from __future__ import annotations
 
@@ -19,43 +22,44 @@ EVENT_KIND = {"evidence": "evidence_anchored", "campaign": "campaign_published",
               "corroborate": "corroborated"}
 
 
-def _dispatch(c: sa.Connection, ledger, kind: str, p: dict) -> tuple[str, str]:
-    """Returns (tx_hash, subject)."""
+def _dispatch(c: sa.Connection, ledger, kind: str, p: dict, org_id: int, org: str) -> tuple[str, str]:
+    """Returns (tx_hash, subject). `org` is the queue row's org slug: the signer."""
     if kind == "evidence":
-        tx = ledger.anchor_evidence(p["bundle_id"], p["bundle_root"], p.get("campaign_id"), as_org="org1")
-        c.execute(sa.text("update evidence_bundles set anchored_tx = :tx, anchored_at = now() where id = :b"),
-                  {"tx": tx, "b": p["bundle_id"]})
+        tx = ledger.anchor_evidence(p["bundle_id"], p["bundle_root"], p.get("campaign_id"), as_org=org)
+        c.execute(sa.text("""update evidence_bundles set anchored_tx = :tx, anchored_at = now()
+                             where id = :b and org_id = :o"""), {"tx": tx, "b": p["bundle_id"], "o": org_id})
         return tx, p["bundle_id"]
     if kind == "campaign":
-        row = c.execute(sa.text("select ioc_root, kit_hash, domain_count, confidence from campaigns where id = :c"),
-                        {"c": p["campaign_id"]}).one()
+        row = c.execute(sa.text("""select ioc_root, kit_hash, domain_count, confidence from campaigns
+                                   where id = :c and org_id = :o"""), {"c": p["campaign_id"], "o": org_id}).one()
         tx = ledger.publish_campaign(p["campaign_id"], row.ioc_root, row.kit_hash, row.domain_count,
-                                     round(100 * (row.confidence or 0)), as_org=p.get("as_org", "org1"))
-        c.execute(sa.text("update campaigns set published_tx = :tx where id = :c"), {"tx": tx, "c": p["campaign_id"]})
+                                     round(100 * (row.confidence or 0)), as_org=org)
+        c.execute(sa.text("update campaigns set published_tx = :tx where id = :c and org_id = :o"),
+                  {"tx": tx, "c": p["campaign_id"], "o": org_id})
         return tx, p["campaign_id"]
     if kind == "attest":
-        return ledger.attest(p["subject_hash"], p["verdict"], as_org=p.get("as_org", "org1")), p["subject_hash"]
+        return ledger.attest(p["subject_hash"], p["verdict"], as_org=org), p["subject_hash"]
     if kind == "corroborate":
-        return ledger.corroborate(p["campaign_id"], as_org=p.get("as_org", "org2")), p["campaign_id"]
+        return ledger.corroborate(p["chain_campaign_id"], as_org=org), p["chain_campaign_id"]
     raise ValueError(f"unknown anchor kind {kind!r}")
 
 
 def process_due(c: sa.Connection, ledger, limit: int = 50) -> int:
     rows = c.execute(sa.text("""
-        select id, kind, payload, attempts from anchor_queue
-        where not done and next_attempt_at <= now() order by id limit :n for update skip locked"""),
+        select q.id, q.kind, q.payload, q.attempts, q.org_id, o.slug as org from anchor_queue q
+        join organisations o on o.id = q.org_id
+        where not q.done and q.next_attempt_at <= now() order by q.id limit :n for update of q skip locked"""),
         {"n": limit}).mappings().all()
     done = 0
     for r in rows:
         sp = c.begin_nested()  # one item's failure never rolls back the others
         try:
-            tx, subject = _dispatch(c, ledger, r["kind"], r["payload"])
-            c.execute(sa.text("""insert into ledger_events (kind, tx_hash, subject, org_address, payload)
-                                 values (:k, :tx, :s, :org, cast(:p as jsonb))"""),
-                      {"k": EVENT_KIND[r["kind"]], "tx": tx, "s": subject,
-                       "org": getattr(ledger, "accounts", {}).get(r["payload"].get("as_org", "org1")) and
-                       ledger.accounts[r["payload"].get("as_org", "org1")].address,
-                       "p": json.dumps(r["payload"])})
+            tx, subject = _dispatch(c, ledger, r["kind"], r["payload"], r["org_id"], r["org"])
+            acct = getattr(ledger, "accounts", {}).get(r["org"])
+            c.execute(sa.text("""insert into ledger_events (org_id, kind, tx_hash, subject, org_address, payload)
+                                 values (:oid, :k, :tx, :s, :org, cast(:p as jsonb))"""),
+                      {"oid": r["org_id"], "k": EVENT_KIND[r["kind"]], "tx": tx, "s": subject,
+                       "org": acct.address if acct else None, "p": json.dumps(r["payload"])})
             c.execute(sa.text("update anchor_queue set done = true, last_error = null where id = :i"), {"i": r["id"]})
             sp.commit()
             done += 1

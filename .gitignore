@@ -32,3 +32,10 @@ data/probe.jsonl
 apps/console/dist/
 data/ml/
 services/ml/artifacts/*.joblib
+
+# database backups (contain data; never commit)
+data/backups/
+*.dump
+
+# vite dependency cache
+apps/console/.vite/

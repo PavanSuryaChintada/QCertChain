@@ -1,14 +1,12 @@
 """Email-header analysis endpoints (API_CONTRACT §9). Paste or upload only — no mailbox is ever connected."""
 from __future__ import annotations
 
-import uuid
 from typing import Literal
 
-import sqlalchemy as sa
 from fastapi import APIRouter, Depends, HTTPException, Query, Request
 
-from services.api.deps import get_conn, get_redis
-from services.email.analyze import analyze, db_lookup, persist_and_correlate
+from services.api.deps import Scope, get_redis, get_scope
+from services.api.repos import email as repo_email
 from services.ingest.triage import _brands
 
 router = APIRouter()
@@ -23,13 +21,8 @@ def _row_out(r: dict) -> dict:
             "linked_domain_ids": r["linked_domain_ids"] or [], "received_at": r["received_at"]}
 
 
-_SELECT = """select id::text, source, verdict, strong_count, from_addr, from_etld1, reply_to_etld1, return_path_etld1,
-                    auth_results, received_hops, urls, signals, linked_campaign_ids::text[] as linked_campaign_ids,
-                    linked_domain_ids, received_at, count(*) over () as total from email_analyses"""
-
-
 @router.post("/email/analyze")
-async def analyze_email(request: Request, c=Depends(get_conn), r=Depends(get_redis)):
+async def analyze_email(request: Request, s: Scope = Depends(get_scope), r=Depends(get_redis)):
     ctype = request.headers.get("content-type", "")
     source: Literal["analyst", "sample"] = "analyst"
     if ctype.startswith("multipart/form-data"):
@@ -57,10 +50,9 @@ async def analyze_email(request: Request, c=Depends(get_conn), r=Depends(get_red
         raw = raw.encode("utf-8", errors="replace")
     if len(raw) > MAX_BYTES:
         raise HTTPException(413, "email larger than 2 MB")
-    v = analyze(raw, brands=_brands(), lookup=db_lookup(c))
-    aid, new_ids = persist_and_correlate(c, v, source)
-    for d in new_ids:  # candidates go through the same evidence gate as CT candidates
-        await r.lpush("enrich:queue", d)
+    v, aid, new_ids = repo_email.analyze_and_store(s, raw, source, _brands())
+    for d in new_ids:  # private candidates go through the same evidence gate as CT ones, for THIS org
+        await r.lpush("enrich:queue", f"{s.org_id}:{d}")
     p = v.parsed
     return {"id": aid, "source": source, "verdict": v.verdict, "strong_count": v.strong_count,
             "from_addr": p.from_addr, "from_etld1": p.from_etld1, "reply_to_etld1": p.reply_to_etld1,
@@ -71,21 +63,15 @@ async def analyze_email(request: Request, c=Depends(get_conn), r=Depends(get_red
 
 @router.get("/email/analyses")
 def list_analyses(verdict: Literal["malicious", "suspicious", "clean"] | None = None,
-                  limit: int = Query(50, ge=1, le=500), offset: int = Query(0, ge=0), c=Depends(get_conn)):
-    rows = c.execute(sa.text(_SELECT + """ where (cast(:v as text) is null or verdict = :v)
-                             order by received_at desc limit :l offset :o"""),
-                     {"v": verdict, "l": limit, "o": offset}).mappings().all()
+                  limit: int = Query(50, ge=1, le=500), offset: int = Query(0, ge=0), s: Scope = Depends(get_scope)):
+    rows = repo_email.list_(s, verdict=verdict, limit=limit, offset=offset)
     return {"items": [_row_out(x) for x in rows], "total": rows[0]["total"] if rows else 0,
             "limit": limit, "offset": offset}
 
 
 @router.get("/email/analyses/{analysis_id}")
-def get_analysis(analysis_id: str, c=Depends(get_conn)):
-    try:
-        uuid.UUID(analysis_id)
-    except ValueError:
-        raise HTTPException(404, f"analysis {analysis_id} not found") from None
-    r = c.execute(sa.text(_SELECT + " where id = :i"), {"i": analysis_id}).mappings().one_or_none()
+def get_analysis(analysis_id: str, s: Scope = Depends(get_scope)):
+    r = repo_email.get(s, analysis_id)
     if r is None:
         raise HTTPException(404, f"analysis {analysis_id} not found")
     return _row_out(r)

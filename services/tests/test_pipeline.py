@@ -41,7 +41,7 @@ def test_confirmed_persists_enrichment_edges_bundle_report_anchor(db, tmp_path):
     bundle_id = persist_result(db, d, "sbi-verify-kyc.top", confirmed(), page("sbi-verify-kyc.top"), e,
                                evidence_dir=tmp_path, signing_key_hex=KEY)
     assert bundle_id
-    assert db.execute(sa.text("select status from domains where id=:d"), {"d": d}).scalar() == "confirmed"
+    assert db.execute(sa.text("select status from org_domains where id=:d"), {"d": d}).scalar() == "confirmed"
     kinds = {r.kind for r in db.execute(sa.text("select n.kind from graph_edges e join infra_nodes n on n.id=e.node_id"))}
     assert kinds == {"ip", "nameserver", "registrar", "kit_hash"}
     b = db.execute(sa.text("select partial, artifact_dir from evidence_bundles where id=:b"), {"b": bundle_id}).one()
@@ -60,7 +60,7 @@ def test_unreachable_persists_status_only(db, tmp_path):
     r = ConfirmResult("unreachable", 0.0, [Signal("not_assessable", "weak", "timeout")], 0)
     assert persist_result(db, d, "dead-sbi-kyc.top", r, None, Enrichment(), evidence_dir=tmp_path,
                           signing_key_hex=KEY) is None
-    assert db.execute(sa.text("select status from domains where id=:d"), {"d": d}).scalar() == "unreachable"
+    assert db.execute(sa.text("select status from org_domains where id=:d"), {"d": d}).scalar() == "unreachable"
     assert db.execute(sa.text("select count(*) from evidence_bundles")).scalar() == 0
 
 

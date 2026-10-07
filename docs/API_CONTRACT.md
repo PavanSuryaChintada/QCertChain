@@ -8,6 +8,22 @@ All models are Pydantic v2. All timestamps are UTC ISO-8601. All errors are RFC 
 
 ## Conventions
 
+**Authentication and tenancy (owner decision, 2026-10-07).** Every route except `GET /health` requires an
+`X-API-Key` header; without a valid key the response is `401` with `WWW-Authenticate: X-API-Key`. A key maps to
+one organisation and one kind:
+
+| Kind | Can |
+|---|---|
+| `org` | read and write its own organisation's data; read shared public-feed candidates |
+| `demo` | the same organisation, read-only (`GET`, plus `POST /evidence/{id}/verify`, which writes nothing); other writes are `403` |
+| `admin` | `POST /admin/seed` and `POST /admin/stream/mode` only; it holds no organisation, so every other route is `404` |
+
+Organisation-owned: campaigns, domain verdicts, enrichment, the campaign graph, evidence bundles, artifacts, abuse
+reports, takedown plans and benchmarks, email analyses, ledger writes. Another organisation's resource is **404,
+never 403**. Shared: certificates and candidates from the public CT feed; each organisation sees only its own
+verdict on them. The chain itself is public to every member (hashes and counts only). Keys are stored as
+SHA-256; create them with `python -m scripts.create_api_key`.
+
 ```python
 class Problem(BaseModel):          # RFC 7807 — every error
     type: str                      # "about:blank" or a doc URL
@@ -59,15 +75,17 @@ Verdict       = Literal["confirmed", "dismissed", "disputed"]
 }
 ```
 
-### `POST /stream/mode`
+### `POST /admin/stream/mode` (admin key)
 ```json
 {"mode": "replay", "speed": 2.0}
 ```
-Returns the same shape as `GET /stream/state`.
+Returns the same shape as `GET /stream/state`. The ingest is shared by every organisation, so switching it is a
+platform action.
 
 ### `GET /certs/live` — Server-Sent Events
 
-`Content-Type: text/event-stream`. **Server-throttled to ~20 events/sec** regardless of arrival rate.
+`Content-Type: text/event-stream`. Needs the `X-API-Key` header like every route, so browsers read it with
+`fetch` (an `EventSource` cannot send headers). **Server-throttled to ~20 events/sec** regardless of arrival rate.
 
 ```
 event: cert
@@ -413,11 +431,13 @@ On success: `{"valid": true, "root_matches": true, "signature_valid": true, "fai
  "total":4412,"limit":100,"offset":0}
 ```
 
-### `POST /seed/campaign`
+### `POST /admin/seed` (admin key)
 ```json
-{"label":"titli-kit","domains":400,"ips":12,"asns":3,"nameservers":4,"brands":["ICICI Bank"]}
+{"label":"titli-kit","domains":400,"ips":12,"asns":3,"nameservers":4,"brands":["ICICI Bank"],"org":"org1"}
 ```
-Returns a campaign object with `"source": "seed"` on every created domain. **The UI must display the source.**
+Seeds the named organisation and returns an acknowledgement only (`{"campaign_id": "...", "domains": 400, "org": "org1"}`):
+the admin key reads no organisation data. Every created domain is `"source": "seed"` and private to that organisation.
+**The UI must display the source.**
 
 ---
 

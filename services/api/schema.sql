@@ -6,6 +6,39 @@ create extension if not exists "uuid-ossp";
 create extension if not exists pgcrypto;
 
 -- ===============================================================
+-- TENANCY  ·  two trust boundaries, on purpose:
+--   * the CHAIN is public to every member (hashes, counts, reporter, timestamp);
+--   * this DATABASE is strictly org-scoped. Every org-owned row carries org_id; the API runs each request
+--     as role qcc_app with app.org_id set, and row-level security filters every table by it.
+-- Shared (no org_id): certificates and public-feed candidates (domains.origin_org_id is null).
+-- ===============================================================
+create table if not exists organisations (
+  id     bigserial primary key,
+  slug   text not null unique,          -- matches the ledger account key: org1, org2
+  name   text not null
+);
+insert into organisations (id, slug, name) values (1, 'org1', 'Bank One SOC'), (2, 'org2', 'Bank Two SOC')
+  on conflict (id) do nothing;
+select setval(pg_get_serial_sequence('organisations', 'id'), greatest(2, (select max(id) from organisations)));
+
+-- API keys: only the SHA-256 of a 256-bit random token is stored; the token is shown once at creation.
+create table if not exists api_keys (
+  id          bigserial primary key,
+  org_id      bigint references organisations(id),
+  kind        text not null check (kind in ('org', 'demo', 'admin')),
+  key_hash    text not null unique,
+  prefix      text not null,            -- first characters, to tell keys apart in listings
+  label       text,
+  created_at  timestamptz default now(),
+  revoked_at  timestamptz,
+  constraint api_keys_admin_has_no_org check ((kind = 'admin') = (org_id is null))
+);
+
+create or replace function current_org() returns bigint language sql stable as $$
+  select nullif(current_setting('app.org_id', true), '')::bigint
+$$;
+
+-- ===============================================================
 -- CERTIFICATES  ·  raw CT observations
 -- High volume. Retention 24h — see purge_raw_certs() at the bottom.
 -- ===============================================================
@@ -40,43 +73,26 @@ create table if not exists domains (
   -- stage timestamps: measured, never inferred (spec §4.1)
   ct_seen_at         timestamptz,   -- when the certificate reached us from CT
   candidate_at       timestamptz,   -- when triage made it a candidate
-  campaign_joined_at timestamptz,   -- when clustering placed it in a campaign
 
   -- triage (cheap, fast, NEVER a verdict)
   triage_score   real check (triage_score between 0 and 1),
   triage_reasons jsonb,
-  brand_matched  text,
-
-  -- confirmation (evidence-based verdict)
-  status         text not null default 'candidate'
-                 check (status in ('candidate','confirmed','dismissed','unreachable')),
-  confirm_reasons jsonb,
-  confirmed_at   timestamptz,
-  confidence     real check (confidence between 0 and 1),
-
-  campaign_id    uuid,
-  weight         real default 1.0,
-
-  -- a confirmed verdict without stored reasons is rejected by the database
-  constraint domains_confirmed_has_reasons check (
-    status <> 'confirmed'
-    or jsonb_array_length(coalesce(confirm_reasons->'signals', '[]'::jsonb)) > 0)
+  brand_matched  text
+  -- NO verdict here: confirmation is org-owned (domain_verdicts). A shared row must never reveal that a
+  -- particular org confirmed it.
 );
-create index if not exists domains_status_idx  on domains (status, triage_score desc);
+alter table domains add column if not exists received_at timestamptz;  -- when OUR ingest received the cert
+-- null = public CT feed (shared with every org); set = private to that org (email-sourced, seeded)
+alter table domains add column if not exists origin_org_id bigint references organisations(id);
+create index if not exists domains_etld1_idx   on domains (etld1);
+create index if not exists domains_seen_idx    on domains (first_seen desc, id desc);
+create index if not exists domains_origin_idx  on domains (origin_org_id);
 -- CLAUDE.md non-negotiable, enforced in the database too: confirmed needs >= 2 STRONG signals.
 create or replace function strong_signal_count(reasons jsonb) returns int
 language sql immutable as $$
   select count(*)::int from jsonb_array_elements(coalesce(reasons->'signals', '[]'::jsonb)) s
   where s->>'strength' = 'strong'
 $$;
-alter table domains drop constraint if exists domains_confirmed_needs_two_strong;
-alter table domains add constraint domains_confirmed_needs_two_strong
-  check (status <> 'confirmed' or strong_signal_count(confirm_reasons) >= 2);
-alter table domains add column if not exists verdict_at timestamptz;
-alter table domains add column if not exists received_at timestamptz;  -- when OUR ingest received the cert  -- when ANY verdict was reached (response time)
-create index if not exists domains_etld1_idx   on domains (etld1);
-create index if not exists domains_campaign_idx on domains (campaign_id);
-create index if not exists domains_seen_idx    on domains (first_seen desc);
 
 -- ===============================================================
 -- ENRICHMENT  ·  infrastructure + fingerprints
@@ -155,10 +171,7 @@ create table if not exists campaigns (
 create index if not exists campaigns_kit_idx  on campaigns (kit_hash);
 create index if not exists campaigns_size_idx on campaigns (domain_count desc);
 
-do $$ begin
-  alter table domains add constraint domains_campaign_fk
-    foreign key (campaign_id) references campaigns(id) on delete set null;
-exception when duplicate_object then null; end $$;
+-- campaign membership lives in domain_verdicts (org-owned), with a same-org foreign key
 
 -- ===============================================================
 -- INTERDICTION  ·  see docs/NPHARD.md
@@ -304,6 +317,7 @@ create table if not exists ops_log (
   context  jsonb
 );
 create index if not exists ops_at_idx on ops_log (at desc);
+-- null org_id = platform message (stream, triage of the public feed); set = that org's activity only
 
 -- ===============================================================
 -- KNOWN KITS  ·  dom hashes seen on confirmed domains, or registered by the
@@ -341,6 +355,117 @@ create table if not exists email_analyses (
 create index if not exists email_verdict_idx on email_analyses (verdict, received_at desc);
 
 -- ===============================================================
+-- OWNERSHIP  ·  org_id on every org-owned table. Idempotent: on an existing database the rows that
+-- predate tenancy belong to org1 (the seeded campaign and the live pipeline's confirmations).
+-- ===============================================================
+do $$
+declare t text;
+begin
+  foreach t in array array['enrichment','infra_nodes','graph_edges','campaigns','interdiction_plans','plan_targets',
+                           'benchmarks','evidence_bundles','evidence_artifacts','abuse_reports','email_analyses',
+                           'known_kits','ledger_events','anchor_queue'] loop
+    execute format('alter table %I add column if not exists org_id bigint references organisations(id)', t);
+    execute format('update %I set org_id = 1 where org_id is null', t);
+    execute format('alter table %I alter column org_id set default current_org()', t);
+    execute format('alter table %I alter column org_id set not null', t);
+    execute format('create index if not exists %I on %I (org_id)', t || '_org_idx', t);
+  end loop;
+end $$;
+alter table ops_log add column if not exists org_id bigint references organisations(id);
+alter table ops_log alter column org_id set default current_org();
+create index if not exists ops_log_org_idx on ops_log (org_id, at desc);
+
+-- keys that were global become per-org
+do $$ begin
+  if exists (select 1 from pg_constraint where conname = 'enrichment_pkey'
+             and pg_get_constraintdef(oid) = 'PRIMARY KEY (domain_id)') then
+    alter table enrichment drop constraint enrichment_pkey;
+    alter table enrichment add primary key (org_id, domain_id);
+  end if;
+  if exists (select 1 from pg_constraint where conname = 'known_kits_pkey'
+             and pg_get_constraintdef(oid) = 'PRIMARY KEY (dom_hash)') then
+    alter table known_kits drop constraint known_kits_pkey;
+    alter table known_kits add primary key (org_id, dom_hash);
+  end if;
+  alter table infra_nodes drop constraint if exists infra_nodes_kind_value_key;
+  if not exists (select 1 from pg_constraint where conname = 'infra_nodes_org_kind_value_key') then
+    alter table infra_nodes add constraint infra_nodes_org_kind_value_key unique (org_id, kind, value);
+  end if;
+  if not exists (select 1 from pg_constraint where conname = 'campaigns_org_id_id_key') then
+    alter table campaigns add constraint campaigns_org_id_id_key unique (org_id, id);
+  end if;
+  -- the same name can exist once in the public feed and once privately per org
+  alter table domains drop constraint if exists domains_name_key;
+  if not exists (select 1 from pg_constraint where conname = 'domains_name_origin_key') then
+    alter table domains add constraint domains_name_origin_key unique nulls not distinct (name, origin_org_id);
+  end if;
+end $$;
+create index if not exists infra_org_kind_idx on infra_nodes (org_id, kind, domain_count desc);
+create index if not exists campaigns_org_size_idx on campaigns (org_id, domain_count desc, first_seen desc);
+create index if not exists email_org_idx on email_analyses (org_id, received_at desc);
+create index if not exists plans_org_campaign_idx on interdiction_plans (org_id, campaign_id, created_at desc);
+create index if not exists evidence_org_domain_idx on evidence_bundles (org_id, domain_id, created_at desc);
+create index if not exists artifacts_bundle_idx on evidence_artifacts (bundle_id);
+create index if not exists reports_bundle_idx on abuse_reports (bundle_id, created_at desc);
+create index if not exists benchmarks_plan_idx on benchmarks (plan_id);
+
+-- ===============================================================
+-- DOMAIN VERDICTS  ·  org-owned confirmation of a (shared or private) domain. One row per org.
+-- Absence of a row = still a candidate for that org.
+-- ===============================================================
+create table if not exists domain_verdicts (
+  org_id             bigint not null default current_org() references organisations(id),
+  domain_id          bigint not null references domains(id) on delete cascade,
+  status             text not null default 'candidate'
+                     check (status in ('candidate','confirmed','dismissed','unreachable')),
+  confirm_reasons    jsonb,
+  confirmed_at       timestamptz,
+  confidence         real check (confidence between 0 and 1),
+  verdict_at         timestamptz,     -- when ANY verdict was reached (response time)
+  campaign_id        uuid,
+  campaign_joined_at timestamptz,     -- when clustering placed it in a campaign
+  weight             real default 1.0,
+  primary key (org_id, domain_id),
+  constraint dv_campaign_same_org foreign key (org_id, campaign_id) references campaigns (org_id, id)
+    on delete set null (campaign_id),
+  -- a confirmed verdict without stored reasons is rejected by the database
+  constraint dv_confirmed_has_reasons check (
+    status <> 'confirmed' or jsonb_array_length(coalesce(confirm_reasons->'signals', '[]'::jsonb)) > 0),
+  -- CLAUDE.md non-negotiable: confirmed needs >= 2 STRONG signals
+  constraint dv_confirmed_needs_two_strong check (status <> 'confirmed' or strong_signal_count(confirm_reasons) >= 2)
+);
+create index if not exists dv_org_status_idx   on domain_verdicts (org_id, status);
+create index if not exists dv_org_campaign_idx on domain_verdicts (org_id, campaign_id);
+create index if not exists dv_domain_idx       on domain_verdicts (domain_id);
+
+-- move pre-tenancy verdicts out of the shared table (existing databases only)
+do $$ begin
+  if exists (select 1 from information_schema.columns
+             where table_schema = 'public' and table_name = 'domains' and column_name = 'status') then
+    insert into domain_verdicts (org_id, domain_id, status, confirm_reasons, confirmed_at, confidence, verdict_at,
+                                 campaign_id, campaign_joined_at, weight)
+    select 1, id, status, confirm_reasons, confirmed_at, confidence, verdict_at, campaign_id, campaign_joined_at,
+           coalesce(weight, 1.0)
+    from domains where status <> 'candidate' or campaign_id is not null or confirm_reasons is not null
+    on conflict do nothing;
+    update domains set origin_org_id = 1 where source in ('seed', 'email', 'sample') and origin_org_id is null;
+    alter table domains drop column status cascade, drop column confirm_reasons cascade,
+      drop column confirmed_at, drop column confidence, drop column verdict_at, drop column campaign_id cascade,
+      drop column campaign_joined_at, drop column weight;
+  end if;
+end $$;
+
+-- What an org sees of a domain: shared or its own private rows, with ITS verdict (or 'candidate').
+create or replace view org_domains with (security_invoker = true) as
+select d.id, d.name, d.etld1, d.cert_id, d.first_seen, d.last_seen, d.source, d.ct_seen_at, d.candidate_at,
+       d.received_at, d.triage_score, d.triage_reasons, d.brand_matched, d.origin_org_id,
+       coalesce(v.status, 'candidate') as status, v.confirm_reasons, v.confirmed_at, v.confidence, v.verdict_at,
+       v.campaign_id, v.campaign_joined_at, coalesce(v.weight, 1.0) as weight
+from domains d
+left join domain_verdicts v on v.domain_id = d.id and v.org_id = current_org()
+where d.origin_org_id is null or d.origin_org_id = current_org();
+
+-- ===============================================================
 -- RETENTION  ·  raw certs are dropped after 24h or the DB grows by
 -- millions of rows per hour. Candidates and above persist.
 -- ===============================================================
@@ -349,8 +474,8 @@ begin
   delete from certificates c
   where c.ct_seen_at < now() - interval '24 hours'
     and not exists (
-      select 1 from domains d
-      where d.cert_id = c.id and d.status <> 'candidate'
+      select 1 from domains d join domain_verdicts v on v.domain_id = d.id
+      where d.cert_id = c.id and v.status <> 'candidate'
     );
 end;
 $$ language plpgsql;
@@ -366,3 +491,45 @@ do $$ declare t record; begin
     execute format('alter table public.%I enable row level security', t.tablename);
   end loop;
 end $$;
+
+-- The API's request role. NOLOGIN: reached only via `set local role qcc_app` inside a transaction that
+-- has already set app.org_id. Not the table owner, so row-level security applies to it.
+do $$ begin create role qcc_app nologin; exception when duplicate_object then null; end $$;
+do $$ begin
+  execute format('grant qcc_app to %I with set true', current_user);
+exception when others then
+  execute format('grant qcc_app to %I', current_user);
+end $$;
+grant usage on schema public to qcc_app;
+grant select, insert, update, delete on all tables in schema public to qcc_app;
+grant usage, select on all sequences in schema public to qcc_app;
+revoke all on api_keys from qcc_app;          -- key material is read only by the auth step, before the role switch
+revoke insert, update, delete on organisations, certificates from qcc_app;
+
+do $$
+declare t text;
+begin
+  foreach t in array array['domain_verdicts','enrichment','infra_nodes','graph_edges','campaigns','interdiction_plans',
+                           'plan_targets','benchmarks','evidence_bundles','evidence_artifacts','abuse_reports',
+                           'email_analyses','known_kits','ledger_events','anchor_queue'] loop
+    execute format('drop policy if exists org_isolation on %I', t);
+    execute format('create policy org_isolation on %I for all to qcc_app
+                    using (org_id = current_org()) with check (org_id = current_org())', t);
+  end loop;
+end $$;
+drop policy if exists shared_or_own on domains;
+create policy shared_or_own on domains for select to qcc_app
+  using (origin_org_id is null or origin_org_id = current_org());
+drop policy if exists own_private_write on domains;
+create policy own_private_write on domains for insert to qcc_app with check (origin_org_id = current_org());
+drop policy if exists own_private_update on domains;
+create policy own_private_update on domains for update to qcc_app
+  using (origin_org_id = current_org()) with check (origin_org_id = current_org());
+drop policy if exists shared_read on certificates;
+create policy shared_read on certificates for select to qcc_app using (true);
+drop policy if exists shared_read on organisations;
+create policy shared_read on organisations for select to qcc_app using (true);
+drop policy if exists platform_or_own on ops_log;
+create policy platform_or_own on ops_log for select to qcc_app using (org_id is null or org_id = current_org());
+drop policy if exists own_write on ops_log;
+create policy own_write on ops_log for insert to qcc_app with check (org_id = current_org());

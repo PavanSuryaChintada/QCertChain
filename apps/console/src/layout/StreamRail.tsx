@@ -1,6 +1,5 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { API_URL } from "../lib/api";
 import { type LiveCert, createThrottledStream } from "../lib/sse";
 import { StreamLine } from "../components/StreamLine";
 
@@ -10,7 +9,7 @@ export function StreamRail() {
   const navigate = useNavigate();
   useEffect(() => {
     let n = 0;
-    const close = createThrottledStream(`${API_URL}/certs/live`, (batch) => {
+    const close = createThrottledStream("/certs/live", (batch) => {
       setLines((prev) => [...batch.map((b) => ({ ...b, key: n++ })).reverse(), ...prev].slice(0, 200));
     });
     return close;
