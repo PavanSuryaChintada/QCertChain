@@ -41,6 +41,7 @@ def get_artifact(bundle_id: str, name: str, s: Scope = Depends(get_scope)):
     return FileResponse(path, media_type=media)  # served as text: a captured phishing page is never rendered
 
 
+@router.get("/evidence/{bundle_id}/verify", response_model=VerifyOut)  # safe: writes nothing
 @router.post("/evidence/{bundle_id}/verify", response_model=VerifyOut)
 def verify(bundle_id: str, s: Scope = Depends(get_scope)):
     b, arts = _bundle_or_404(s, bundle_id)

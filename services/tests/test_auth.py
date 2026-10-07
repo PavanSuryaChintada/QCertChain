@@ -46,12 +46,29 @@ def test_keys_are_stored_hashed_never_plaintext(api, db):
 def test_demo_key_is_read_only_for_its_org(api, seeded):
     demo = api.as_("demo1")
     assert api.get(f"/campaigns/{seeded}", headers=demo).status_code == 200
-    assert api.get("/campaigns", headers=api.as_("demo1")).json()["total"] == 1
-    r = api.post(f"/campaigns/{seeded}/interdict", json={"k": 2}, headers=demo)
-    assert r.status_code == 403 and "read-only" in r.json()["detail"]
-    assert api.post("/email/analyze", json={"raw": "x"}, headers=demo).status_code == 403
+    assert api.get("/campaigns", headers=demo).json()["total"] == 1
+    assert api.get(f"/campaigns/{seeded}", headers=api.as_("org2")).status_code == 404  # the demo org is org1 only
     bid = api.get(f"/domains/{_a_domain(api, seeded)}").json()["evidence_bundle_id"]
-    assert api.post(f"/evidence/{bid}/verify", headers=demo).status_code == 200  # writes nothing: allowed
+    assert api.get(f"/evidence/{bid}/verify", headers=demo).json()["valid"] is True  # verification is a GET
+
+
+@pytest.mark.db
+def test_demo_key_gets_405_on_every_write_verb_of_every_route(api):
+    """S4: the published demo key can read and nothing else — every non-GET verb on every route is 405."""
+    from fastapi.routing import APIRoute
+
+    from services.api.main import app
+    demo = api.as_("demo1")
+    checked = 0
+    for route in app.routes:
+        if not isinstance(route, APIRoute) or route.path == "/health":
+            continue
+        path = route.path.replace("{", "").replace("}", "")
+        for verb in ("POST", "PUT", "PATCH", "DELETE"):
+            r = api.request(verb, path, headers=demo, json={})
+            assert r.status_code == 405, (verb, route.path, r.status_code)
+            checked += 1
+    assert checked >= 80
 
 
 @pytest.mark.db
@@ -85,3 +102,31 @@ def test_ledger_writes_sign_as_the_keys_org_and_reject_as_org(api, seeded):
 def _a_domain(api, campaign_id) -> int:
     g = api.get(f"/campaigns/{campaign_id}/graph").json()
     return int(next(n["data"]["id"] for n in g["elements"]["nodes"] if n["data"]["kind"] == "domain")[2:])
+
+
+@pytest.mark.db
+def test_rate_limit_returns_429_with_retry_after(api):
+    """S5: demo 60/min, org 600/min, admin 60/min — per key, fixed window, shared via Redis."""
+    from services.config import SETTINGS
+    assert (SETTINGS.rate_limit_demo, SETTINGS.rate_limit_org, SETTINGS.rate_limit_admin) == (60, 600, 60)
+    object.__setattr__(SETTINGS, "rate_limit_demo", 5)  # frozen settings: shrink the window for the test
+    try:
+        demo = api.as_("demo1")
+        codes = [api.get("/campaigns", headers=demo).status_code for _ in range(7)]
+        assert codes[:5] == [200] * 5 and codes[5:] == [429, 429]
+        r = api.get("/campaigns", headers=demo)
+        assert r.status_code == 429 and 1 <= int(r.headers["retry-after"]) <= 60
+        assert api.get("/campaigns").status_code == 200  # another key has its own budget
+    finally:
+        object.__setattr__(SETTINGS, "rate_limit_demo", 60)
+
+
+@pytest.mark.db
+def test_limiter_outage_does_not_take_the_api_down(api):
+    from services.api import deps, main
+
+    class Down:
+        async def incr(self, *a):
+            raise ConnectionError("redis down")
+    main.app.dependency_overrides[deps.get_redis] = lambda: Down()
+    assert api.get("/campaigns").status_code == 200

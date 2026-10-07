@@ -122,6 +122,28 @@ The system runs with Qiskit uninstalled and with the chain node down.
 
 ---
 
+## Evaluating it
+
+Every API route except `/health` needs an API key in the `X-API-Key` header, and the console asks for one on
+first load. For evaluation we publish one **demo key**:
+
+```
+DEMO KEY: published here at submission, once the hosted deployment exists
+```
+
+What the demo key can and cannot do:
+
+- **Read-only.** `GET` only: any other HTTP verb returns `405`.
+- **One organisation.** It sees Bank One SOC's campaigns, evidence and analyses, plus the shared public
+  certificate feed. Bank Two SOC's data does not exist for it (`404`).
+- **Rate-limited** to 60 requests per minute (`429` with `Retry-After` above that). The console's normal
+  click-through stays under this.
+- **Temporary.** It will be revoked and rotated after evaluation; only its SHA-256 is stored.
+
+Organisation keys (read/write) and the admin key (seed and stream mode only) are never published.
+
+---
+
 ## Attribution
 
 Certificate Transparency (RFC 6962) · certstream by Cali Dog Security · Tranco (KU Leuven) · OpenPhish · PhishTank · URLhaus (abuse.ch) · RDAP (ICANN) · Routeviews via pyasn (University of Oregon) · Team Cymru

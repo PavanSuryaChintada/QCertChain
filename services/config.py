@@ -37,6 +37,10 @@ class Settings:
     raw_cert_retention_h: int = 24
     # tenancy: live public-feed candidates are confirmed on behalf of this org (the pipeline operator)
     pipeline_org: str = "org1"
+    # requests per minute per API key, by kind (429 + Retry-After above it)
+    rate_limit_demo: int = 60
+    rate_limit_org: int = 600
+    rate_limit_admin: int = 60
     db_pool_size: int = 5
     db_pool_overflow: int = 5
 

@@ -9,7 +9,7 @@ from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
-from services.api.deps import get_principal
+from services.api.deps import get_principal, rate_limit
 from services.api.routes import admin, campaigns, domains, email, evidence, ledger, ops, plans, stream
 from services.ingest.triage import warm
 
@@ -60,7 +60,7 @@ def problem(status: int, title: str, detail: str | None, instance: str) -> JSONR
 
 @app.exception_handler(HTTPException)
 async def http_problem(request: Request, exc: HTTPException):
-    titles = {401: "Unauthorized", 403: "Forbidden", 404: "Not found", 409: "Conflict", 413: "Payload too large", 422: "Unprocessable", 429: "Too many requests",
+    titles = {401: "Unauthorized", 403: "Forbidden", 404: "Not found", 405: "Method not allowed", 409: "Conflict", 413: "Payload too large", 422: "Unprocessable", 429: "Too many requests",
               503: "Service unavailable"}
     resp = problem(exc.status_code, titles.get(exc.status_code, "Error"), str(exc.detail), request.url.path)
     for k, v in (exc.headers or {}).items():
@@ -82,4 +82,4 @@ def health():
 # Every router requires a valid key (401 otherwise). Org routers additionally take a Scope (deps.get_scope).
 for r in (stream.router, domains.router, campaigns.router, plans.router, evidence.router, ledger.router,
           email.router, ops.router, admin.router):
-    app.include_router(r, dependencies=[Depends(get_principal)])
+    app.include_router(r, dependencies=[Depends(get_principal), Depends(rate_limit)])

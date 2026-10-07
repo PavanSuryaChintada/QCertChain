@@ -7,6 +7,7 @@ services/tests/test_tenancy_static.py).
 """
 from __future__ import annotations
 
+import time
 from collections.abc import Iterator
 from dataclasses import dataclass
 from functools import lru_cache
@@ -19,7 +20,7 @@ from services.api import auth
 from services.api.db import bind_org, engine, unbind_org
 from services.config import SETTINGS
 
-DEMO_WRITE_ALLOWED = ("/verify",)  # POST that writes nothing: verify an evidence bundle
+READ_METHODS = ("GET", "HEAD", "OPTIONS")
 
 
 def get_conn() -> Iterator[sa.Connection]:
@@ -33,9 +34,10 @@ def get_principal(request: Request, c: sa.Connection = Depends(get_conn)) -> aut
     if p is None:
         raise HTTPException(401, "Missing or invalid API key (send it in the X-API-Key header).",
                             headers={"WWW-Authenticate": auth.HEADER})
-    if p.kind == "demo" and request.method not in ("GET", "HEAD", "OPTIONS") \
-            and not request.url.path.endswith(DEMO_WRITE_ALLOWED):
-        raise HTTPException(403, "This is a read-only demo key.")
+    if p.kind == "demo" and request.method not in READ_METHODS:
+        # The demo key is published for evaluators: it can read, and nothing else. 405 for every other verb.
+        raise HTTPException(405, "This is a read-only demo key: only GET requests are allowed.",
+                            headers={"Allow": "GET, HEAD"})
     return p
 
 
@@ -105,3 +107,22 @@ def _ledger():
 
 def get_ledger():
     return _ledger()
+
+
+async def rate_limit(p: auth.Principal = Depends(get_principal), r=Depends(get_redis)) -> None:
+    """Fixed one-minute window per key, shared across API processes via Redis. If Redis is unreachable the
+    request is allowed: a limiter outage must not take the API down."""
+    limit = {"demo": SETTINGS.rate_limit_demo, "org": SETTINGS.rate_limit_org,
+             "admin": SETTINGS.rate_limit_admin}[p.kind]
+    now = time.time()
+    key = f"ratelimit:key:{p.key_id}:{int(now // 60)}"
+    try:
+        n = await r.incr(key)
+        if n == 1:
+            await r.expire(key, 70)
+    except Exception:
+        return
+    if n > limit:
+        retry = max(1, int(60 - now % 60))
+        raise HTTPException(429, f"Rate limit: {limit} requests per minute for a {p.kind} key. Retry in {retry} s.",
+                            headers={"Retry-After": str(retry)})
