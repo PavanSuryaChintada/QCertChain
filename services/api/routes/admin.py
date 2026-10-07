@@ -46,6 +46,13 @@ def seed(body: AdminSeedRequest, c: sa.Connection = Depends(get_conn), evidence_
     return {**ack, "org": body.org}
 
 
+@router.post("/reset")
+def reset(c: sa.Connection = Depends(get_conn), evidence_dir=Depends(get_evidence_dir), key=Depends(get_signing_key)):
+    """Restore the known-good demo state for both organisations in one transaction (demo data only; live CT data
+    and its verdicts are kept). The demo CHAIN is reset separately (DEMO.md): chain state is not transactional."""
+    return repo_admin.reset_demo(c, evidence_dir=evidence_dir, signing_key_hex=key)
+
+
 @router.post("/stream/mode", response_model=StreamState)
 async def stream_mode(body: ModeRequest, r=Depends(get_redis)):
     """The shared ingest process watches this key and switches source. The UI labels replay at all times."""

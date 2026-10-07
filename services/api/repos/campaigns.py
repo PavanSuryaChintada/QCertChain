@@ -7,7 +7,9 @@ import sqlalchemy as sa
 from services.api.deps import Scope
 
 _COLS = """id::text, label, kit_hash, domain_count, infra_count, confidence, coalesce(brands, '{}') as brands,
-           status, first_seen, published_tx"""
+           status, first_seen, last_seen, published_tx, published_tx is not null as anchored,
+           exists (select 1 from interdiction_plans p where p.campaign_id = campaigns.id
+                   and p.org_id = campaigns.org_id) as has_plan"""
 
 
 def get(s: Scope, campaign_id: str) -> dict | None:

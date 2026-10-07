@@ -16,6 +16,8 @@ def plain(url: str) -> str:
 
 def apply(url: str) -> None:
     with psycopg.connect(plain(url), autocommit=True) as c:
+        # Supabase's default statement timeout is shorter than a migration that waits for a live pipeline's locks
+        c.execute("set statement_timeout = '10min'; set lock_timeout = '2min'")
         c.execute(SCHEMA.read_text(encoding="utf-8"))
 
 

@@ -84,19 +84,26 @@ def verify_bundle(bundle_dir: Path | str, expected_root: str, signature: str, pu
     """Recompute every artifact hash, rebuild the root, check the signature over the expected root.
     `expected` is the recorded {name: sha256} (from the database), never re-read from the bundle itself."""
     d = Path(bundle_dir)
+    contents = {p.name: p.read_bytes() for p in d.iterdir() if p.is_file()} if d.exists() else {}
+    return verify_contents(contents, expected_root, signature, public_key, expected)
+
+
+def verify_contents(contents: dict[str, bytes], expected_root: str, signature: str, public_key: str,
+                    expected: dict[str, str]) -> VerifyResult:
+    """verify_bundle over artifact bytes held in memory: lets a demo show a one-byte tamper failing without ever
+    modifying the stored evidence."""
     failures: list[Failure] = []
     found: dict[str, str] = {}
-    present = {p.name for p in d.iterdir() if p.is_file()} if d.exists() else set()
     for name in sorted(expected):
-        if name not in present:
+        if name not in contents:
             failures.append(Failure(name, expected[name], None, "missing"))
             continue
-        h = hashlib.sha256((d / name).read_bytes()).hexdigest()
+        h = hashlib.sha256(contents[name]).hexdigest()
         found[name] = h
         if h != expected[name]:
             failures.append(Failure(name, expected[name], h, "hash_mismatch"))
-    for name in sorted(present - set(expected)):
-        failures.append(Failure(name, None, hashlib.sha256((d / name).read_bytes()).hexdigest(), "unexpected"))
+    for name in sorted(set(contents) - set(expected)):
+        failures.append(Failure(name, None, hashlib.sha256(contents[name]).hexdigest(), "unexpected"))
     computed = root_of({**found, **{n: "00" * 32 for n in expected if n not in found}}) if expected else root_of({})
     try:
         vk_hex = public_key.removeprefix(PK_PREFIX)

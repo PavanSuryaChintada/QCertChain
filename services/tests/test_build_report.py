@@ -98,3 +98,9 @@ def test_threshold_decision_reasoning_and_full_sweep_are_reported():
     rows = [l for l in md.splitlines() if l.startswith("| 0.") and l.count("|") >= 8]
     assert [l.split("|")[1].strip() for l in rows] == [f"{0.20 + 0.05 * i:.2f}" for i in range(13)]
     assert "never an even" in md or "not on an even" in md
+
+
+def test_limits_name_http_only_and_compromised_sites_separately():
+    md = render(metrics())
+    lim = md[md.index("## Limits"):]
+    assert "HTTP-only phishing" in lim and "compromised legitimate site" in lim and "out of CT scope" in lim

@@ -472,10 +472,13 @@ create table if not exists campaign_snapshots (
   sweep          jsonb,              -- [{k, domains_killed, coverage_pct, targets, killed_ids, solve_ms, status}]
   sweep_built_at timestamptz,
   built_at       timestamptz not null default now(),
+  benchmarks     jsonb not null default '{}'::jsonb,  -- {"<k>": last full benchmark at budget k} ("Run again")
   primary key (org_id, campaign_id),
   constraint snapshots_campaign_same_org foreign key (org_id, campaign_id) references campaigns (org_id, id)
     on delete cascade
 );
+
+alter table campaign_snapshots add column if not exists benchmarks jsonb not null default '{}'::jsonb;
 
 -- What an org sees of a domain: shared or its own private rows, with ITS verdict (or 'candidate').
 create or replace view org_domains with (security_invoker = true) as

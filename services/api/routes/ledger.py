@@ -9,9 +9,10 @@ from __future__ import annotations
 from datetime import datetime, timezone
 from typing import Literal
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel, ConfigDict, Field
 
+from services.api import cursor
 from services.api.deps import Scope, get_ledger, get_scope
 from services.api.ledger_service import b32_id
 from services.api.repos import ledger as repo_ledger
@@ -54,6 +55,14 @@ def corroborate(chain_campaign_id: str, s: Scope = Depends(get_scope)):
     if len(h) != 64 or any(ch not in "0123456789abcdef" for ch in h):
         raise HTTPException(422, "chain_campaign_id must be 32 bytes of hex (from /ledger/by-kit)")
     return _queued(s, "corroborate", {"chain_campaign_id": h}, chain_campaign_id=h)
+
+
+@router.get("/ledger/events")
+def events(limit: int = cursor.LimitQ, cursor_: str | None = Query(None, alias="cursor", max_length=512),
+           s: Scope = Depends(get_scope)):
+    """What THIS organisation anchored, published, attested and corroborated (its local index of the chain)."""
+    rows = repo_ledger.events(s, limit=limit, after=cursor.decode(cursor_, 1))
+    return cursor.page(rows, limit, lambda r: [r["id"]])
 
 
 @router.get("/ledger/status")

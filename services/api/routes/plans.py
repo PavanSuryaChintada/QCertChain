@@ -3,9 +3,11 @@ from __future__ import annotations
 
 import uuid
 
-from fastapi import APIRouter, Depends, HTTPException
+from datetime import datetime, timezone
 
-from interdict.benchmark import GREEDY_GUARANTEE, benchmark
+from fastapi import APIRouter, Depends, HTTPException, Query
+
+from interdict.benchmark import GREEDY_GUARANTEE, benchmark, formulation
 from interdict.router import solve
 from interdict.types import Problem
 from services.api.deps import Scope, get_scope
@@ -83,6 +85,40 @@ def interdict(campaign_id: str, body: InterdictRequest, s: Scope = Depends(get_s
             "targets": [{"rank": i + 1, "node_id": t["node_id"], "kind": t["kind"], "value": t["value"],
                          "kills": t["kills"], "takedown_route": t["route"]} for i, t in enumerate(targets)],
             "killed_domain_ids": out["killed_domain_ids"], "notes": out["notes"]}
+
+
+FRAMING_SENTENCE = ("CP-SAT is the production solver; QAOA is benchmarked on the same QUBO, losses included. The claim "
+                    "is about how the formulation scales to quantum hardware, not about speed today.")
+
+
+@router.get("/campaigns/{campaign_id}/benchmark")
+def campaign_benchmark(campaign_id: str, k: int = Query(5, ge=1, le=10),
+                       run: bool = Query(False, description="re-run every solver now ('Run again')"),
+                       s: Scope = Depends(get_scope)):
+    """Greedy, CP-SAT, simulated annealing and QAOA on the same budget-k problem. Every row is reported, losses and
+    failures included; gap_vs_cpsat_pct is how many fewer domains a backend covers than CP-SAT (the optimum).
+    Cached per k on the campaign snapshot; run=true re-runs (QAOA takes seconds)."""
+    if not run:
+        cached = repo_plans.benchmark_cached(s, campaign_id, k)
+        if cached is not None:
+            return {**cached, "cached": True}
+    p, _, _ = build_problem(s, campaign_id, k)
+    if not p.nodes:
+        raise HTTPException(409, "No shared infrastructure — nothing to interdict.")
+    if k > len(p.nodes):
+        raise HTTPException(422, f"k={k} exceeds the {len(p.nodes)} takedown candidates (max {len(p.nodes)})")
+    rows = benchmark(p, max_vars=SETTINGS.max_qubo_variables)
+    cp = next((r for r in rows if r.backend == "cpsat" and r.valid), None)
+    out = {"campaign_id": campaign_id, "k": k, "computed_at": datetime.now(timezone.utc).isoformat(),
+           "rows": [{"backend": r.backend, "domains_covered": r.domains_killed, "domains_total": r.domains_total,
+                     "targets_used": len(r.targets), "solve_ms": r.solve_ms, "valid": r.valid, "is_best": r.is_best,
+                     "gap_vs_cpsat_pct": (round(100 * (cp.domains_killed - r.domains_killed) / cp.domains_killed, 2)
+                                          if cp and cp.domains_killed and r.valid else None),
+                     "error": r.error, "notes": r.notes} for r in rows],
+           "formulation": formulation(p, max_vars=SETTINGS.max_qubo_variables),
+           "framing": f"{FRAMING_SENTENCE} {QUANTUM_FRAMING} {GREEDY_GUARANTEE}."}
+    repo_plans.save_benchmark(s, campaign_id, k, out)
+    return {**out, "cached": False}
 
 
 @router.get("/plans/{plan_id}", response_model=PlanOut)

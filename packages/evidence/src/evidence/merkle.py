@@ -24,3 +24,17 @@ def merkle_root(leaves: list[bytes]) -> bytes:
             nxt.append(level[-1])
         level = nxt
     return level[0]
+
+
+def merkle_levels(leaves: list[bytes]) -> list[list[bytes]]:
+    """Every level of the tree, leaves first and the root last (same pairing rule as merkle_root): for drawing it."""
+    if not leaves:
+        return [[hashlib.sha256(b"").digest()]]
+    levels = [list(leaves)]
+    while len(levels[-1]) > 1:
+        level = levels[-1]
+        nxt = [hashlib.sha256(b"" + level[i] + level[i + 1]).digest() for i in range(0, len(level) - 1, 2)]
+        if len(level) % 2:
+            nxt.append(level[-1])
+        levels.append(nxt)
+    return levels

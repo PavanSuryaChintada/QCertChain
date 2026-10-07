@@ -159,7 +159,8 @@ Steps 1–3 are `test_consortium_steps_a_and_b_two_populated_orgs_neither_sees_t
 
 ## Limits
 
-- HTTP-only phishing has no certificate and is invisible to CT monitoring.
+- HTTP-only phishing has no certificate and is invisible to CT monitoring. Browsers increasingly warn on plain HTTP login forms, which limits it, but this system does not see it at all.
+- Phishing hosted at a path on a compromised legitimate site (`https://real-bakery.example/wp-content/x/login`) produces no new certificate: the site's existing certificate covers it. It is out of CT scope entirely; only the email module, if a message linking to it is analysed, can surface it.
 - Wildcard certificates hide the phishing subdomain; the parent is caught.
 - The email module analyses pasted or uploaded messages only; it never connects to a mailbox.
 - QAOA runs on a reduced problem of at most 24 qubits on a simulator.

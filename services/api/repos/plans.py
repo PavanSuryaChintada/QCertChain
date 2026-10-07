@@ -46,6 +46,23 @@ def insert_plan(s: Scope, plan_id: str, campaign_id: str, k: int, plan: dict, ta
          "ctx": json.dumps({"plan_id": plan_id})})
 
 
+def benchmark_cached(s: Scope, campaign_id: str, k: int) -> dict | None:
+    try:
+        uuid.UUID(campaign_id)
+    except ValueError:
+        return None
+    return s.conn.execute(sa.text("""select benchmarks -> cast(:k as text) from campaign_snapshots
+                                     where campaign_id = :c and org_id = :org"""),
+                          {"c": campaign_id, "org": s.org_id, "k": k}).scalar()
+
+
+def save_benchmark(s: Scope, campaign_id: str, k: int, result: dict) -> None:
+    s.conn.execute(sa.text("""update campaign_snapshots
+                              set benchmarks = benchmarks || jsonb_build_object(cast(:k as text), cast(:r as jsonb))
+                              where campaign_id = :c and org_id = :org"""),
+                   {"c": campaign_id, "org": s.org_id, "k": k, "r": json.dumps(result, default=str)})
+
+
 def get_plan(s: Scope, plan_id: str) -> tuple[dict, list[dict]] | None:
     """The plan and its ranked targets in one statement."""
     try:

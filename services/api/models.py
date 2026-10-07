@@ -143,7 +143,10 @@ class CampaignOut(BaseModel):
     brands: list[str]
     status: str
     first_seen: datetime
+    last_seen: datetime | None = None
     published_tx: str | None
+    anchored: bool = False
+    has_plan: bool = False
 
 
 class GraphOut(BaseModel):
@@ -276,13 +279,31 @@ class FailureOut(BaseModel):
     reason: str
 
 
+class AnchorCheck(BaseModel):
+    status: Literal["matches", "mismatch", "not_anchored", "unavailable"]
+    tx: str | None = None
+
+
+class MerkleTree(BaseModel):
+    leaves: list[dict]       # [{name, leaf}] in leaf order (sorted by artifact name)
+    levels: list[list[str]]  # leaf hashes first, the root last
+
+
 class VerifyOut(BaseModel):
+    """Three independent checks: the recomputed Merkle root, the Ed25519 signature, and the hash anchored on chain.
+    simulated_tamper names the artifact whose bytes were flipped IN MEMORY for the demo (stored evidence is never
+    modified)."""
     valid: bool
     root_matches: bool
     signature_valid: bool
     expected_root: str | None = None
     computed_root: str | None = None
     failures: list[FailureOut]
+    anchor: AnchorCheck | None = None
+    tree: MerkleTree | None = None
+    attestations: dict[str, str] = {}
+    disputed: bool = False
+    simulated_tamper: str | None = None
 
 
 class ReportOut(BaseModel):
