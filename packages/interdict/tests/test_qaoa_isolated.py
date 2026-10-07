@@ -20,10 +20,17 @@ def test_isolated_solve_matches_in_process_answer():
     assert targets == ["a"] and qubits == 3
 
 
+# 12 nodes -> 12 qubits: seconds of COBYLA on any machine, so a 0.001 s budget is guaranteed to be overrun.
+P12 = Problem(tuple(f"n{i}" for i in range(12)), {f"d{i}": frozenset({f"n{i % 12}", f"n{(i * 5) % 12}"})
+                                                  for i in range(40)}, {f"d{i}": 1.0 for i in range(40)}, 4)
+
+
 def test_hard_timeout_is_enforced_even_if_the_child_overruns():
+    from interdict.solvers.qaoa_isolated import warm
+    warm()  # worker start-up is excluded from the budget by design; time only the solve
     t = time.perf_counter()
     with pytest.raises(TimeoutError):
-        solve_qaoa_isolated(P, timeout_s=0.001, _child_timeout_s=120)  # child ignores the limit; parent must not
+        solve_qaoa_isolated(P12, timeout_s=0.001, _child_timeout_s=120)  # child ignores the limit; parent must not
     assert time.perf_counter() - t < 6
     # The pool recovers, and starting the replacement worker (spawn + Qiskit import, ~8 s here) does NOT
     # count against the next solve's budget: a 6 s budget is enough for this 3-qubit solve on its own.

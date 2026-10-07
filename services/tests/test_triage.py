@@ -86,9 +86,12 @@ def test_under_5ms_per_name():
 
 
 # Real false positives from the 2026-10-06 capture. Each reproduces one over-trigger.
+# Bare brand token, no second signal (the double count that once pushed them higher is fixed). At the owner's 0.35
+# threshold (decision 1) they ARE candidates: the measured hard-negative cost of 0.35. They are fetched and fail the
+# two-strong-signal confirmation gate; triage never accuses them.
+HARD_NEGATIVE_AT_035 = ["koersgenootnl.stelvio.growww.today", "etolluat.idfcbank.com"]
+
 REAL_FP = [
-    "koersgenootnl.stelvio.growww.today",                       # one hit counted as exact AND lookalike
-    "etolluat.idfcbank.com",                                     # same double count
     "bi.1xbet-onlines.top",                                      # common word 2 deletions from 'onlinesbi'
     "dbs-cas-system-cas-ccs-sub-vi0svszw0yo62-alog-system.dog.us-west16-b.s.gpcdemolabs.com",  # hex -> 'vi'
     "s3-accesspoint-fips.us-west-1.amazonaws.com",               # AWS's own domains
@@ -101,6 +104,15 @@ REAL_FP = [
 def test_real_capture_false_positives_not_candidates(d):
     r = triage(d)
     assert not r.is_candidate, (d, r.score, r.reasons)
+
+
+@pytest.mark.parametrize("d", HARD_NEGATIVE_AT_035)
+def test_bare_brand_token_is_a_candidate_at_035_with_exactly_one_signal(d):
+    """Owner decision 1: a candidate is not a verdict. A bare token clears 0.35 on its own and carries exactly one
+    reason, so the queue shows WHY it is there and confirmation decides."""
+    from services.ingest.triage import W_BRAND
+    r = triage(d)
+    assert r.is_candidate and [x.feature for x in r.reasons] == ["brand_token_exact"] and r.score == W_BRAND
 
 
 def test_same_token_never_counted_as_exact_and_lookalike():

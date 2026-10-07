@@ -39,3 +39,6 @@ data/backups/
 
 # vite dependency cache
 apps/console/.vite/
+
+# long CT recordings and replay fixtures (large; regenerate with scripts/record_ct.py)
+data/replay/

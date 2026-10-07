@@ -7,6 +7,7 @@ from __future__ import annotations
 
 import asyncio
 import contextlib
+import gzip
 import json
 import time
 from datetime import datetime, timezone
@@ -120,7 +121,8 @@ async def _live(ctx: _Ctx, url: str, stop: asyncio.Event) -> None:
 async def _replay(ctx: _Ctx, path: str, speed: float, stop: asyncio.Event) -> None:
     while not stop.is_set():
         prev = None
-        with open(path, encoding="utf-8") as f:
+        opener = gzip.open if path.endswith(".gz") else open  # long recordings are stored gzipped
+        with opener(path, "rt", encoding="utf-8") as f:
             for line in f:
                 if stop.is_set():
                     return
