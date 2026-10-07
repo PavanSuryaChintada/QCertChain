@@ -1,45 +1,53 @@
-import { Route, Routes, useSearchParams } from "react-router-dom";
+import { Route, Routes } from "react-router-dom";
 import { Header } from "./layout/Header";
 import { LeftRail } from "./layout/LeftRail";
-import { StreamRail } from "./layout/StreamRail";
-import { CampaignView } from "./views/CampaignView";
-import { DomainDetail } from "./views/DomainDetail";
-import { EmailAnalyzer } from "./views/EmailAnalyzer";
-import { OpsLog } from "./views/OpsLog";
-import { SharedLedger } from "./views/SecondOrg";
+import { ArchitecturePage } from "./views/Architecture";
+import { LiveQueuePage } from "./views/LiveQueue";
+import { CampaignsPage } from "./views/Campaigns";
+import { CampaignDetailPage } from "./views/CampaignView";
+import { EvidenceIndexPage, EvidencePage } from "./views/EvidenceViewer";
+import { EmailAnalyzerPage } from "./views/EmailAnalyzer";
+import { LedgerPage } from "./views/Ledger";
+import { MetricsPage } from "./views/Metrics";
+import { HealthPage } from "./views/Health";
+import { OpsLogPage } from "./views/OpsLog";
+import { DomainDrawer } from "./views/DomainDetail";
+import { PageHeader } from "./components/Page";
+import { Link } from "react-router-dom";
 
-function ConsoleMain() {
-  const [params] = useSearchParams();
-  const campaign = params.get("campaign");
-  const domain = params.get("domain");
-  if (!campaign && !domain) {
-    return (
-      <div className="p-8 max-w-[640px]">
-        <p className="panel-title">Pick a campaign or a candidate</p>
-        <p className="secondary mt-2">
-          Campaigns are groups of confirmed domains on shared infrastructure; open one to plan takedowns. Candidates are
-          name matches from the certificate stream — not yet verified, and never treated as accusations.
-        </p>
-      </div>
-    );
-  }
-  return campaign ? <CampaignView id={campaign} /> : <DomainDetail id={Number(domain)} />;
+function NotFound() {
+  return (
+    <div>
+      <PageHeader title="Page not found" />
+      <p className="prose ink-2">This address does not match a console page. <Link className="link" to="/">Go to the architecture overview</Link>.</p>
+    </div>
+  );
 }
 
 export default function App() {
   return (
-    <div className="shell">
-      <Header />
+    <>
       <LeftRail />
-      <main>
-        <Routes>
-          <Route path="/" element={<ConsoleMain />} />
-          <Route path="/email" element={<EmailAnalyzer />} />
-          <Route path="/ledger" element={<SharedLedger />} />
-          <Route path="/ops" element={<OpsLog />} />
-        </Routes>
+      <Header />
+      <main className="main">
+        <div className="content">
+          <Routes>
+            <Route path="/" element={<ArchitecturePage />} />
+            <Route path="/queue" element={<LiveQueuePage />} />
+            <Route path="/campaigns" element={<CampaignsPage />} />
+            <Route path="/campaigns/:id" element={<CampaignDetailPage />} />
+            <Route path="/evidence" element={<EvidenceIndexPage />} />
+            <Route path="/evidence/:id" element={<EvidencePage />} />
+            <Route path="/email" element={<EmailAnalyzerPage />} />
+            <Route path="/ledger" element={<LedgerPage />} />
+            <Route path="/metrics" element={<MetricsPage />} />
+            <Route path="/health" element={<HealthPage />} />
+            <Route path="/ops" element={<OpsLogPage />} />
+            <Route path="*" element={<NotFound />} />
+          </Routes>
+        </div>
       </main>
-      <StreamRail />
-    </div>
+      <DomainDrawer />
+    </>
   );
 }

@@ -74,6 +74,7 @@ class CandidateItem(BaseModel):
     campaign_id: str | None
     first_seen: datetime
     source: Source
+    triage_reasons: dict | None = None  # {score, provenance, threshold, reasons: [{feature, value, contribution}]}
 
 
 class Reason(BaseModel):

@@ -38,3 +38,10 @@ def test_candidate_counts_match_the_listing(api, seeded):
     c = api.get("/candidates/counts").json()
     assert c["all"] == 60 and c["confirmed"] == 60 and c["candidate"] == 0
     assert api.get("/candidates/counts", headers=api.as_("org2")).json()["all"] == 0  # seed is org1-private
+
+
+@pytest.mark.db
+def test_candidates_carry_their_triage_breakdown(api, seeded):
+    c = api.get("/candidates?limit=1").json()["items"][0]
+    tr = c["triage_reasons"]
+    assert tr["threshold"] and tr["reasons"] and abs(sum(r["contribution"] for r in tr["reasons"]) - tr["score"]) < 1e-6

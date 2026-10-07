@@ -10,18 +10,18 @@ export function KeyGate({ children }: { children: ReactNode }) {
   useEffect(() => onKeyChange(() => { setLocal(getKey()); qc.clear(); }), [qc]);
   if (key) return <>{children}</>;
   return (
-    <div className="p-8 max-w-[560px]">
-      <p className="panel-title" style={{ fontSize: 22 }}>QCertChain</p>
-      <p className="secondary mt-2">
-        Enter your organisation's API key. It decides which organisation's campaigns, evidence and analyses you see;
-        another organisation's data does not exist for you.
+    <main style={{ padding: 48, maxWidth: 640 }}>
+      <h1 className="t-display">QCertChain console</h1>
+      <p className="ink-2 prose" style={{ marginTop: 8 }}>
+        Enter your organisation's API key. The key decides which organisation you are: its campaigns, evidence and
+        analyses are the only ones that exist for you. To switch organisation, sign out and use another key.
       </p>
-      <form className="mt-4 flex gap-2" onSubmit={(e) => { e.preventDefault(); if (draft.trim()) setKey(draft.trim()); }}>
+      <form style={{ marginTop: 24, display: "flex", gap: 8 }} onSubmit={(e) => { e.preventDefault(); if (draft.trim()) setKey(draft.trim()); }}>
         <label htmlFor="apikey" className="sr-only">API key</label>
-        <input id="apikey" className="flex-1 mono" type="password" autoComplete="off" placeholder="qcc_org_…"
+        <input id="apikey" className="input mono" style={{ flex: 1 }} type="password" autoComplete="off" placeholder="qcc_org_..."
                value={draft} onChange={(e) => setDraft(e.target.value)} />
-        <button type="submit" disabled={!draft.trim()}>Sign in</button>
+        <button type="submit" className="btn btn-primary" disabled={!draft.trim()}>Sign in</button>
       </form>
-    </div>
+    </main>
   );
 }

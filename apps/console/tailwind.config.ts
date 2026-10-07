@@ -1,22 +1,35 @@
 import type { Config } from "tailwindcss";
 
-// docs/DESIGN.md §3–4: tokens are locked. Tailwind only maps them; no Tailwind default palette exists here.
+// Tokens live in src/styles/tokens.css. Tailwind only maps them: no default palette, no radius, no shadow, and
+// spacing only from the 4/8/12/16/24/32/48 scale.
 export default {
   content: ["./index.html", "./src/**/*.{ts,tsx}"],
   theme: {
     colors: {
       transparent: "transparent",
-      ground: { 0: "var(--ground-000)", 100: "var(--ground-100)", 200: "var(--ground-200)", 300: "var(--ground-300)", 400: "var(--ground-400)" },
-      ink: { 0: "var(--ink-000)", 100: "var(--ink-100)", 200: "var(--ink-200)", 300: "var(--ink-300)" },
+      canvas: "var(--canvas)",
+      paper: "var(--paper)",
+      sunken: "var(--sunken)",
+      hairline: "var(--hairline)",
+      "hairline-firm": "var(--hairline-firm)",
+      ink: "var(--ink)",
+      "ink-2": "var(--ink-2)",
+      "ink-3": "var(--ink-3)",
+      action: "var(--action)",
+      "action-weak": "var(--action-weak)",
     },
-    borderRadius: { none: "0", sm: "2px" },
+    spacing: { 0: "0", px: "1px", 1: "4px", 2: "8px", 3: "12px", 4: "16px", 6: "24px", 8: "32px", 12: "48px" },
+    borderRadius: { none: "0", DEFAULT: "0" },
     boxShadow: { none: "none" },
-    fontFamily: {
-      display: ["IBM Plex Sans Condensed", "sans-serif"],
-      body: ["IBM Plex Sans", "sans-serif"],
-      data: ["IBM Plex Mono", "monospace"],
+    fontFamily: { sans: ["IBM Plex Sans", "sans-serif"], mono: ["IBM Plex Mono", "monospace"] },
+    fontSize: {
+      label: ["11px", "14px"],
+      meta: ["12px", "16px"],
+      body: ["13px", "18px"],
+      section: ["15px", "20px"],
+      display: ["22px", "28px"],
     },
-    fontSize: { 11: "11px", 12: "12px", 13: "13px", 14: "14px", 15: "15px", 18: "18px", 22: "22px", 28: "28px" },
+    fontWeight: { normal: "400", medium: "500", semibold: "600" },
     extend: {},
   },
   plugins: [],

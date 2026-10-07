@@ -1,31 +1,43 @@
-/* docs/DESIGN.md §3 — locked. Do not edit values. Colour means verdict; nothing else gets colour. */
+/* The design tokens. Colours are defined here and nowhere else. Light theme only. */
 :root {
-  --ground-000: #0E1417;
-  --ground-100: #151F24;
-  --ground-200: #1C2A30;
-  --ground-300: #263840;
-  --ground-400: #35525C;
+  /* surfaces */
+  --canvas: #F1F4F6;
+  --paper: #FFFFFF;
+  --sunken: #E6EAEE;
+  --hairline: #D2D9DF;
+  --hairline-firm: #AFB9C2;
 
-  --ink-000: #EFEAE0;
-  --ink-100: #C6C0B5;
-  --ink-200: #97928A;
-  --ink-300: #67645E;
+  /* ink */
+  --ink: #14202B;
+  --ink-2: #495663;
+  --ink-3: #78868F;
 
-  --v-candidate: #67645E;  /* grey. NOT a colour. This is the point. */
-  --v-confirmed: #C0392B;
-  --v-dismissed: #4A5D52;
-  --v-unreach:   #9A760C;
+  /* interactive: one accent, meaning "you can act on this" */
+  --action: #1C4F86;
+  --action-hover: #163F6C;
+  --action-weak: #E2EBF4;
+  --focus: #2A79C0;
 
-  --sev-1: #C9A227;
-  --sev-2: #D97B1F;
-  --sev-3: #C0392B;
-  --sev-4: #7A1E14;
+  /* threat severity: the only saturated colours */
+  --confirmed: #A32A20;
+  --confirmed-bg: #F7E4E2;
+  --candidate: #85590A;
+  --candidate-bg: #F6EFE0;
+  --benign: #1C6B4A;
+  --benign-bg: #E5F0EB;
+  --unknown: #514578;
+  --unknown-bg: #ECE9F3;
 
-  --state-live:  #4A7C59;
-  --state-replay:#9A760C;
-  --state-down:  #C0392B;
+  /* system status: deliberately quiet */
+  --ok: #1C6B4A;
+  --degraded: #85590A;
+  --failed: #6B747C;
 
-  --font-display: "IBM Plex Sans Condensed", sans-serif;
-  --font-body:    "IBM Plex Sans", sans-serif;
-  --font-data:    "IBM Plex Mono", monospace;
+  /* geometry */
+  --radius: 0;
+  --border: 1px solid var(--hairline);
+  --overlay-shadow: 0 0 0 1px var(--hairline-firm), 0 8px 24px rgba(20, 32, 43, .10);
+
+  --font-sans: "IBM Plex Sans", sans-serif;
+  --font-mono: "IBM Plex Mono", monospace;
 }

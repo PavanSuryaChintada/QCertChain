@@ -1,142 +1,147 @@
 import { useMutation, useQuery } from "@tanstack/react-query";
-import { Link } from "react-router-dom";
-import { api, type DomainDetail as D, type Signal } from "../lib/api";
-import { VerdictChip } from "../components/VerdictChip";
-import { Hash, Num } from "../components/Mono";
-import { EvidenceViewer } from "./EvidenceViewer";
+import { useCallback } from "react";
+import { Link, useSearchParams } from "react-router-dom";
+import { api, toApiError, type DomainDetail as D, type Signal } from "../lib/api";
+import { fmtDateTime, sentence } from "../lib/format";
+import { domainSeverity } from "../lib/status";
+import { useLiveQuery } from "../lib/viewState";
+import { Drawer } from "../components/Drawer";
+import { StatusIndicator } from "../components/StatusIndicator";
+import { HashDisplay } from "../components/HashDisplay";
+import { ReasonsTable } from "../components/ScoreBreakdown";
+import { Button } from "../components/Button";
+import { ViewStateView, errorCopy } from "../components/States";
+import { useToast } from "../components/Toast";
 
-const FEATURE_TEXT: Record<string, string> = {
-  brand_token_exact: "brand name in the domain", lookalike: "spelled like a brand", homoglyph_hit: "look-alike characters",
-  tld_risk: "high-risk top-level domain", keyword_count: "phishing keywords", shape: "long or hyphen-heavy name",
-  allowlisted: "on the allowlist", public_suffix: "a public suffix", cap: "capped at 1.0",
-};
-
-function fmtValue(v: unknown): string {
-  if (v === null || v === undefined) return "";
-  if (typeof v === "object") return Object.entries(v as Record<string, unknown>).map(([k, x]) => `${k.replace(/_/g, " ")} ${x}`).join(", ");
-  return String(v);
+export function SignalGroups({ signals }: { signals: Signal[] }) {
+  const groups = (["strong", "moderate", "weak"] as const).map((g) => ({ g, items: signals.filter((s) => s.strength === g) }));
+  return (
+    <div style={{ display: "grid", gap: 12 }}>
+      {groups.map(({ g, items }) => (
+        <div key={g}>
+          <p className="t-label">{sentence(g)} ({items.length})</p>
+          {items.length === 0 ? <p className="t-meta">None found.</p> : (
+            <ul>
+              {items.map((s, i) => (
+                <li key={i} style={{ padding: "4px 0", borderBottom: "1px solid var(--hairline)" }}>
+                  <span>{sentence(s.name)}</span>
+                  <span className="mono t-meta" style={{ display: "block", overflowWrap: "anywhere" }}>{s.detail}</span>
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
+      ))}
+    </div>
+  );
 }
 
-export function SignalList({ signals }: { signals: Signal[] }) {
-  if (!signals.length) return <p className="secondary">No signals.</p>;
+/** The gate stated explicitly: "2 strong required - N found". */
+export function Gate({ strong }: { strong: number }) {
   return (
-    <ul className="mt-2">
-      {signals.map((s, i) => (
-        <li key={i} className="grid gap-3 py-1" style={{ gridTemplateColumns: "88px 1fr" }}>
-          <span className="mono text-12" style={{ color: s.strength === "strong" ? "var(--ink-000)" : "var(--ink-200)" }}>
-            {s.strength}
-          </span>
-          <span><span className="text-ink-0">{s.name.replace(/_/g, " ")}</span>
-            <span className="secondary block mono" style={{ fontSize: 12 }}>{s.detail}</span></span>
-        </li>
-      ))}
-    </ul>
+    <p className="t-data" data-testid="gate">
+      2 strong required - {strong} found{strong >= 2 ? " (gate passed)" : " (gate not passed)"}
+    </p>
   );
+}
+
+function Screenshot({ path, alt }: { path: string; alt: string }) {
+  const q = useQuery({ queryKey: ["artifact", path], queryFn: () => api.artifactBlobUrl(path), staleTime: Infinity, retry: false });
+  if (q.isError) return <p className="t-meta">The screenshot could not be loaded ({errorCopy(toApiError(q.error), "the screenshot")}).</p>;
+  if (!q.data) return <div style={{ height: 192, background: "var(--sunken)" }} aria-label="Loading screenshot" />;
+  return <img src={q.data} alt={alt} style={{ width: "100%", border: "1px solid var(--hairline)" }} />;
 }
 
 function Row({ k, children }: { k: string; children: React.ReactNode }) {
-  return (
-    <div className="grid gap-3 py-1 rule-b" style={{ gridTemplateColumns: "140px 1fr" }}>
-      <span className="secondary">{k}</span>
-      <span className="min-w-0">{children}</span>
-    </div>
-  );
+  return <tr><th scope="row">{k}</th><td>{children}</td></tr>;
 }
 
-function Verdict({ d }: { d: D }) {
+export function DomainBody({ d }: { d: D }) {
+  const toast = useToast();
+  const sev = domainSeverity(d.status);
   const c = d.confirmation;
-  const sentence =
-    d.status === "candidate" ? "Candidate — not yet verified. A name match is an observation, not an accusation."
-    : d.status === "unreachable" ? "Could not reach — still a candidate."
-    : d.status === "dismissed" ? "Dismissed — no evidence of phishing on the page."
-    : "Confirmed on evidence: at least two independent strong signals.";
-  return (
-    <section className="p-4 rule-b">
-      <div className="flex items-center gap-4">
-        <VerdictChip status={d.status} strongCount={c?.strong_count} />
-        {c?.confidence != null && c.signals.length > 0 && (
-          <span className="secondary">confidence <Num v={c.confidence} digits={2} /> from {c.signals.length} signals below</span>
-        )}
-      </div>
-      <p className="mt-2">{sentence}</p>
-      {c && <SignalList signals={c.signals} />}
-    </section>
-  );
-}
-
-export function DomainDetail({ id }: { id: number }) {
-  const q = useQuery({ queryKey: ["domain", id], queryFn: () => api.domain(id), refetchInterval: 5000 });
-  const reconfirm = useMutation({ mutationFn: () => api.reconfirm(id) });
-  if (q.isError) return <p className="p-6">This domain could not be loaded: {(q.error as Error).message}</p>;
-  if (!q.data) return <div className="solving" />;
-  const d = q.data;
   const e = d.enrichment;
+  const reconfirm = useMutation({
+    mutationFn: () => api.reconfirm(d.id),
+    onSuccess: () => toast("Re-check queued. The verdict updates when the page has been fetched again."),
+    onError: (err) => toast(errorCopy(toApiError(err), "the re-check")),
+  });
   return (
-    <div className="grid" style={{ gridTemplateColumns: "minmax(0, 1fr) minmax(0, 1fr)" }}>
-      <div className="rule-r min-w-0">
-        <header className="p-4 rule-b">
-          {/* full name, wrapped — never truncated: the characters ARE the evidence in a look-alike */}
-          <span className="mono block" style={{ fontSize: 22, color: "var(--ink-000)", wordBreak: "break-all" }}>{d.name}</span>
-          <span className="secondary">registrable domain <span className="mono">{d.etld1}</span> · source {d.source}
-            {d.source === "seed" && " (synthetic demo data)"} · first seen {new Date(d.first_seen).toISOString().slice(0, 19)}Z</span>
-          <div className="mt-3 flex gap-2">
-            <button onClick={() => reconfirm.mutate()} disabled={reconfirm.isPending || reconfirm.isSuccess}>
-              {reconfirm.isSuccess ? "Re-check queued" : "Re-check the page"}
-            </button>
-            {d.campaign_id && <Link to={`/?campaign=${d.campaign_id}`}><button>Open campaign</button></Link>}
-          </div>
-        </header>
-        <Verdict d={d} />
-        <section className="p-4 rule-b">
-          <p className="panel-title">Why it was flagged</p>
-          <p className="secondary">
-            Triage score <Num v={d.triage.score} digits={2} /> against threshold <Num v={d.triage.threshold} digits={2} /> ·{" "}
-            {d.triage.provenance === "rules" ? "hand-set rule weights" : "trained model"}
-          </p>
-          <ul className="mt-2">
-            {d.triage.reasons.map((r, i) => (
-              <li key={i} className="flex justify-between py-1">
-                <span>{FEATURE_TEXT[r.feature] ?? r.feature} <span className="mono secondary">{fmtValue(r.value)}</span></span>
-                <Num v={r.contribution} digits={2} />
-              </li>
-            ))}
-          </ul>
-        </section>
-        {e && (
-          <section className="p-4">
-            <p className="panel-title">Infrastructure</p>
-            {e.partial && <p className="secondary">Partial: {Object.entries(e.errors ?? {}).map(([k, v]) => `${k} (${v})`).join("; ")}</p>}
-            <div className="mt-2">
-              <Row k="IP addresses"><span className="mono">{e.ip_addresses.join(", ") || "—"}</span></Row>
-              <Row k="ASN"><span className="mono">{e.asn ? `AS${e.asn} ${e.asn_name ?? ""}` : "—"}</span></Row>
-              <Row k="Nameservers"><span className="mono">{e.nameservers.join(", ") || "—"}</span></Row>
-              <Row k="Registrar">{e.registrar ?? "—"}</Row>
-              <Row k="Registered">{e.registered_at ? new Date(e.registered_at).toISOString().slice(0, 10) : "—"}</Row>
-              <Row k="Certificate issuer">{e.cert_issuer ?? "—"}</Row>
-              <Row k="Kit fingerprint"><Hash v={e.dom_hash} n={24} /></Row>
-              <Row k="Favicon hash"><Hash v={e.favicon_hash} /></Row>
-            </div>
-          </section>
-        )}
+    <div style={{ display: "grid", gap: 24 }}>
+      <div>
+        <p className="t-data" style={{ overflowWrap: "anywhere", fontSize: 15, lineHeight: "20px" }}>{d.name}</p>
+        <p className="t-meta" style={{ marginTop: 4 }}>
+          Registrable domain <span className="mono">{d.etld1}</span>; source <span className="mono">{d.source}</span>; first seen <span className="mono">{fmtDateTime(d.first_seen)}</span>
+        </p>
+        <div style={{ marginTop: 8 }}><StatusIndicator severity={sev.severity} label={sev.label} /></div>
+        <div style={{ display: "flex", gap: 8, marginTop: 12, flexWrap: "wrap" }}>
+          <Button size="sm" onClick={() => reconfirm.mutate()} disabled={reconfirm.isPending}>Re-check the page</Button>
+          {d.campaign_id && <Link className="btn btn-sm" to={`/campaigns/${encodeURIComponent(d.campaign_id)}`}>Open campaign</Link>}
+          {d.evidence_bundle_id && <Link className="btn btn-sm" to={`/evidence/${encodeURIComponent(d.evidence_bundle_id)}`}>Open evidence</Link>}
+        </div>
       </div>
-      <div className="min-w-0">
-        {d.confirmation?.screenshot_url && (
-          <figure className="p-4 rule-b">
-            <Screenshot path={d.confirmation.screenshot_url} alt={`Screenshot of ${d.name} as fetched`} />
-            <figcaption className="secondary mt-1">Captured page. Fetched and observed only — no form was touched.</figcaption>
-          </figure>
-        )}
-        {d.evidence_bundle_id ? <EvidenceViewer bundleId={d.evidence_bundle_id} />
-          : <p className="p-4 secondary">No evidence bundle: bundles are built only for confirmed domains.</p>}
-      </div>
+      <section>
+        <h3 className="t-section">Triage reasons</h3>
+        <p className="t-meta" style={{ marginBottom: 8 }}>{d.triage.provenance === "rules" ? "Hand-set rule weights" : "Trained model"}. Triage only nominates; it never confirms.</p>
+        <ReasonsTable reasons={d.triage} />
+      </section>
+      <section>
+        <h3 className="t-section">Confirmation signals</h3>
+        {c ? (
+          <>
+            <Gate strong={c.strong_count} />
+            <div style={{ marginTop: 8 }}><SignalGroups signals={c.signals} /></div>
+          </>
+        ) : <p className="t-meta">Not checked yet. The page is fetched and checked once the domain reaches the confirmation queue.</p>}
+      </section>
+      {c?.screenshot_url && (
+        <figure>
+          <Screenshot path={c.screenshot_url} alt={`Screenshot of ${d.name} as fetched`} />
+          <figcaption className="t-meta" style={{ marginTop: 4 }}>Captured page. Fetched and observed only; no form was touched.</figcaption>
+        </figure>
+      )}
+      <section>
+        <h3 className="t-section">Enrichment</h3>
+        {e ? (
+          <>
+            {e.partial && <p className="t-meta">Partial: {Object.entries(e.errors ?? {}).map(([k, v]) => `${k} (${v})`).join("; ")}</p>}
+            <table className="kv" style={{ marginTop: 8 }}>
+              <tbody>
+                <Row k="IP addresses"><span className="mono">{e.ip_addresses.join(", ") || "–"}</span></Row>
+                <Row k="ASN"><span className="mono">{e.asn ? `AS${e.asn}` : "–"}</span>{e.asn_name && ` ${e.asn_name}`}</Row>
+                <Row k="Country"><span className="mono">{e.country ?? "–"}</span></Row>
+                <Row k="Nameservers"><span className="mono">{e.nameservers.join(", ") || "–"}</span></Row>
+                <Row k="Registrar">{e.registrar ?? "–"}</Row>
+                <Row k="Registered"><span className="mono">{fmtDateTime(e.registered_at)}</span></Row>
+                <Row k="Certificate issuer">{e.cert_issuer ?? "–"}</Row>
+                <Row k="Kit hash"><HashDisplay value={e.dom_hash} label="kit hash" /></Row>
+                <Row k="Favicon hash"><HashDisplay value={e.favicon_hash} label="favicon hash" /></Row>
+              </tbody>
+            </table>
+          </>
+        ) : <p className="t-meta">Not enriched yet.</p>}
+      </section>
     </div>
   );
 }
 
-/** The artifact endpoint needs the API key, so the image is fetched and shown from a blob URL. */
-function Screenshot({ path, alt }: { path: string; alt: string }) {
-  const q = useQuery({ queryKey: ["artifact", path], queryFn: () => api.artifactBlobUrl(path), staleTime: Infinity });
-  if (q.isError) return <p className="secondary">Screenshot unavailable.</p>;
-  if (!q.data) return <p className="secondary">Loading screenshot.</p>;
-  return <img src={q.data} alt={alt} style={{ width: "100%", border: "1px solid var(--ground-300)" }} />;
+/** Opened from any page with ?domain=<id>. */
+export function DomainDrawer() {
+  const [params, setParams] = useSearchParams();
+  const raw = params.get("domain");
+  const id = raw && /^\d+$/.test(raw) ? Number(raw) : null;
+  const close = useCallback(() => {
+    const next = new URLSearchParams(params);
+    next.delete("domain");
+    setParams(next);
+  }, [params, setParams]);
+  const q = useLiveQuery<D>({ queryKey: ["domain", id], queryFn: (s) => api.domain(id!, s), enabled: id !== null, isEmpty: () => false, staleTime: 10000 });
+  return (
+    <Drawer open={id !== null} onClose={close} title={q.data && q.data.id === id ? q.data.name : "Domain"}>
+      <ViewStateView state={q.state} what="this domain" skeleton={<div style={{ height: 192, background: "var(--sunken)" }} aria-busy="true" />}
+                     empty={null} onRetry={() => q.query.refetch()}>
+        {(d) => <DomainBody d={d} />}
+      </ViewStateView>
+    </Drawer>
+  );
 }
