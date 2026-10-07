@@ -143,3 +143,20 @@ def test_public_address_check():
     assert is_public_ip("93.184.216.34")
     for ip in ("127.0.0.1", "10.1.2.3", "172.16.0.1", "192.168.1.1", "169.254.169.254", "::1", "fc00::1", "0.0.0.0"):
         assert not is_public_ip(ip), ip
+
+
+async def test_dns_failure_is_reported_as_dns_not_as_ssrf_block():
+    """B1: an NXDOMAIN must not be labelled 'non-public address' (still refused: the guard fails closed)."""
+    import socket
+
+    async def nxdomain(host):
+        raise socket.gaierror(11001, "getaddrinfo failed")
+    r = await fetch_httpx("gone.top", timeout_s=5, user_agent="UA", transport=transport({}), resolve=nxdomain)
+    assert isinstance(r, Unreachable) and r.reason.startswith("dns:") and "non-public" not in r.reason
+
+
+async def test_private_address_is_still_an_ssrf_block():
+    async def private(host):
+        return ["10.0.0.5"]
+    r = await fetch_httpx("inside.top", timeout_s=5, user_agent="UA", transport=transport({}), resolve=private)
+    assert isinstance(r, Unreachable) and "non-public" in r.reason

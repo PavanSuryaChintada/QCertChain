@@ -25,6 +25,9 @@ Verdict = Literal["confirmed", "dismissed", "unreachable", "candidate"]
 
 PARKED = ("domain is for sale", "this domain may be for sale", "buy this domain", "parked free",
           "domain parking", "sedoparking", "parkingcrew", "hugedomains", "dan.com", "is parked")
+# A hosting provider's own phishing warning replaces the page: the content is not visible to us, so it is not
+# assessable (still a candidate, rechecked), never a dismissal. Nor is it our evidence for a confirmation.
+INTERSTITIALS = ("suspected phishing | cloudflare", "suspected phishing site ahead", "phishing warning | cloudflare")
 FREE_CAS = ("let's encrypt", "zerossl")
 _OBFUSCATION = re.compile(r"\beval\s*\(|\batob\s*\(|\bunescape\s*\(|String\.fromCharCode\s*\(|\\x[0-9a-f]{2}(\\x[0-9a-f]{2}){20}", re.I)
 _B64_BLOB = re.compile(r"[A-Za-z0-9+/]{2048,}={0,2}")
@@ -68,6 +71,10 @@ def analyze_page(page: FetchedPage, domain: str, brand: Brand | None, known_kits
     html = page.html or ""
     low = html.lower()
     title = page_title(html) or ""
+    if any(p in low for p in INTERSTITIALS):
+        return ConfirmResult("unreachable", 0.0, [Signal("not_assessable", "weak",
+                             f"HTTP {page.status}; hosting provider's phishing interstitial hides the page — "
+                             "still a candidate")], 0)
     if any(p in low for p in PARKED) or (page.status >= 400 and len(html) < 512):
         return ConfirmResult("unreachable", 0.0, [Signal("not_assessable", "weak",
                              f"HTTP {page.status}; parked or error page — still a candidate")], 0)

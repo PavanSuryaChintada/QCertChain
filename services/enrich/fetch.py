@@ -75,17 +75,27 @@ async def resolve_host(host: str) -> list[str]:
     return sorted({i[4][0] for i in infos})
 
 
-async def _public(url: str, resolve: Resolver) -> bool:
+async def _block_reason(url: str, resolve: Resolver) -> str | None:
     """SSRF guard: the host comes from an attacker's certificate and DNS. Every address it resolves to must
-    be public — no loopback, private, link-local (cloud metadata) or internal service names."""
+    be public — no loopback, private, link-local (cloud metadata) or internal service names. Returns None when
+    the fetch may proceed, else why not. Fails closed; a name that does not resolve is reported as a DNS failure,
+    not as a non-public address, so the unreachable breakdown is honest."""
     host = urlsplit(url).hostname
     if not host:
-        return False
+        return "blocked: no host"
     try:
         ips = [host] if _is_ip(host) else await resolve(host)
-    except Exception:
-        return False
-    return bool(ips) and all(is_public_ip(i) for i in ips)
+    except Exception as e:
+        return f"dns: {host} does not resolve ({type(e).__name__})"
+    if not ips:
+        return f"dns: {host} has no addresses"
+    if not all(is_public_ip(i) for i in ips):
+        return f"blocked: {host} resolves to a non-public address"
+    return None
+
+
+async def _public(url: str, resolve: Resolver) -> bool:
+    return await _block_reason(url, resolve) is None
 
 
 def _is_ip(h: str) -> bool:
@@ -142,8 +152,8 @@ async def _fetch_httpx(domain, timeout_s, user_agent, transport, resolve) -> Fet
         url, chain = start, []
         try:
             for _ in range(MAX_REDIRECTS + 1):
-                if not await _public(url, resolve):
-                    return Unreachable(f"blocked: {urlsplit(url).hostname} resolves to a non-public address")
+                if why := await _block_reason(url, resolve):
+                    return Unreachable(why)
                 r = await _get_capped(client, url, MAX_HTML_BYTES)
                 if r.is_redirect and "location" in r.headers:
                     chain.append(url)
@@ -173,8 +183,8 @@ async def fetch_playwright(domain: str, *, timeout_s: float, user_agent: str,
 
     resolve = resolve or resolve_host
     start = f"https://{domain}/"
-    if not await _public(start, resolve):
-        return Unreachable(f"blocked: {domain} resolves to a non-public address")
+    if why := await _block_reason(start, resolve):
+        return Unreachable(why)
     blocked: list[str] = []
 
     async def guard(route):  # every request the page makes, redirects included, passes the SSRF guard

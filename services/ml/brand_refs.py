@@ -15,23 +15,41 @@ from pathlib import Path
 import httpx
 
 from services.config import ROOT, SETTINGS
-from services.enrich.fetch import _icon_url
+from urllib.parse import urljoin
+
+from services.enrich.fetch import _HREF, _ICON
 from services.enrich.fingerprint import favicon_hash
 from services.ingest.brands import load_brands
 
 OUT = ROOT / "data/brand_favicons.json"
 
 
-async def _one(c: httpx.AsyncClient, domain: str) -> str | None:
+def _icon_urls(html: str, base: str) -> list[str]:
+    """Every icon the page declares (icon, shortcut icon, apple-touch-icon, ...) plus /favicon.ico."""
+    hrefs = [h.group(1) for m in _ICON.finditer(html) if (h := _HREF.search(m.group(0)))]
+    urls = (urljoin(base, h) for h in [*hrefs, "/favicon.ico"] if not h.lower().startswith("data:"))
+    return list(dict.fromkeys(u for u in urls if u.startswith(("http://", "https://"))))
+
+
+async def _one(c: httpx.AsyncClient, domain: str) -> list[str]:
+    """Hashes of every icon the brand's real site serves (observed, never guessed). Kits copy whichever they
+    scraped, so one hash per brand is not enough."""
     for base in (f"https://{domain}/", f"https://www.{domain}/"):
         try:
             r = await c.get(base)
-            icon = await c.get(_icon_url(r.text if r.status_code == 200 else "", str(r.url)))
-            if icon.status_code == 200 and icon.content and len(icon.content) < 500_000:
-                return favicon_hash(icon.content)
         except httpx.HTTPError:
             continue
-    return None
+        got = []
+        for url in _icon_urls(r.text if r.status_code == 200 else "", str(r.url)):
+            try:
+                icon = await c.get(url)
+            except httpx.HTTPError:
+                continue
+            if icon.status_code == 200 and icon.content and len(icon.content) < 500_000:
+                got.append(favicon_hash(icon.content))
+        if got:
+            return got
+    return []
 
 
 async def collect(brands: list[tuple[str, list[str]]], transport: httpx.AsyncBaseTransport | None = None
@@ -40,7 +58,7 @@ async def collect(brands: list[tuple[str, list[str]]], transport: httpx.AsyncBas
     async with httpx.AsyncClient(timeout=15, follow_redirects=True, transport=transport,
                                  headers={"User-Agent": SETTINGS.user_agent}) as c:
         for name, domains in brands:
-            hashes = [h for h in await asyncio.gather(*(_one(c, d) for d in domains[:2])) if h]
+            hashes = [h for hs in await asyncio.gather(*(_one(c, d) for d in domains[:2])) for h in hs]
             if hashes:
                 out[name] = sorted(set(hashes))
     return out
@@ -56,6 +74,9 @@ def load_brand_favicons(path: Path | str = OUT) -> dict[str, set[str]]:
 if __name__ == "__main__":
     idx = load_brands(SETTINGS.brands_file)
     got = asyncio.run(collect([(b.name, [d for d in b.legit_domains if d != "google.com"]) for b in idx.brands]))
+    # an icon the brand really served earlier stays valid evidence (sites rotate icons; kits keep the old one)
+    for name, old in load_brand_favicons().items():
+        got[name] = sorted(set(got.get(name, [])) | old)
     OUT.write_text(json.dumps(got, indent=1), encoding="utf-8")
     missing = [b.name for b in idx.brands if b.name not in got]
     print(f"favicons for {len(got)}/{len(idx.brands)} brands; unreachable: {missing}")

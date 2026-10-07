@@ -160,3 +160,14 @@ def test_trivial_page_never_matches_a_known_kit():
     bare = "<html><body><form method=post><input type=password></form></body></html>"
     r = analyze_page(page(bare), "icici-verify-kyc.top", ICICI, {dom_structure_hash(bare): "bare"}, {}, None, None, now=NOW)
     assert "kit_dom_hash_match" not in {s.name for s in r.signals}
+
+
+def test_host_phishing_interstitial_is_not_assessable_never_dismissed():
+    """B1: Cloudflare's 'Suspected Phishing' warning hides the page. We cannot judge content we cannot see, so this
+    is not a dismissal (and not a confirmation either: the host's opinion is not our evidence)."""
+    html = ("<html><head><title>Suspected Phishing | Cloudflare</title></head><body>Warning: Suspected Phishing"
+            " Site Ahead!</body></html>")
+    r = analyze_page(page(html, status=403), "amazongiveaway1538.pages.dev", None, {}, {}, None, None, now=NOW)
+    assert r.verdict == "unreachable" and "interstitial" in r.signals[0].detail
+    r = analyze_page(page(html, status=200), "x.pages.dev", None, {}, {}, None, None, now=NOW)
+    assert r.verdict == "unreachable"
