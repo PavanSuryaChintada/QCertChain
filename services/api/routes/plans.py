@@ -150,8 +150,5 @@ def plan_benchmark(plan_id: str, s: Scope = Depends(get_scope)):
             "rows": [{"backend": r.backend, "objective": r.objective, "domains_killed": r.domains_killed,
                       "coverage_pct": r.coverage_pct, "solve_ms": r.solve_ms, "valid": r.valid,
                       "qubit_count": r.qubit_count, "n_variables": r.n_variables, "is_best": r.is_best,
-                      "error": r.error, "notes": r.notes,
-                     "subsets_checked": (math.comb(len(p.nodes), min(k, len(p.nodes)))
-                                         if r.backend == "bruteforce" and r.valid else None)} for r in rows],
-           "n_targetable": len(p.nodes), "plans_at_k": math.comb(len(p.nodes), min(k, len(p.nodes))),
+                      "error": r.error, "notes": r.notes} for r in rows],
             "note": f"{QUANTUM_FRAMING} Every backend is reported, losses included; {GREEDY_GUARANTEE}."}

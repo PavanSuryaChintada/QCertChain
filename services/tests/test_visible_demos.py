@@ -38,7 +38,7 @@ def test_verify_three_checks_and_a_simulated_tamper_that_never_touches_the_evide
 
 def test_benchmark_reports_every_backend_with_gap_and_formulation_and_is_cached(api, seeded):
     b = api.get(f"/campaigns/{seeded}/benchmark?k=3", headers=api.as_("demo1")).json()  # GET: the demo key can run it
-    assert b["cached"] is False and {r["backend"] for r in b["rows"]} == {"cpsat", "qaoa", "annealing", "greedy"}
+    assert b["cached"] is False and {r["backend"] for r in b["rows"]} == {"cpsat", "qaoa", "annealing", "greedy", "bruteforce"}
     cp = next(r for r in b["rows"] if r["backend"] == "cpsat")
     assert cp["gap_vs_cpsat_pct"] == 0.0
     for r in b["rows"]:

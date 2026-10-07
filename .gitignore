@@ -42,3 +42,6 @@ apps/console/.vite/
 
 # long CT recordings and replay fixtures (large; regenerate with scripts/record_ct.py)
 data/replay/
+
+# e2e run artifacts (screenshots, service logs)
+e2e/artifacts/

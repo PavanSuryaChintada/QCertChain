@@ -22,7 +22,7 @@ def test_reset_restores_both_orgs_deterministically(api, db):
     r1 = api.post("/admin/reset", headers=admin)
     assert r1.status_code == 200, r1.text
     first = _snapshot(api)
-    assert [n for _, n, _ in first["org1"]] == [400] and [n for _, n, _ in first["org2"]] == [50]
+    assert [n for _, n, _ in first["org1"]] == [470] and [n for _, n, _ in first["org2"]] == [50]  # 400 + 40 tail + 30 unreachable
     assert first["org1"][0][2] == first["org2"][0][2]  # same kit: the consortium overlap is part of the demo state
 
     cid = api.get("/campaigns").json()["items"][0]["id"]

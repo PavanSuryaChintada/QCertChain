@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import multiprocessing
 import threading
+import time
 from concurrent.futures import ProcessPoolExecutor
 from concurrent.futures import TimeoutError as FuturesTimeout
 
@@ -24,7 +25,9 @@ def _warm() -> None:
     import qiskit_aer  # noqa: F401
 
 
-def _run(p: Problem, child_timeout_s: float):
+def _run(p: Problem, child_timeout_s: float, delay_s: float = 0.0):
+    if delay_s:  # test hook: a child that overruns on ANY machine, however fast its solve is
+        time.sleep(delay_s)
     from interdict.solvers.qaoa import solve_qaoa
     return solve_qaoa(p, timeout_s=child_timeout_s)
 
@@ -65,11 +68,12 @@ def shutdown() -> None:
         pool.shutdown(wait=False, cancel_futures=True)
 
 
-def solve_qaoa_isolated(p: Problem, timeout_s: float = 15.0, _child_timeout_s: float | None = None):
+def solve_qaoa_isolated(p: Problem, timeout_s: float = 15.0, _child_timeout_s: float | None = None,
+                        _child_delay_s: float = 0.0):
     # Worker start-up (spawn + Qiskit import, ~8 s measured) is NOT the solver's time: wait for a warm worker
     # first, then start the solve clock. Otherwise one kill cascades into timeouts on every later call.
     warm()
-    fut = _pool().submit(_run, p, timeout_s if _child_timeout_s is None else _child_timeout_s)
+    fut = _pool().submit(_run, p, timeout_s if _child_timeout_s is None else _child_timeout_s, _child_delay_s)
     try:
         return fut.result(timeout=timeout_s + GRACE_S)
     except FuturesTimeout:

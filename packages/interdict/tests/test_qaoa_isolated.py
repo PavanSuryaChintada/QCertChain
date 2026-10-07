@@ -30,7 +30,8 @@ def test_hard_timeout_is_enforced_even_if_the_child_overruns():
     warm()  # worker start-up is excluded from the budget by design; time only the solve
     t = time.perf_counter()
     with pytest.raises(TimeoutError):
-        solve_qaoa_isolated(P12, timeout_s=0.001, _child_timeout_s=120)  # child ignores the limit; parent must not
+        # the child sleeps 30 s and ignores the limit; the parent must still give up at 0.001 + GRACE_S
+        solve_qaoa_isolated(P12, timeout_s=0.001, _child_timeout_s=120, _child_delay_s=30)
     assert time.perf_counter() - t < 6
     # The pool recovers, and starting the replacement worker (spawn + Qiskit import, ~8 s here) does NOT
     # count against the next solve's budget: a 6 s budget is enough for this 3-qubit solve on its own.
