@@ -1,0 +1,960 @@
+{
+ "triage_rules": {
+  "provenance": "rules (hand-set TRD weights; trained model rejected by hard checks)",
+  "threshold": 0.35,
+  "recall_all_global_phishing": {
+   "value": 0.0007,
+   "n": 2767,
+   "dataset": "PhishTank verified + OpenPhish, temporal test third"
+  },
+  "recall_on_phishing_naming_our_40_brands": {
+   "value": 1.0,
+   "n": 8,
+   "missed_examples": [],
+   "dataset": "all positives in which triage detects one of our 40 brands (token, lookalike or homoglyph)"
+  },
+  "note_global_recall": "the public feeds are dominated by brands outside our list of 40 (e.g. Bradesco, Allegro); a brand-list triage scores those 0 by design, so global recall measures feed composition",
+  "false_positive_rate": {
+   "value": 0.0003,
+   "n": 60000,
+   "dataset": "Tranco 1M random sample (held out)"
+  },
+  "precision_at_1_in_1000_base_rate": {
+   "value": 0.0024,
+   "method": "TPR*0.001/(TPR*0.001+FPR*0.999)"
+  },
+  "hard_negative_fp_rate": {
+   "value": 0.7209,
+   "n": 584,
+   "dataset": "Tranco domains containing a brand token, not the brand's own"
+  },
+  "latency_us_per_name": {
+   "p50": 294.5,
+   "p95": 1519.2,
+   "p99": 5333.8,
+   "max": 107937.1,
+   "n": 200000,
+   "dataset": "unique names from the 30-min CT capture",
+   "measured_at": "2026-10-06T14:30:31.302740+00:00"
+  },
+  "candidates_per_min_of_live_stream": {
+   "value": 1.5,
+   "dataset": "same capture"
+  },
+  "measured_at": "2026-10-07T06:19:48.197786+00:00"
+ },
+ "triage_model": {
+  "decision": "rules stay (provenance 'rules'): a hard check failed",
+  "passed_checks": false,
+  "hard_checks": {
+   "1_tranco_top1000_below_threshold": [
+    "aws.dev",
+    "amazon.dev"
+   ],
+   "2_brand_legit_domains_below_0.1": [
+    "onlinesbi.sbi"
+   ],
+   "3_hard_negative_fp_rate_below_5pct": 0.0,
+   "4_top_coefficient_share_below_0.40": 0.254,
+   "5_release_gate_phish_missed": [
+    "icicibannk-login.top"
+   ],
+   "5_release_gate_legit_flagged": [
+    "netbanking.hdfcbank.com"
+   ]
+  },
+  "temporal": {
+   "auc": 0.787,
+   "at_threshold": {
+    "threshold": 0.45,
+    "recall": 0.2103,
+    "fpr": 0.002517,
+    "precision_at_1_in_1000": 0.0772,
+    "hard_negative_fp_rate": 0.0,
+    "candidates_per_min_at_200k_certs": 544.9
+   },
+   "n_test_pos": 2767,
+   "n_test_neg": 60000
+  },
+  "campaign_disjoint": {
+   "auc": 0.8443,
+   "at_threshold": {
+    "threshold": 0.45,
+    "recall": 0.3249,
+    "fpr": 0.002583,
+    "precision_at_1_in_1000": 0.1118,
+    "hard_negative_fp_rate": 0.0,
+    "candidates_per_min_at_200k_certs": 581.1
+   }
+  },
+  "coefficients": {
+   "brand_token_exact": 0.2405,
+   "min_edit_distance": 0.2621,
+   "homoglyph_hit": -0.1154,
+   "tld_risk": 0.8089,
+   "keyword_count": 0.1474,
+   "hyphen_count": 0.4657,
+   "max_label_len": 0.6157,
+   "digit_ratio": 0.2731,
+   "subdomain_depth": 0.135,
+   "entropy": -0.1209,
+   "issuer_is_free_ca": 0.0,
+   "san_count": 0.0
+  },
+  "top_coefficient_share": 0.254,
+  "measured_at": "2026-10-06T23:46:43.330117"
+ },
+ "ingest": {
+  "replay_unique_certs_per_sec_into_redis": {
+   "value": 1839.6,
+   "method": "20 s replay at max speed, parse + fingerprint dedup + pipelined XADD, one process"
+  },
+  "live_capture": {
+   "server_entries_per_sec": 688.7,
+   "unique_certs_per_sec": 218.5,
+   "captured_per_sec": 500.8,
+   "duplicate_delivery_share": 0.5637,
+   "undelivered_share": 0.2728,
+   "tiled_share_of_entries": 0.3736
+  },
+  "live_outbound_load": {
+   "inbound_bytes_from_ct_logs": 3399000000,
+   "inbound_mbit_per_sec": 14.8,
+   "derived_tile_requests": 1870,
+   "derived_rfc6962_get_entries_requests": 3107,
+   "derived_checkpoint_polls_range": [
+    4531,
+    33984
+   ],
+   "derived_total_requests_per_sec_range": [
+    5.18,
+    21.21
+   ],
+   "method": "certstream-server-go exposes no HTTP request counter. Requests are derived: one full data tile per 256 tiled entries (partial tiles deferred up to 60 s, #104 fix); one get-entries per 256 RFC 6962 entries; one checkpoint poll per tiled log every 2-15 s. Inbound bytes are measured (docker stats RX of the certstream container)."
+  },
+  "measured_at": "2026-10-06T18:42:20.706685+00:00"
+ },
+ "confirmation": {
+  "precision": {
+   "value": 1.0,
+   "confirmed": 10
+  },
+  "recall": {
+   "value": 0.5,
+   "n_phishing": 20
+  },
+  "false_confirmations_of_legit_pages": 0,
+  "verdicts_by_truth": {
+   "phishing": {
+    "confirmed": 10,
+    "candidate": 10
+   },
+   "legit": {
+    "candidate": 10,
+    "dismissed": 10,
+    "unreachable": 5
+   }
+  },
+  "n": 45,
+  "dataset": "45 labelled pages served over real HTTP from 127.0.0.1: 10 known-kit phishing, 10 unknown-kit phishing, 10 legit brand-like logins posting to the brand, 10 blogs, 5 parked; kit knowledge from a disjoint sample",
+  "method": "real HTTP fetch + the production analyze_page gate (>= 2 strong signals)",
+  "measured_at": "2026-10-06T18:35:40.090399+00:00"
+ },
+ "email": {
+  "cold": {
+   "recall_malicious": "0/8",
+   "phishing_rated_suspicious": "7/8",
+   "phishing_rated_clean": "1/8",
+   "legit_rated_malicious": "0/5",
+   "legit_rated_suspicious": "1/5"
+  },
+  "warm": {
+   "recall_malicious": "6/8",
+   "phishing_rated_suspicious": "2/8",
+   "phishing_rated_clean": "0/8",
+   "legit_rated_malicious": "0/5",
+   "legit_rated_suspicious": "1/5"
+  },
+  "n_samples": 13,
+  "note": "synthetic labelled sample set (services/email/samples); small n \u2014 directional, not a benchmark",
+  "measured_at": "2026-10-06T16:48:37.884420+00:00",
+  "owner_decision_pending": "cold-start gate options A-D reported 2026-10-06; >=2-strong rule unchanged"
+ },
+ "lead_time": {
+  "exact_hostname": {
+   "unit": "exact hostname",
+   "entries": 259,
+   "excluded": {
+    "E1_listed_at_first_poll": 259,
+    "E2_listing_interval_overlaps_gap": 0,
+    "E3_unmatched_listed_after_gap_start": 0,
+    "E4_ct_first_seen_within_W_of_start_or_gap_end": 0
+   },
+   "excluded_total": 259,
+   "retained_matched_ct_first": 0,
+   "retained_matched_listed_first": 0,
+   "retained_unmatched": 0,
+   "value": null,
+   "status": "not measured: 0 CT-first matches on the exact hostname (fewer than 10); 259 OpenPhish entries, 259 excluded (E1 259, E2 0, E3 0, E4 0), 0 listed before CT showed them, 0 with no CT sighting",
+   "unmatched_allowlisted_not_indexed": 19
+  },
+  "etld1": {
+   "unit": "eTLD+1",
+   "entries": 231,
+   "excluded": {
+    "E1_listed_at_first_poll": 231,
+    "E2_listing_interval_overlaps_gap": 0,
+    "E3_unmatched_listed_after_gap_start": 0,
+    "E4_ct_first_seen_within_W_of_start_or_gap_end": 0
+   },
+   "excluded_total": 231,
+   "retained_matched_ct_first": 0,
+   "retained_matched_listed_first": 0,
+   "retained_unmatched": 0,
+   "value": null,
+   "status": "not measured: 0 CT-first matches on the eTLD+1 (fewer than 10); 231 OpenPhish entries, 231 excluded (E1 231, E2 0, E3 0, E4 0), 0 listed before CT showed them, 0 with no CT sighting"
+  },
+  "openphish_urls": 300,
+  "openphish_hosts": 259,
+  "openphish_urls_without_host": 0,
+  "polls_in_log": 9,
+  "polls_that_added_new_urls": 1,
+  "window": {
+   "from": "2026-10-07T06:30:36Z",
+   "to": "2026-10-07T10:54:49Z",
+   "hours": 4.4,
+   "state": "partial"
+  },
+  "state": "partial",
+  "rules": {
+   "E1_listed_at_first_poll": "present in the first OpenPhish poll: listed before the capture started",
+   "E2_listing_interval_overlaps_gap": "the poll interval in which it was first listed overlaps a capture gap (listing time not known to the 30-min resolution)",
+   "E3_unmatched_listed_after_gap_start": "no CT sighting and first listed after a gap began: its certificate may have been issued during the gap",
+   "E4_ct_first_seen_within_W_of_start_or_gap_end": "CT first sighting within W after the capture start or a gap end: an earlier sighting may have been missed"
+  },
+  "W": {
+   "seconds": 5400,
+   "quantile": 0.99,
+   "quantile_value_s": 5142.0,
+   "n_names_seen_twice": 5530,
+   "rounded_up_to_s": 1800,
+   "derivation": "p99 of the delay between the first and second sighting of a name in scored certificates (5530 names seen twice) = 85.7 min, rounded up to the 30-min poll resolution: a name first shown during a gap is, with that probability, seen again before W has passed, so first sightings later than W after a gap are not re-sightings of a missed one"
+  },
+  "min_ct_first_matches": 10,
+  "listing_time_resolution": "+/-30 min: the OpenPhish feed is polled every 30 min, so a URL's listing time lies in the 30 min before the poll that first saw it",
+  "match_rule": "exact hostname of the OpenPhish URL == a name in ct_first_seen (non-allowlisted names from every certificate in the capture); eTLD+1 matches reported separately, never mixed",
+  "dataset": "OpenPhish public feed polled every 30 min x CT first sighting (ct_live.sqlite), partial capture",
+  "measured_at": "2026-10-07T11:01:51Z",
+  "status": "not measured: 0 CT-first matches on the exact hostname (fewer than 10); 259 OpenPhish entries, 259 excluded (E1 259, E2 0, E3 0, E4 0), 0 listed before CT showed them, 0 with no CT sighting"
+ },
+ "generated_at": "2026-10-07T11:02:01Z",
+ "triage_threshold_options": {
+  "options": [
+   {
+    "threshold": 0.2,
+    "precision_at_1_in_1000": 0.0113,
+    "recall_our_brands": 1.0,
+    "recall_global_feeds": 0.0072,
+    "fp_rate_random_tranco": 0.000633,
+    "hard_negative_fp_rate": 0.7209,
+    "candidates_per_hour_live": 2417,
+    "release_gate_legit_flagged": [],
+    "release_gate_phish_missed": []
+   },
+   {
+    "threshold": 0.25,
+    "precision_at_1_in_1000": 0.0113,
+    "recall_our_brands": 1.0,
+    "recall_global_feeds": 0.0072,
+    "fp_rate_random_tranco": 0.000633,
+    "hard_negative_fp_rate": 0.7209,
+    "candidates_per_hour_live": 2417,
+    "release_gate_legit_flagged": [],
+    "release_gate_phish_missed": []
+   },
+   {
+    "threshold": 0.3,
+    "precision_at_1_in_1000": 0.0012,
+    "recall_our_brands": 1.0,
+    "recall_global_feeds": 0.0007,
+    "fp_rate_random_tranco": 0.000617,
+    "hard_negative_fp_rate": 0.7209,
+    "candidates_per_hour_live": 1020,
+    "release_gate_legit_flagged": [],
+    "release_gate_phish_missed": []
+   },
+   {
+    "threshold": 0.35,
+    "precision_at_1_in_1000": 0.0024,
+    "recall_our_brands": 1.0,
+    "recall_global_feeds": 0.0007,
+    "fp_rate_random_tranco": 0.0003,
+    "hard_negative_fp_rate": 0.7209,
+    "candidates_per_hour_live": 689,
+    "release_gate_legit_flagged": [],
+    "release_gate_phish_missed": []
+   },
+   {
+    "threshold": 0.4,
+    "precision_at_1_in_1000": 1.0,
+    "recall_our_brands": 0.1111,
+    "recall_global_feeds": 0.0004,
+    "fp_rate_random_tranco": 0.0,
+    "hard_negative_fp_rate": 0.024,
+    "candidates_per_hour_live": 119,
+    "release_gate_legit_flagged": [],
+    "release_gate_phish_missed": []
+   },
+   {
+    "threshold": 0.45,
+    "precision_at_1_in_1000": 1.0,
+    "recall_our_brands": 0.1111,
+    "recall_global_feeds": 0.0004,
+    "fp_rate_random_tranco": 0.0,
+    "hard_negative_fp_rate": 0.024,
+    "candidates_per_hour_live": 92,
+    "release_gate_legit_flagged": [],
+    "release_gate_phish_missed": []
+   },
+   {
+    "threshold": 0.5,
+    "precision_at_1_in_1000": 1.0,
+    "recall_our_brands": 0.1111,
+    "recall_global_feeds": 0.0004,
+    "fp_rate_random_tranco": 0.0,
+    "hard_negative_fp_rate": 0.0223,
+    "candidates_per_hour_live": 9,
+    "release_gate_legit_flagged": [],
+    "release_gate_phish_missed": []
+   },
+   {
+    "threshold": 0.55,
+    "precision_at_1_in_1000": 1.0,
+    "recall_our_brands": 0.1111,
+    "recall_global_feeds": 0.0004,
+    "fp_rate_random_tranco": 0.0,
+    "hard_negative_fp_rate": 0.0,
+    "candidates_per_hour_live": 0,
+    "release_gate_legit_flagged": [],
+    "release_gate_phish_missed": [
+     "sbi-kyc-verify.weebly.com"
+    ]
+   },
+   {
+    "threshold": 0.6,
+    "precision_at_1_in_1000": 1.0,
+    "recall_our_brands": 0.1111,
+    "recall_global_feeds": 0.0004,
+    "fp_rate_random_tranco": 0.0,
+    "hard_negative_fp_rate": 0.0,
+    "candidates_per_hour_live": 0,
+    "release_gate_legit_flagged": [],
+    "release_gate_phish_missed": [
+     "sbi-kyc-verify.weebly.com"
+    ]
+   },
+   {
+    "threshold": 0.65,
+    "precision_at_1_in_1000": 1.0,
+    "recall_our_brands": 0.1111,
+    "recall_global_feeds": 0.0004,
+    "fp_rate_random_tranco": 0.0,
+    "hard_negative_fp_rate": 0.0,
+    "candidates_per_hour_live": 0,
+    "release_gate_legit_flagged": [],
+    "release_gate_phish_missed": [
+     "sbi-kyc-verify.weebly.com"
+    ]
+   },
+   {
+    "threshold": 0.7,
+    "precision_at_1_in_1000": 1.0,
+    "recall_our_brands": 0.1111,
+    "recall_global_feeds": 0.0004,
+    "fp_rate_random_tranco": 0.0,
+    "hard_negative_fp_rate": 0.0,
+    "candidates_per_hour_live": 0,
+    "release_gate_legit_flagged": [],
+    "release_gate_phish_missed": [
+     "sbi-verify-kyc.top",
+     "icici-netbanking-login.xyz",
+     "hdfc-secure-update.click",
+     "paytm-kyc-verify.buzz",
+     "incometax-refund-verify.top",
+     "login.sbi.co.in.attacker.top",
+     "icicibannk-login.top",
+     "yonosbi-update.rest",
+     "sbi-kyc-verify.weebly.com"
+    ]
+   },
+   {
+    "threshold": 0.75,
+    "precision_at_1_in_1000": 1.0,
+    "recall_our_brands": 0.1111,
+    "recall_global_feeds": 0.0004,
+    "fp_rate_random_tranco": 0.0,
+    "hard_negative_fp_rate": 0.0,
+    "candidates_per_hour_live": 0,
+    "release_gate_legit_flagged": [],
+    "release_gate_phish_missed": [
+     "sbi-verify-kyc.top",
+     "icici-netbanking-login.xyz",
+     "hdfc-secure-update.click",
+     "paytm-kyc-verify.buzz",
+     "incometax-refund-verify.top",
+     "login.sbi.co.in.attacker.top",
+     "icicibannk-login.top",
+     "yonosbi-update.rest",
+     "sbi-kyc-verify.weebly.com"
+    ]
+   },
+   {
+    "threshold": 0.8,
+    "precision_at_1_in_1000": null,
+    "recall_our_brands": 0.0,
+    "recall_global_feeds": 0.0,
+    "fp_rate_random_tranco": 0.0,
+    "hard_negative_fp_rate": 0.0,
+    "candidates_per_hour_live": 0,
+    "release_gate_legit_flagged": [],
+    "release_gate_phish_missed": [
+     "sbi-verify-kyc.top",
+     "icici-netbanking-login.xyz",
+     "hdfc-secure-update.click",
+     "paytm-kyc-verify.buzz",
+     "incometax-refund-verify.top",
+     "login.sbi.co.in.attacker.top",
+     "icicibannk-login.top",
+     "yonosbi-update.rest",
+     "sbi-kyc-verify.weebly.com"
+    ]
+   }
+  ],
+  "n_live_names": 200000,
+  "capture_span_min": 6.53,
+  "live_names_per_hour": 1837672,
+  "n_brand_phishing": 9,
+  "n_global_test": 2767,
+  "n_random_negatives": 60000,
+  "n_hard_negatives": 584,
+  "skeleton_exact_on_random_tranco": {
+   "count": 0,
+   "of": 60000,
+   "examples": []
+  },
+  "precision_method": "TPR*0.001 / (TPR*0.001 + FPR*0.999) with TPR over ALL phishing (global feeds) and FPR over random Tranco: a 1-in-1000 base rate, never an even phishing/benign mix",
+  "measured_at": "2026-10-07T06:23:39.164155+00:00"
+ },
+ "response_time": {
+  "ct_seen_to_candidate_s": {
+   "p50": 23.654,
+   "p95": 32.122,
+   "max": 37.160917,
+   "n": 114
+  },
+  "upstream_aggregator_delay_s": {
+   "p50": 20.994,
+   "p95": 30.233,
+   "n": 114,
+   "what": "certstream-server-go 'seen' stamp -> our ingest receipt"
+  },
+  "our_receipt_to_candidate_s": {
+   "p50": 2.053,
+   "p95": 5.443,
+   "max": 11.921054,
+   "n": 114,
+   "what": "ingest receipt -> triage -> candidate row in Supabase"
+  },
+  "candidate_to_verdict_s": {
+   "p50": 1.552,
+   "p95": 22.653,
+   "max": 34.451336,
+   "n": 106,
+   "target": "< 20 s (CLAUDE.md \u00a75)"
+  },
+  "verdicts_from_live_candidates": {
+   "unreachable": 102,
+   "candidate": 10,
+   "dismissed": 2
+  },
+  "evidence_created_to_anchored_s": {
+   "p50": "2044.784",
+   "p95": "2098.746",
+   "n": 400,
+   "note": "includes time queued while the anchor worker was not running"
+  },
+  "interdiction_cpsat_solve_ms_api": {
+   "p50": 131,
+   "max": 4544,
+   "n": 5
+  },
+  "window_since": "2026-10-06T19:00:00Z",
+  "dataset": "Supabase domains with source certstream/replay (seed excluded)",
+  "measured_at": "2026-10-06T19:16:44.199524+00:00"
+ },
+ "interdiction": {
+  "campaign": "d91961ec-b138-480f-b1a7-45028c896f35",
+  "domains": 400,
+  "candidate_nodes": 19,
+  "by_k": {
+   "2": {
+    "cpsat": {
+     "domains_killed": 342,
+     "coverage_pct": 85.5,
+     "solve_ms_median": 228,
+     "valid_runs": "3/3",
+     "errors": [],
+     "qubits": null
+    },
+    "qaoa": {
+     "domains_killed": 342,
+     "coverage_pct": 85.5,
+     "solve_ms_median": 7615,
+     "valid_runs": "3/3",
+     "errors": [],
+     "qubits": 12
+    },
+    "annealing": {
+     "domains_killed": 342,
+     "coverage_pct": 85.5,
+     "solve_ms_median": 310,
+     "valid_runs": "3/3",
+     "errors": [],
+     "qubits": null
+    },
+    "greedy": {
+     "domains_killed": 342,
+     "coverage_pct": 85.5,
+     "solve_ms_median": 1,
+     "valid_runs": "3/3",
+     "errors": [],
+     "qubits": null
+    }
+   },
+   "3": {
+    "cpsat": {
+     "domains_killed": 400,
+     "coverage_pct": 100.0,
+     "solve_ms_median": 162,
+     "valid_runs": "3/3",
+     "errors": [],
+     "qubits": null
+    },
+    "qaoa": {
+     "domains_killed": 400,
+     "coverage_pct": 100.0,
+     "solve_ms_median": 8747,
+     "valid_runs": "3/3",
+     "errors": [],
+     "qubits": 12
+    },
+    "annealing": {
+     "domains_killed": 400,
+     "coverage_pct": 100.0,
+     "solve_ms_median": 285,
+     "valid_runs": "3/3",
+     "errors": [],
+     "qubits": null
+    },
+    "greedy": {
+     "domains_killed": 400,
+     "coverage_pct": 100.0,
+     "solve_ms_median": 6,
+     "valid_runs": "3/3",
+     "errors": [],
+     "qubits": null
+    }
+   },
+   "4": {
+    "cpsat": {
+     "domains_killed": 400,
+     "coverage_pct": 100.0,
+     "solve_ms_median": 87,
+     "valid_runs": "3/3",
+     "errors": [],
+     "qubits": null
+    },
+    "qaoa": {
+     "domains_killed": 400,
+     "coverage_pct": 100.0,
+     "solve_ms_median": 6381,
+     "valid_runs": "3/3",
+     "errors": [],
+     "qubits": 12
+    },
+    "annealing": {
+     "domains_killed": 400,
+     "coverage_pct": 100.0,
+     "solve_ms_median": 164,
+     "valid_runs": "3/3",
+     "errors": [],
+     "qubits": null
+    },
+    "greedy": {
+     "domains_killed": 400,
+     "coverage_pct": 100.0,
+     "solve_ms_median": 1,
+     "valid_runs": "3/3",
+     "errors": [],
+     "qubits": null
+    }
+   },
+   "5": {
+    "cpsat": {
+     "domains_killed": 400,
+     "coverage_pct": 100.0,
+     "solve_ms_median": 58,
+     "valid_runs": "3/3",
+     "errors": [],
+     "qubits": null
+    },
+    "qaoa": {
+     "domains_killed": 400,
+     "coverage_pct": 100.0,
+     "solve_ms_median": 6069,
+     "valid_runs": "3/3",
+     "errors": [],
+     "qubits": 12
+    },
+    "annealing": {
+     "domains_killed": 400,
+     "coverage_pct": 100.0,
+     "solve_ms_median": 191,
+     "valid_runs": "3/3",
+     "errors": [],
+     "qubits": null
+    },
+    "greedy": {
+     "domains_killed": 400,
+     "coverage_pct": 100.0,
+     "solve_ms_median": 1,
+     "valid_runs": "3/3",
+     "errors": [],
+     "qubits": null
+    }
+   }
+  },
+  "method": "interdict.benchmark, 3 repetitions per k, in a standalone process, seeded campaign (synthetic, source=seed)",
+  "measured_at": "2026-10-06T18:50:32.163388+00:00"
+ },
+ "evidence_ledger": {
+  "bundles_reverified_valid": "25/25",
+  "one_byte_tamper_detected_and_file_named": "25/25",
+  "bundles_total": 400,
+  "bundles_anchored_on_chain": 400,
+  "campaigns_published": 1,
+  "anchor_roots_matching_chain": "10/10",
+  "abuse_reports_generated": 400,
+  "abuse_reports_sent": 0,
+  "dataset": "Supabase evidence bundles (seeded campaign) and the local permissioned chain",
+  "method": "verify_bundle on the stored files; tamper = flip one byte of dom.html in a copy",
+  "measured_at": "2026-10-06T19:18:24.150444+00:00"
+ },
+ "lead_time_phishtank_30min": {
+  "matched_domains": 11,
+  "ct_first": 0,
+  "lead_hours": {
+   "p50": null,
+   "p95": null,
+   "max": null
+  },
+  "listed_before_ct_seen": 11,
+  "dataset": "our 30-min CT capture (2026-10-06 13:28-13:58 UTC) x PhishTank verified-online submission times, matched on the EXACT hostname named in the certificate",
+  "caveat": "a 30-minute window: only phishing certificates issued in that window can match; lead time is bounded by when PhishTank was downloaded",
+  "measured_at": "2026-10-06T18:44:00.339709+00:00"
+ },
+ "ct_capture": {
+  "state": "partial",
+  "window": {
+   "from": "2026-10-07T06:30:36Z",
+   "to": "2026-10-07T10:54:49Z",
+   "hours": 4.4,
+   "state": "partial"
+  },
+  "dataset": "data/replay/ct_live.jsonl.gz (partial capture), certstream-server-go lite stream",
+  "runs": [
+   {
+    "run": 0,
+    "messages": 843,
+    "first_seen": "2026-10-07T06:30:36Z",
+    "last_seen": "2026-10-07T06:31:49Z"
+   },
+   {
+    "run": 1,
+    "messages": 30850,
+    "first_seen": "2026-10-07T06:32:15Z",
+    "last_seen": "2026-10-07T08:15:14Z"
+   },
+   {
+    "run": 2,
+    "messages": 25569,
+    "first_seen": "2026-10-07T08:55:04Z",
+    "last_seen": "2026-10-07T10:54:49Z"
+   }
+  ],
+  "gzip_reader": {
+   "bytes": 15215084,
+   "members": 3,
+   "members_without_end_marker": 3,
+   "partial_lines_dropped": 0,
+   "decode_errors": []
+  },
+  "messages": {
+   "total": 57262,
+   "by_tag": {
+    "background_sample": 46725,
+    "scored": 10537
+   },
+   "bad_json": 0,
+   "without_seen": 0
+  },
+  "gap": {
+   "threshold_s": 300,
+   "gaps": [
+    {
+     "from": "2026-10-07T08:15:14Z",
+     "to": "2026-10-07T08:55:04Z",
+     "minutes": 39.8
+    }
+   ],
+   "total_minutes": 39.8,
+   "largest_other_interarrival_s": 102.8,
+   "recorder_log": {
+    "largest_silence": {
+     "from": "2026-10-07T08:12:00Z",
+     "to": "2026-10-07T08:55:00Z",
+     "minutes": 43
+    },
+    "reconnects": 44,
+    "openphish_polls": 9,
+    "openphish_poll_failures": 0
+   },
+   "method": "max inter-arrival gap of data.seen over all messages (>= 300 s counts as a gap), cross-checked with the recorder log"
+  },
+  "coverage": {
+   "minutes_in_window": 265,
+   "minutes_covered": 226,
+   "pct": 85.28,
+   "minutes_inside_gaps": 39,
+   "per_operator": {
+    "Cloudflare": {
+     "minutes_covered": 208,
+     "pct": 78.49,
+     "pct_outside_gaps": 92.04,
+     "messages": 2546,
+     "logs": [
+      "Cloudflare 'Nimbus2026'",
+      "Cloudflare 'Nimbus2027'"
+     ]
+    },
+    "DigiCert": {
+     "minutes_covered": 218,
+     "pct": 82.26,
+     "pct_outside_gaps": 96.46,
+     "messages": 5821,
+     "logs": [
+      "DigiCert 'Sphinx2026h2'",
+      "DigiCert 'Wyvern2026h2'",
+      "DigiCert 'Wyvern2027h1'",
+      "DigiCert 'sphinx2027h1'"
+     ]
+    },
+    "Geomys": {
+     "minutes_covered": 110,
+     "pct": 41.51,
+     "pct_outside_gaps": 48.67,
+     "messages": 2364,
+     "logs": [
+      "Geomys 'Tuscolo2026h2'",
+      "Geomys 'Tuscolo2027h1'",
+      "Geomys Trastevere2027h1",
+      "Geomys Trastevere2028h1"
+     ]
+    },
+    "Google": {
+     "minutes_covered": 221,
+     "pct": 83.4,
+     "pct_outside_gaps": 97.79,
+     "messages": 13194,
+     "logs": [
+      "Google 'Argon2026h2' log",
+      "Google 'Argon2027h1'",
+      "Google 'ParcelYard2026h2' log",
+      "Google 'ParcelYard2027h1' log",
+      "Google 'PlumbersArms2026h2' log",
+      "Google 'PlumbersArms2027h1' log",
+      "Google 'Xenon2026h2' log",
+      "Google 'Xenon2027h1'"
+     ]
+    },
+    "IPng Networks": {
+     "minutes_covered": 219,
+     "pct": 82.64,
+     "pct_outside_gaps": 96.9,
+     "messages": 10078,
+     "logs": [
+      "IPng Networks 'Gouda2026h2'",
+      "IPng Networks 'Gouda2027h1'",
+      "IPng Networks 'Halloumi2026h2a'",
+      "IPng Networks 'Halloumi2027h1'",
+      "IPng Networks Gouda2028h1"
+     ]
+    },
+    "Let's Encrypt": {
+     "minutes_covered": 220,
+     "pct": 83.02,
+     "pct_outside_gaps": 97.35,
+     "messages": 11146,
+     "logs": [
+      "Let's Encrypt 'Sycamore2026h2'",
+      "Let's Encrypt 'Sycamore2027h1'",
+      "Let's Encrypt 'Willow2026h2'",
+      "Let's Encrypt 'Willow2027h1'"
+     ]
+    },
+    "Sectigo": {
+     "minutes_covered": 217,
+     "pct": 81.89,
+     "pct_outside_gaps": 96.02,
+     "messages": 5606,
+     "logs": [
+      "Sectigo 'Elephant2026h2'",
+      "Sectigo 'Elephant2027h1'",
+      "Sectigo 'Tiger2026h2'",
+      "Sectigo 'Tiger2027h1'"
+     ]
+    },
+    "TrustAsia": {
+     "minutes_covered": 219,
+     "pct": 82.64,
+     "pct_outside_gaps": 96.9,
+     "messages": 6359,
+     "logs": [
+      "TrustAsia 'HETU2027'",
+      "TrustAsia 'log2026a'",
+      "TrustAsia 'log2026b'",
+      "TrustAsia Luoshu2027"
+     ]
+    },
+    "Other": {
+     "minutes_covered": 79,
+     "pct": 29.81,
+     "pct_outside_gaps": 34.96,
+     "messages": 148,
+     "logs": [
+      "GoDaddy Aquamarine2027h1",
+      "Microsec Eszigno2027h1"
+     ]
+    }
+   },
+   "method": "minutes with >= 1 message (all messages: scored + 1 % sample) / minutes in the window; operator from data.source url/name",
+   "note": "The fixture keeps a 1 % background sample, so a low-volume operator can miss a minute without any capture loss: pct_outside_gaps separates that from the gap"
+  },
+  "duplicates": {
+   "same_certificate": 19481,
+   "same_certificate_across_runs": 15993,
+   "n_messages": 57262,
+   "definition": "same_certificate: same leaf sha256 (else log url + cert_index) seen again, including the same certificate from another CT log; same_log_entry_redelivered: identical log url + cert_index; *_across_runs: the first copy is in an earlier run (gzip member)"
+  },
+  "candidates_at_threshold": {
+   "certificates": 1216,
+   "unique_names": 1411,
+   "messages": 1873,
+   "messages_scored": 1873,
+   "messages_background_sample": 0,
+   "unique_certificates_triaged": 37781,
+   "threshold": 0.35,
+   "rules": "services.ingest.triage.triage as deployed",
+   "window": {
+    "from": "2026-10-07T06:30:36Z",
+    "to": "2026-10-07T10:54:49Z",
+    "hours": 4.4,
+    "state": "partial"
+   },
+   "dataset": "data/replay/ct_live.jsonl.gz (partial capture), certstream-server-go lite stream",
+   "coverage_note": "The fixture holds every certificate that scored >= 0.20 when recorded plus a 1 % sample of the rest; a certificate the deployed rules would now score >= threshold but scored < 0.20 at recording is only present if sampled"
+  },
+  "resighting_window_W": {
+   "seconds": 5400,
+   "quantile": 0.99,
+   "quantile_value_s": 5142.0,
+   "n_names_seen_twice": 5530,
+   "rounded_up_to_s": 1800,
+   "derivation": "p99 of the delay between the first and second sighting of a name in scored certificates (5530 names seen twice) = 85.7 min, rounded up to the 30-min poll resolution: a name first shown during a gap is, with that probability, seen again before W has passed, so first sightings later than W after a gap are not re-sightings of a missed one"
+  },
+  "measured_at": "2026-10-07T11:01:14Z",
+  "replay_fixture": {
+   "path": "data/replay/finalize_preview/ct_24h.jsonl.gz",
+   "messages": 37781,
+   "kept_scored": 5030,
+   "kept_background_sample": 32751,
+   "sorted_by_seen": true,
+   "replay_seconds_at_speed": {
+    "360": 39.4
+   },
+   "window": {
+    "from": "2026-10-07T06:30:36Z",
+    "to": "2026-10-07T10:54:49Z",
+    "hours": 4.4,
+    "state": "partial"
+   },
+   "gaps": [
+    {
+     "from": "2026-10-07T08:15:14Z",
+     "to": "2026-10-07T08:55:04Z",
+     "minutes": 39.8
+    }
+   ],
+   "messages_in": 57262,
+   "duplicates_removed": 19481,
+   "sample_rate": 0.01,
+   "keep_score": 0.2,
+   "replay_note": "stream.py replay sleeps min(delta / speed, 2.0 s) between messages; the capture gap therefore costs at most 2 s",
+   "state": "partial",
+   "measured_at": "2026-10-07T11:01:14Z"
+  }
+ },
+ "live_pipeline_counts": {
+  "threshold": 0.35,
+  "window": {
+   "from": "2026-10-07T06:30:36Z",
+   "to": "2026-10-07T10:54:49Z",
+   "hours": 4.4,
+   "state": "partial"
+  },
+  "candidates": {
+   "value": 1327,
+   "first_candidate_at": "2026-10-07T06:37:03.084306+00:00",
+   "last_candidate_at": "2026-10-07T10:54:24.254469+00:00",
+   "dataset": "Supabase domains: source=certstream, shared (origin_org_id null), candidate_at in window"
+  },
+  "org_verdicts": {
+   "org": "org1",
+   "org_id": 1,
+   "by_status": {
+    "candidate": 162,
+    "no verdict row (candidate)": 806,
+    "unreachable": 276,
+    "dismissed": 83
+   },
+   "confirmed": 0,
+   "dismissed": 83,
+   "unreachable": 276,
+   "n_candidates": 1327,
+   "dataset": "domain_verdicts of the pipeline org for those candidates; status as of measured_at"
+  },
+  "pipeline_largest_gap": {
+   "from": "2026-10-07T08:15:22Z",
+   "to": "2026-10-07T08:55:10Z",
+   "minutes": 39.8
+  },
+  "redelivery": {
+   "certificates_rows_in_window": 1197,
+   "candidate_rows_touched_again": 145,
+   "touched_again_across_the_gap": 15,
+   "note": "certificates.fingerprint is unique and a repeat is absorbed by ON CONFLICT without a counter, so certificate re-deliveries are not measurable. domains.last_seen is touched on every repeat candidate sighting (precertificate + final certificate, other logs, re-delivery); rows first seen before the gap and touched after it bound restart re-deliveries from above"
+  },
+  "measured_at": "2026-10-07T11:02:00Z",
+  "state": "partial"
+ }
+}

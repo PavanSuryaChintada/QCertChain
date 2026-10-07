@@ -25,8 +25,17 @@ READ_METHODS = ("GET", "HEAD", "OPTIONS")
 
 def get_conn() -> Iterator[sa.Connection]:
     """PRIVILEGED transaction provider. Only auth, get_scope and admin routes may depend on it directly."""
+    if not SETTINGS.database_url:
+        raise HTTPException(503, "The database is not configured (DATABASE_URL).")
     with engine().begin() as c:
         yield c
+
+
+def require_key_header(request: Request) -> None:
+    """Runs before anything touches the database: a request with no key is 401 whatever else is down."""
+    if not request.headers.get(auth.HEADER):
+        raise HTTPException(401, "Missing or invalid API key (send it in the X-API-Key header).",
+                            headers={"WWW-Authenticate": auth.HEADER})
 
 
 def get_principal(request: Request, c: sa.Connection = Depends(get_conn)) -> auth.Principal:

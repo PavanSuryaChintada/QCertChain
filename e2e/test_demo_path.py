@@ -105,9 +105,18 @@ def test_demo_path_in_order_offline(browser):
     expect(page.get_by_test_id("scaling-chart")).to_be_visible()
     _shot(page, "03-campaign-k5")
 
-    # 5:00 Solvers: the exhaustive row verifies CP-SAT; "Run again" works live
-    page.get_by_role("button", name=re.compile(r"Run again")).click()
-    expect(page.get_by_test_id("verified")).to_be_visible(timeout=240_000)
+    # 5:00 Solvers: "Run again" re-runs all five solvers live at the slider's k (a NEW computed time, no refusal),
+    # and the exhaustive row verifies CP-SAT. The button must carry k = 5: the slider debounce has to settle first.
+    run = page.get_by_role("button", name="Run again at k = 5")
+    expect(run).to_be_enabled(timeout=30_000)
+    caption = page.get_by_text(re.compile(r"(cached result|fresh run) computed")).first
+    expect(caption).to_be_visible(timeout=240_000)
+    before = caption.inner_text()
+    run.click()
+    expect(caption).not_to_have_text(before, timeout=240_000)
+    expect(caption).to_contain_text("fresh run")
+    expect(page.get_by_text(re.compile(r"refused", re.I))).to_have_count(0)
+    expect(page.get_by_test_id("verified")).to_be_visible()
     expect(page.get_by_label("Solver benchmark")).to_contain_text("QAOA")
     _shot(page, "04-solvers")
 

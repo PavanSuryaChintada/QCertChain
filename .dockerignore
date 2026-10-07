@@ -1,16 +1,30 @@
+# Build context is the repo root for every image (services/api, contracts, deploy/certstream).
+# Keep secrets, host-built dependencies and large regenerable data out of it.
 .venv
 .git
+.github
 .superpowers
+.pytest_cache
 **/node_modules
 **/__pycache__
 .env
 .env.*
+!.env.example
+
+# large / regenerated data (the API image copies only the few data files it needs)
 data/capture.jsonl
 data/capture_full.jsonl
 data/probe.jsonl
 data/ml
 data/evidence
+data/replay
+data/backups
+*.dump
+qcertchain.zip
 reports/ct_capture/*.log
+
+# build outputs, regenerated inside the images
 apps/console/dist
 contracts/artifacts
 contracts/cache
+contracts/typechain-types

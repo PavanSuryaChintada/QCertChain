@@ -10,7 +10,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.gzip import GZipMiddleware
 from fastapi.responses import JSONResponse
 
-from services.api.deps import get_principal, rate_limit
+from services.api.deps import get_principal, rate_limit, require_key_header
 from services.api.timing import TimingMiddleware
 from services.api.routes import admin, campaigns, domains, email, evidence, ledger, ops, plans, stream
 from services.ingest.triage import warm
@@ -89,4 +89,4 @@ def health():
 # Every router requires a valid key (401 otherwise). Org routers additionally take a Scope (deps.get_scope).
 for r in (stream.router, domains.router, campaigns.router, plans.router, evidence.router, ledger.router,
           email.router, ops.router, admin.router):
-    app.include_router(r, dependencies=[Depends(get_principal), Depends(rate_limit)])
+    app.include_router(r, dependencies=[Depends(require_key_header), Depends(get_principal), Depends(rate_limit)])

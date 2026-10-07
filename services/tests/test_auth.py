@@ -130,3 +130,18 @@ def test_limiter_outage_does_not_take_the_api_down(api):
             raise ConnectionError("redis down")
     main.app.dependency_overrides[deps.get_redis] = lambda: Down()
     assert api.get("/campaigns").status_code == 200
+
+
+def test_no_key_is_401_even_when_the_database_is_not_configured(monkeypatch):
+    """Found by the deploy smoke test: without DATABASE_URL a keyless request used to be a 500."""
+    import dataclasses
+
+    from fastapi.testclient import TestClient
+
+    from services.api import deps, main
+    monkeypatch.setattr(deps, "SETTINGS", dataclasses.replace(deps.SETTINGS, database_url=""))
+    main.app.dependency_overrides.clear()
+    with TestClient(main.app) as c:
+        assert c.get("/campaigns").status_code == 401
+        assert c.get("/campaigns", headers={auth.HEADER: "qcc_org_x"}).status_code == 503
+        assert c.get("/health").status_code == 200

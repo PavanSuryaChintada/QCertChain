@@ -26,7 +26,7 @@ import sqlalchemy as sa
 ROOT = Path(__file__).resolve().parent.parent
 API_PORT, CONSOLE_PORT = 8100, 4173
 API = f"http://127.0.0.1:{API_PORT}"
-CONSOLE = f"http://localhost:{CONSOLE_PORT}"
+CONSOLE = f"http://127.0.0.1:{CONSOLE_PORT}"
 PY = sys.executable
 
 
@@ -75,7 +75,7 @@ def main() -> int:
     evidence = tempfile.mkdtemp(prefix="qcc-e2e-evidence-")
     env = {**os.environ, "DATABASE_URL": db_url, "EVIDENCE_DIR": evidence,
            "COLLECTOR_PRIVATE_KEY": nacl.signing.SigningKey.generate().encode().hex(),
-           "CONSOLE_ORIGINS": f"{CONSOLE},http://127.0.0.1:{CONSOLE_PORT}", "API_REGION": "local",
+           "CONSOLE_ORIGINS": f"{CONSOLE},http://localhost:{CONSOLE_PORT}", "API_REGION": "local",
            "RATE_LIMIT_DEMO": "60", "PYTHONUNBUFFERED": "1"}
     procs: list[subprocess.Popen] = []
     logs = ROOT / "e2e" / "artifacts"
@@ -107,7 +107,9 @@ def main() -> int:
         if b.returncode:
             print(b.stdout[-3000:], b.stderr[-3000:])
             return 2
-        start(f'npx vite preview --port {CONSOLE_PORT} --strictPort', "console", cwd=console)
+        # the built console is static: serve dist/ with a stdlib server (SPA fallback to index.html). `vite preview`
+        # needs esbuild at start-up, which proved flaky on Windows; this has no moving parts.
+        start([PY, "-m", "scripts.e2e_stack", "--serve", str(console / "dist"), str(CONSOLE_PORT)], "console")
         _wait(CONSOLE, 60, "console")
 
         test_env = {**env, "E2E_CONSOLE_URL": CONSOLE, "E2E_API_URL": API, "E2E_ARTIFACTS": str(logs),
@@ -126,5 +128,25 @@ def main() -> int:
                 p.terminate()
 
 
+def serve(root: str, port: int) -> None:
+    """Static file server for the built console, with the single-page-app fallback."""
+    import functools
+    import http.server
+
+    class SPA(http.server.SimpleHTTPRequestHandler):
+        def send_head(self):
+            path = Path(self.translate_path(self.path))
+            if not path.exists() or (path.is_dir() and not (path / "index.html").exists()):
+                self.path = "/index.html"
+            return super().send_head()
+
+        def log_message(self, fmt, *args):
+            pass
+    http.server.ThreadingHTTPServer(("127.0.0.1", port), functools.partial(SPA, directory=root)).serve_forever()
+
+
 if __name__ == "__main__":
-    raise SystemExit(main())
+    if len(sys.argv) == 4 and sys.argv[1] == "--serve":
+        serve(sys.argv[2], int(sys.argv[3]))
+    else:
+        raise SystemExit(main())

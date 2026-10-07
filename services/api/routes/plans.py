@@ -93,7 +93,7 @@ FRAMING_SENTENCE = ("CP-SAT is the production solver; QAOA is benchmarked on the
 
 
 @router.get("/campaigns/{campaign_id}/benchmark")
-def campaign_benchmark(campaign_id: str, k: int = Query(5, ge=1, le=10),
+def campaign_benchmark(campaign_id: str, k: int = Query(5, ge=1, le=15),  # the slider runs to 15
                        run: bool = Query(False, description="re-run every solver now ('Run again')"),
                        s: Scope = Depends(get_scope)):
     """Greedy, CP-SAT, simulated annealing and QAOA on the same budget-k problem. Every row is reported, losses and

@@ -40,7 +40,7 @@ services:
     # would corrupt the pipeline invisibly
 
   hardhat:
-    build: {context: ./contracts, dockerfile: Dockerfile}
+    build: {context: ., dockerfile: contracts/Dockerfile}   # repo-root context, same as Railway
     ports: ["127.0.0.1:8545:8545"]
     restart: unless-stopped
     # the image starts the node AND deploys the contracts on boot (contracts/Dockerfile). A fresh node
