@@ -1,10 +1,10 @@
 """Candidates and domain detail. Every verdict is returned with its reasons — a verdict without reasons is a bug."""
 from __future__ import annotations
 
-import sqlalchemy as sa
 from fastapi import APIRouter, Depends, HTTPException, Query
 
-from services.api.deps import get_conn, get_redis
+from services.api.deps import Scope, get_redis, get_scope
+from services.api.repos import domains as repo_domains
 from services.api.models import (CandidateItem, ConfirmationOut, DomainDetail, DomainStatus, EnrichmentOut, Page,
                                  SignalOut, TriageOut)
 from services.config import SETTINGS
@@ -14,32 +14,16 @@ router = APIRouter()
 
 @router.get("/candidates", response_model=Page[CandidateItem])
 def candidates(status: DomainStatus | None = None, min_score: float | None = Query(None, ge=0, le=1),
-               limit: int = Query(50, ge=1, le=500), offset: int = Query(0, ge=0), c=Depends(get_conn)):
-    rows = c.execute(sa.text("""
-        select id, name, etld1, status, triage_score, brand_matched, confidence, campaign_id::text, first_seen, source,
-               count(*) over () as total
-        from domains
-        where (cast(:status as text) is null or status = :status)
-          and (cast(:min_score as real) is null or triage_score >= :min_score)
-        order by first_seen desc, id desc limit :limit offset :offset"""),
-        {"status": status, "min_score": min_score, "limit": limit, "offset": offset}).mappings().all()
+               limit: int = Query(50, ge=1, le=500), offset: int = Query(0, ge=0), s: Scope = Depends(get_scope)):
+    rows = repo_domains.list_candidates(s, status=status, min_score=min_score, limit=limit, offset=offset)
     total = rows[0]["total"] if rows else 0
     return {"items": [{k: v for k, v in r.items() if k != "total"} for r in rows], "total": total,
             "limit": limit, "offset": offset}
 
 
 @router.get("/domains/{domain_id}", response_model=DomainDetail)
-def domain_detail(domain_id: int, c=Depends(get_conn)):
-    r = c.execute(sa.text("""
-        select d.*, d.campaign_id::text as campaign_id_s, e.domain_id as has_enrichment,
-               array(select host(x) from unnest(e.ip_addresses) x) as ips, e.asn, e.asn_name, e.country, e.nameservers, e.cert_issuer, e.registrar,
-               e.registered_at, e.dom_hash, e.favicon_hash, e.partial, e.errors,
-               b.id::text as bundle_id,
-               exists(select 1 from evidence_artifacts a where a.bundle_id = b.id and a.name = 'screenshot.png') as shot
-        from domains d
-        left join enrichment e on e.domain_id = d.id
-        left join lateral (select id from evidence_bundles where domain_id = d.id order by created_at desc limit 1) b on true
-        where d.id = :id"""), {"id": domain_id}).mappings().one_or_none()
+def domain_detail(domain_id: int, s: Scope = Depends(get_scope)):
+    r = repo_domains.detail(s, domain_id)
     if r is None:
         raise HTTPException(404, f"domain {domain_id} not found")
     tr = r["triage_reasons"] or {}
@@ -66,8 +50,8 @@ def domain_detail(domain_id: int, c=Depends(get_conn)):
 
 
 @router.post("/domains/{domain_id}/confirm", status_code=202)
-async def force_confirm(domain_id: int, c=Depends(get_conn), r=Depends(get_redis)):
-    if c.execute(sa.text("select 1 from domains where id = :d"), {"d": domain_id}).first() is None:
+async def force_confirm(domain_id: int, s: Scope = Depends(get_scope), r=Depends(get_redis)):
+    if not repo_domains.exists(s, domain_id):
         raise HTTPException(404, f"domain {domain_id} not found")
-    await r.lpush("enrich:queue", f"force:{domain_id}")
+    await r.lpush("enrich:queue", f"force:{s.org_id}:{domain_id}")  # confirmed on behalf of THIS org
     return {"queued": True, "domain_id": domain_id}

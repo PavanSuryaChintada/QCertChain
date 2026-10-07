@@ -1,4 +1,5 @@
-"""Stream state, mode switch, and the live certificate feed (SSE, server-throttled to ~20 events/s)."""
+"""Stream state and the live certificate feed (SSE, server-throttled to ~20 events/s). Shared platform data:
+the public CT feed. Switching its mode is an admin action (routes/admin.py)."""
 from __future__ import annotations
 
 import asyncio
@@ -11,7 +12,7 @@ from fastapi import APIRouter, Depends
 from fastapi.responses import StreamingResponse
 
 from services.api.deps import get_redis
-from services.api.models import ModeRequest, StreamState
+from services.api.models import StreamState
 
 router = APIRouter()
 STATE, MODE_REQ, LIVE = "stream:state", "stream:mode_request", "certs:live"
@@ -53,13 +54,6 @@ async def read_state(r) -> StreamState:
 
 @router.get("/stream/state", response_model=StreamState)
 async def stream_state(r=Depends(get_redis)):
-    return await read_state(r)
-
-
-@router.post("/stream/mode", response_model=StreamState)
-async def stream_mode(body: ModeRequest, r=Depends(get_redis)):
-    """The ingest process watches this key and switches source. The UI labels replay at all times."""
-    await r.hset(MODE_REQ, mapping={"mode": body.mode, "speed": str(body.speed)})
     return await read_state(r)
 
 

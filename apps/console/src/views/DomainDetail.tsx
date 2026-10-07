@@ -1,6 +1,6 @@
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { Link } from "react-router-dom";
-import { API_URL, api, type DomainDetail as D, type Signal } from "../lib/api";
+import { api, type DomainDetail as D, type Signal } from "../lib/api";
 import { VerdictChip } from "../components/VerdictChip";
 import { Hash, Num } from "../components/Mono";
 import { EvidenceViewer } from "./EvidenceViewer";
@@ -122,8 +122,7 @@ export function DomainDetail({ id }: { id: number }) {
       <div className="min-w-0">
         {d.confirmation?.screenshot_url && (
           <figure className="p-4 rule-b">
-            <img src={API_URL + d.confirmation.screenshot_url} alt={`Screenshot of ${d.name} as fetched`}
-                 style={{ width: "100%", border: "1px solid var(--ground-300)" }} />
+            <Screenshot path={d.confirmation.screenshot_url} alt={`Screenshot of ${d.name} as fetched`} />
             <figcaption className="secondary mt-1">Captured page. Fetched and observed only — no form was touched.</figcaption>
           </figure>
         )}
@@ -132,4 +131,12 @@ export function DomainDetail({ id }: { id: number }) {
       </div>
     </div>
   );
+}
+
+/** The artifact endpoint needs the API key, so the image is fetched and shown from a blob URL. */
+function Screenshot({ path, alt }: { path: string; alt: string }) {
+  const q = useQuery({ queryKey: ["artifact", path], queryFn: () => api.artifactBlobUrl(path), staleTime: Infinity });
+  if (q.isError) return <p className="secondary">Screenshot unavailable.</p>;
+  if (!q.data) return <p className="secondary">Loading screenshot.</p>;
+  return <img src={q.data} alt={alt} style={{ width: "100%", border: "1px solid var(--ground-300)" }} />;
 }

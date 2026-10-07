@@ -1,3 +1,4 @@
+import { apiFetch } from "./api";
 // Live certificate feed. Throttled server-side (~20/s) AND client-side: rendering 3,000/s freezes the browser,
 // and nobody can read it (apps/BUILD_SPEC.md §2).
 export interface LiveCert {
@@ -33,18 +34,61 @@ export function throttleBuffer<T>(onFlush: (items: T[]) => void, { maxPerSec, ca
   };
 }
 
-export function createThrottledStream(url: string, onLines: (lines: LiveCert[]) => void): () => void {
-  const t = throttleBuffer<LiveCert>(onLines, { maxPerSec: 20, cap: 200, keep: (x) => x.is_candidate });
-  const es = new EventSource(url);
-  es.addEventListener("cert", (ev) => {
-    try {
-      t.push(JSON.parse((ev as MessageEvent).data));
-    } catch {
-      /* a malformed event is skipped, never fatal */
+/** Parse a text/event-stream body into events. Exported for tests. */
+export function parseSse(chunk: string): { rest: string; events: { event: string; data: string }[] } {
+  const events: { event: string; data: string }[] = [];
+  const blocks = chunk.split(/\r?\n\r?\n/);
+  const rest = blocks.pop() ?? "";
+  for (const b of blocks) {
+    let event = "message";
+    const data: string[] = [];
+    for (const line of b.split(/\r?\n/)) {
+      if (line.startsWith("event:")) event = line.slice(6).trim();
+      else if (line.startsWith("data:")) data.push(line.slice(5).trimStart());
     }
-  });
+    if (data.length) events.push({ event, data: data.join("\n") });
+  }
+  return { rest, events };
+}
+
+/** The live feed over fetch (EventSource cannot send the API key header). Reconnects with backoff. */
+export function createThrottledStream(path: string, onLines: (lines: LiveCert[]) => void): () => void {
+  const t = throttleBuffer<LiveCert>(onLines, { maxPerSec: 20, cap: 200, keep: (x) => x.is_candidate });
+  const ctrl = new AbortController();
+  let stopped = false;
+  (async () => {
+    let delay = 1000;
+    while (!stopped) {
+      try {
+        const r = await apiFetch(path, { signal: ctrl.signal, headers: { accept: "text/event-stream" } });
+        if (!r.ok || !r.body) throw new Error(String(r.status));
+        delay = 1000;
+        const reader = r.body.pipeThrough(new TextDecoderStream()).getReader();
+        let buf = "";
+        for (;;) {
+          const { value, done } = await reader.read();
+          if (done) break;
+          const parsed = parseSse(buf + value);
+          buf = parsed.rest;
+          for (const ev of parsed.events) {
+            if (ev.event !== "cert") continue;
+            try {
+              t.push(JSON.parse(ev.data));
+            } catch {
+              /* a malformed event is skipped, never fatal */
+            }
+          }
+        }
+      } catch {
+        if (stopped) return;
+      }
+      await new Promise((res) => setTimeout(res, delay));
+      delay = Math.min(delay * 2, 15000);
+    }
+  })();
   return () => {
-    es.close();
+    stopped = true;
+    ctrl.abort();
     t.stop();
   };
 }

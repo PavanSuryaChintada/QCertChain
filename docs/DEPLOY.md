@@ -3,17 +3,20 @@
 **Not deployed yet.** Deployment is an outward-facing action and waits for the owner's explicit go-ahead
 with Railway and Vercel tokens (spec D6). Nothing here has been run against a hosted account.
 
-## Before a public deploy: decide on access control
+## Access control
 
-The API has **no authentication**. On localhost that is fine; on a public URL anyone who finds it could call
-`POST /seed/campaign`, `POST /stream/mode`, `POST /ledger/*` (queued chain writes) and `POST /email/analyze`.
-Options, for the owner to choose before deploying:
+Every route except `GET /health` requires an `X-API-Key` header (owner decision, 2026-10-07). Before deploying,
+create keys against the hosted database and hand them out:
 
-1. Keep the API on Railway's **private network only** and expose just the console through a proxy that
-   allows read-only routes plus the demo actions.
-2. Add a shared-secret header (one environment variable, checked by a FastAPI dependency) for every
-   `POST` route.
-3. Deploy only for the demo window and tear down afterwards.
+```bash
+python -m scripts.create_api_key --kind org   --org org1 --label "Bank One SOC"
+python -m scripts.create_api_key --kind org   --org org2 --label "Bank Two SOC"
+python -m scripts.create_api_key --kind demo  --org org1 --label "evaluators (read-only)"
+python -m scripts.create_api_key --kind admin --label "platform admin"      # seed + stream mode only
+```
+
+Each token is printed once; the database stores only its SHA-256. Give evaluators the **demo** key: it is
+read-only and scoped to one organisation. Revoke with `--revoke <first 12 characters>`.
 
 The Hardhat node uses Hardhat's publicly known test keys: it must **never** be publicly reachable — private
 networking only.

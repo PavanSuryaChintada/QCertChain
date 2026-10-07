@@ -45,14 +45,14 @@ async def test_rate_limited_is_requeued_not_persisted(db, tmp_path, monkeypatch)
     r = fr.FakeRedis(decode_responses=True)
     verdict = await enrich_worker.handle_one(d, conn=db, redis=r, evidence_dir=tmp_path, signing_key_hex="00" * 32)
     assert verdict == "requeued" and await r.zcard(enrich_worker.RETRY_ZSET) == 1
-    assert db.execute(sa.text("select confirm_reasons from domains where id=:d"), {"d": d}).scalar() is None
+    assert db.execute(sa.text("select confirm_reasons from org_domains where id=:d"), {"d": d}).scalar() is None
 
 
 async def test_already_decided_domain_skipped(db, tmp_path):
     t = triage("paytm-kyc-verify.buzz")
     d, _ = repo.upsert_candidate(db, name="paytm-kyc-verify.buzz", etld1=t.etld1, cert_id=None, triage=t,
                                  source="certstream", ct_seen_at=datetime.now(timezone.utc))
-    db.execute(sa.text("update domains set status='dismissed' where id=:d"), {"d": d})
+    db.execute(sa.text("insert into domain_verdicts (domain_id, status) values (:d, 'dismissed')"), {"d": d})
     r = fr.FakeRedis(decode_responses=True)
     assert await enrich_worker.handle_one(d, conn=db, redis=r, evidence_dir=tmp_path, signing_key_hex="00" * 32) == "skipped"
 

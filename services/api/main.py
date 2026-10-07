@@ -4,12 +4,13 @@ from __future__ import annotations
 import os
 from contextlib import asynccontextmanager
 
-from fastapi import FastAPI, HTTPException, Request
+from fastapi import Depends, FastAPI, HTTPException, Request
 from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
-from services.api.routes import campaigns, domains, email, evidence, ledger, ops, plans, stream
+from services.api.deps import get_principal
+from services.api.routes import admin, campaigns, domains, email, evidence, ledger, ops, plans, stream
 from services.ingest.triage import warm
 
 PROBLEM = "application/problem+json"
@@ -44,7 +45,9 @@ async def lifespan(app: FastAPI):
         qaoa_isolated.shutdown()
 
 
-app = FastAPI(title="QCertChain API", version="0.1.0", lifespan=lifespan)
+# No public /docs or /openapi.json: every route except /health requires a key.
+app = FastAPI(title="QCertChain API", version="0.1.0", lifespan=lifespan, docs_url=None, redoc_url=None,
+              openapi_url=None)
 app.add_middleware(CORSMiddleware,
                    allow_origins=[o for o in os.environ.get("CONSOLE_ORIGINS", "http://localhost:5180").split(",") if o],
                    allow_methods=["*"], allow_headers=["*"])
@@ -57,9 +60,12 @@ def problem(status: int, title: str, detail: str | None, instance: str) -> JSONR
 
 @app.exception_handler(HTTPException)
 async def http_problem(request: Request, exc: HTTPException):
-    titles = {404: "Not found", 409: "Conflict", 413: "Payload too large", 422: "Unprocessable", 429: "Too many requests",
+    titles = {401: "Unauthorized", 403: "Forbidden", 404: "Not found", 409: "Conflict", 413: "Payload too large", 422: "Unprocessable", 429: "Too many requests",
               503: "Service unavailable"}
-    return problem(exc.status_code, titles.get(exc.status_code, "Error"), str(exc.detail), request.url.path)
+    resp = problem(exc.status_code, titles.get(exc.status_code, "Error"), str(exc.detail), request.url.path)
+    for k, v in (exc.headers or {}).items():
+        resp.headers[k] = v
+    return resp
 
 
 @app.exception_handler(RequestValidationError)
@@ -73,6 +79,7 @@ def health():
     return {"status": "ok", "service": "qcertchain-api"}
 
 
+# Every router requires a valid key (401 otherwise). Org routers additionally take a Scope (deps.get_scope).
 for r in (stream.router, domains.router, campaigns.router, plans.router, evidence.router, ledger.router,
-          email.router, ops.router):
-    app.include_router(r)
+          email.router, ops.router, admin.router):
+    app.include_router(r, dependencies=[Depends(get_principal)])

@@ -22,8 +22,11 @@ def db_engine():
 
 @pytest.fixture
 def db(db_engine):
+    """Privileged connection in a rolled-back transaction, writing on behalf of org1 (org_id defaults)."""
+    from services.api.db import set_org_context
     conn = db_engine.connect()
     tx = conn.begin()
+    set_org_context(conn, 1)
     yield conn
     tx.rollback()
     conn.close()
@@ -37,27 +40,37 @@ def api(db, tmp_path):
     import nacl.signing
     from fastapi.testclient import TestClient
 
-    from services.api import deps, main
+    from services.api import auth, deps, main
+    from services.api.db import set_org_context
 
     server = fakeredis.FakeServer()
     key = nacl.signing.SigningKey.generate().encode().hex()
+    auth.clear_cache()
+    keys = {"org1": auth.create_key(db, "org", "org1"), "org2": auth.create_key(db, "org", "org2"),
+            "demo1": auth.create_key(db, "demo", "org1"), "admin": auth.create_key(db, "admin", None)}
 
     def conn():
         yield db
+        if db.in_transaction():
+            set_org_context(db, 1)  # back to the fixture's default after a request
 
     main.app.dependency_overrides[deps.get_conn] = conn
     main.app.dependency_overrides[deps.get_redis] = lambda: fakeredis.aioredis.FakeRedis(server=server,
                                                                                          decode_responses=True)
     main.app.dependency_overrides[deps.get_evidence_dir] = lambda: tmp_path
     main.app.dependency_overrides[deps.get_signing_key] = lambda: key
-    with TestClient(main.app) as c:
+    with TestClient(main.app, headers={auth.HEADER: keys["org1"]}) as c:
         c.fake_redis_server = server
+        c.keys = keys
+        c.as_ = lambda who: {auth.HEADER: keys[who]}
         yield c
     main.app.dependency_overrides.clear()
+    auth.clear_cache()
 
 
 @pytest.fixture
 def seeded(api):
-    r = api.post("/seed/campaign", json={"label": "smoke", "domains": 60, "ips": 12, "asns": 3, "nameservers": 4})
+    r = api.post("/admin/seed", headers=api.as_("admin"),
+                 json={"label": "smoke", "domains": 60, "ips": 12, "asns": 3, "nameservers": 4, "org": "org1"})
     assert r.status_code == 200, r.text
-    return r.json()["id"]
+    return r.json()["campaign_id"]

@@ -6,7 +6,7 @@ import { CampaignView } from "./views/CampaignView";
 import { DomainDetail } from "./views/DomainDetail";
 import { EmailAnalyzer } from "./views/EmailAnalyzer";
 import { OpsLog } from "./views/OpsLog";
-import { SecondOrg } from "./views/SecondOrg";
+import { SharedLedger } from "./views/SecondOrg";
 
 function ConsoleMain() {
   const [params] = useSearchParams();
@@ -35,7 +35,7 @@ export default function App() {
         <Routes>
           <Route path="/" element={<ConsoleMain />} />
           <Route path="/email" element={<EmailAnalyzer />} />
-          <Route path="/org2" element={<SecondOrg />} />
+          <Route path="/ledger" element={<SharedLedger />} />
           <Route path="/ops" element={<OpsLog />} />
         </Routes>
       </main>

@@ -19,24 +19,38 @@ def test_abuse_report_cannot_be_sent(db):
         db.execute(sa.text("insert into abuse_reports(body, sent) values ('x', true)"))
 
 
+def _domain(db, name):
+    return db.execute(sa.text("insert into domains(name, etld1) values (:n, :n) returning id"), {"n": name}).scalar()
+
+
 def test_confirmed_without_reasons_rejected(db):
+    d = _domain(db, "a.top")
     with pytest.raises(sa.exc.IntegrityError):
-        db.execute(sa.text("insert into domains(name, etld1, status) values ('a.top','a.top','confirmed')"))
+        db.execute(sa.text("insert into domain_verdicts(domain_id, status) values (:d, 'confirmed')"), {"d": d})
 
 
 def test_confirmed_with_two_strong_accepted(db):
+    d = _domain(db, "b.top")
     db.execute(sa.text(
-        "insert into domains(name, etld1, status, confirm_reasons) values ('b.top','b.top','confirmed', "
-        "'{\"signals\":[{\"name\":\"x\",\"strength\":\"strong\"},{\"name\":\"y\",\"strength\":\"strong\"}]}')"))
+        "insert into domain_verdicts(domain_id, status, confirm_reasons) values (:d, 'confirmed', "
+        "'{\"signals\":[{\"name\":\"x\",\"strength\":\"strong\"},{\"name\":\"y\",\"strength\":\"strong\"}]}')"),
+        {"d": d})
+
+
+def test_shared_domains_table_carries_no_verdict(db):
+    """Refinement: a shared candidate row must never reveal that a particular org confirmed it."""
+    cols = set(db.execute(sa.text("select * from domains limit 0")).keys())
+    assert not cols & {"status", "confirm_reasons", "confidence", "confirmed_at", "campaign_id", "verdict_at"}
 
 
 def test_confirmed_on_one_strong_signal_rejected_by_db(db):
     """CLAUDE.md non-negotiable, enforced in code AND database: confirmed needs >= 2 strong signals."""
     reasons = ('{"signals":[{"name":"a","strength":"strong"},{"name":"b","strength":"moderate"},'
                '{"name":"c","strength":"moderate"},{"name":"d","strength":"moderate"}]}')
+    d = _domain(db, "c.top")
     with pytest.raises(sa.exc.IntegrityError):
-        db.execute(sa.text("insert into domains(name, etld1, status, confirm_reasons) "
-                           "values ('c.top','c.top','confirmed', cast(:r as jsonb))"), {"r": reasons})
+        db.execute(sa.text("insert into domain_verdicts(domain_id, status, confirm_reasons) "
+                           "values (:d, 'confirmed', cast(:r as jsonb))"), {"r": reasons, "d": d})
 
 
 def test_email_malicious_needs_two_strong(db):

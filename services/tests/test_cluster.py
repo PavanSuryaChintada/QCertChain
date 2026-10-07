@@ -81,7 +81,7 @@ def test_recluster_creates_stable_labelled_campaign_with_ioc_root(db):
     assert len(first) == 1
     row = db.execute(sa.text("select label, domain_count, kit_hash, ioc_root, confidence from campaigns")).one()
     assert row.label == "CAMP-0001" and row.domain_count == 2 and row.kit_hash == "abc" and len(row.ioc_root) == 64
-    members = db.execute(sa.text("select count(*) from domains where campaign_id is not null and campaign_joined_at is not null")).scalar()
+    members = db.execute(sa.text("select count(*) from org_domains where campaign_id is not null and campaign_joined_at is not null")).scalar()
     assert members == 2
     assert recluster(db) == first  # stable id on re-run
 

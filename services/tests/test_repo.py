@@ -32,7 +32,7 @@ def test_upsert_candidate_once_and_keeps_first_timestamps(db):
                                          source="certstream", ct_seen_at=datetime(2027, 1, 1, tzinfo=timezone.utc))
     assert a == b and created_a and not created_b
     assert db.execute(sa.text("select candidate_at, ct_seen_at from domains where id=:i"), {"i": a}).one() == first
-    row = db.execute(sa.text("select status, triage_score, brand_matched, triage_reasons from domains where id=:i"),
+    row = db.execute(sa.text("select status, triage_score, brand_matched, triage_reasons from org_domains where id=:i"),
                      {"i": a}).one()
     assert row.status == "candidate" and row.brand_matched == "State Bank of India"
     assert {r["feature"] for r in row.triage_reasons["reasons"]} >= {"brand_token_exact"}
@@ -45,7 +45,7 @@ def test_set_confirmation_stores_reasons(db):
     res = ConfirmResult("confirmed", 0.91, [Signal("credential_post_foreign_origin", "strong", "x"),
                                              Signal("kit_dom_hash_match", "strong", "y")], 2)
     repo.set_confirmation(db, d, res)
-    row = db.execute(sa.text("select status, confirmed_at, confidence, confirm_reasons from domains where id=:i"),
+    row = db.execute(sa.text("select status, confirmed_at, confidence, confirm_reasons from org_domains where id=:i"),
                      {"i": d}).one()
     assert row.status == "confirmed" and row.confirmed_at and row.confirm_reasons["strong_count"] == 2
 
@@ -89,4 +89,4 @@ def test_every_verdict_is_timestamped_for_response_time_analysis(db):
         d, _ = repo.upsert_candidate(db, name=name, etld1=t.etld1, cert_id=None, triage=t, source="certstream",
                                      ct_seen_at=NOW)
         repo.set_confirmation(db, d, ConfirmResult(verdict, 0.0, [Signal("x", "weak", "y")], 0))
-        assert db.execute(sa.text("select verdict_at from domains where id=:d"), {"d": d}).scalar() is not None
+        assert db.execute(sa.text("select verdict_at from org_domains where id=:d"), {"d": d}).scalar() is not None

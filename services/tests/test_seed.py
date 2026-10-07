@@ -8,7 +8,7 @@ pytestmark = pytest.mark.db
 
 def test_seed_clusters_into_one_labelled_campaign(db, tmp_path):
     cid = seed_campaign(db, label="titli-kit", domains=400, evidence_dir=tmp_path)
-    n = db.execute(sa.text("select count(*) from domains where campaign_id=:c and source='seed' and status='confirmed'"),
+    n = db.execute(sa.text("select count(*) from org_domains where campaign_id=:c and source='seed' and status='confirmed'"),
                    {"c": cid}).scalar()
     assert n == 400
     assert db.execute(sa.text("select count(*) from campaigns")).scalar() == 1
@@ -19,7 +19,7 @@ def test_seed_clusters_into_one_labelled_campaign(db, tmp_path):
 
 def test_every_seed_domain_has_two_strong_reasons(db, tmp_path):
     seed_campaign(db, label="t2", domains=20, evidence_dir=tmp_path)
-    rows = db.execute(sa.text("select confirm_reasons from domains where source='seed'")).scalars().all()
+    rows = db.execute(sa.text("select confirm_reasons from org_domains where source='seed'")).scalars().all()
     assert len(rows) == 20 and all(sum(s["strength"] == "strong" for s in r["signals"]) >= 2 for r in rows)
 
 

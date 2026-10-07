@@ -1,24 +1,22 @@
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQuery } from "@tanstack/react-query";
 import { NavLink } from "react-router-dom";
 import { api } from "../lib/api";
+import { setKey } from "../lib/auth";
 import { ModeIndicator } from "../components/ModeIndicator";
 import { Num } from "../components/Mono";
 
 const NAV = [
   { to: "/", label: "Console", end: true },
   { to: "/email", label: "Email headers" },
-  { to: "/org2", label: "Second organisation" },
+  { to: "/ledger", label: "Shared ledger" },
   { to: "/ops", label: "Ops log" },
 ];
 
 export function Header() {
-  const qc = useQueryClient();
   const state = useQuery({ queryKey: ["stream-state"], queryFn: api.streamState, refetchInterval: 3000 });
   const metrics = useQuery({ queryKey: ["metrics"], queryFn: api.metrics, refetchInterval: 5000 });
-  const mode = useMutation({
-    mutationFn: (m: "live" | "replay") => api.setMode(m, m === "replay" ? 5 : 1),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["stream-state"] }),
-  });
+  const ledger = useQuery({ queryKey: ["ledger-status"], queryFn: api.ledgerStatus, refetchInterval: 15000 });
+  const me = ledger.data ? ledger.data.orgs[ledger.data.you]?.name ?? ledger.data.you : null;
   const s = state.data;
   const m = metrics.data;
   return (
@@ -48,9 +46,8 @@ export function Header() {
             <span title="Ledger writes waiting for the chain"><Num v={m.anchor_queue_depth} /> queued for ledger</span>
           </>
         )}
-        <button onClick={() => mode.mutate(s?.mode === "replay" ? "live" : "replay")} disabled={mode.isPending}>
-          {s?.mode === "replay" ? "Switch to live" : "Switch to replay"}
-        </button>
+        {me && <span title="Your organisation: everything shown is scoped to it" style={{ color: "var(--ink-000)" }}>{me}</span>}
+        <button onClick={() => setKey(null)}>Sign out</button>
       </div>
     </header>
   );

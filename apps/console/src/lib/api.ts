@@ -1,4 +1,6 @@
 // Typed client for docs/API_CONTRACT.md. The console talks only to the QCertChain API.
+import { authHeaders, setKey } from "./auth";
+
 export const API_URL: string = (import.meta.env.VITE_API_URL as string | undefined) ?? "http://localhost:8000";
 
 export type DomainStatus = "candidate" | "confirmed" | "dismissed" | "unreachable";
@@ -69,12 +71,14 @@ export interface VerifyResult {
 export interface Report { bundle_id: string; recipient: string | null; format: "markdown"; body: string; sent: false; generated_at: string }
 export interface OpsItem { id: number; at: string; channel: string; severity: number; message: string; context: unknown }
 export interface InheritedCampaign {
-  campaign_id: string; chain_campaign_id: string; ioc_root: string; kit_hash: string; domain_count: number; confidence: number;
+  campaign_id: string | null; yours: boolean; chain_campaign_id: string; ioc_root: string; kit_hash: string; domain_count: number; confidence: number;
   reporter: { address: string; name: string }; published_at: string; tx_hash: string | null;
   corroborations: { address: string; name: string; at: string }[];
 }
 export interface ByKit { kit_hash: string; campaigns: InheritedCampaign[]; local_telemetry_received: false }
-export interface LedgerStatus { available: boolean; queue_depth: number; orgs: Record<string, { address: string; name: string | null }> }
+export interface LedgerStatus {
+  available: boolean; queue_depth: number; you: string; orgs: Record<string, { address: string; name: string | null }>;
+}
 export interface EmailAnalysis {
   id: string; source: "analyst" | "sample"; verdict: EmailVerdict; strong_count: number; from_addr: string | null;
   from_etld1: string | null; reply_to_etld1: string | null; return_path_etld1: string | null;
@@ -87,8 +91,15 @@ export class ApiError extends Error {
   constructor(public problem: Problem) { super(problem.detail ?? problem.title); }
 }
 
+/** Every request carries the key. A 401 means the key is missing, revoked or wrong: drop it so the key gate shows. */
+export async function apiFetch(path: string, init?: RequestInit): Promise<Response> {
+  const r = await fetch(API_URL + path, { ...init, headers: { ...authHeaders(), ...(init?.headers ?? {}) } });
+  if (r.status === 401) setKey(null);
+  return r;
+}
+
 async function call<T>(path: string, init?: RequestInit): Promise<T> {
-  const r = await fetch(API_URL + path, { ...init, headers: { "content-type": "application/json", ...(init?.headers ?? {}) } });
+  const r = await apiFetch(path, { ...init, headers: { "content-type": "application/json", ...(init?.headers ?? {}) } });
   if (!r.ok) {
     let p: Problem;
     try { p = await r.json(); } catch { p = { type: "about:blank", title: r.statusText, status: r.status }; }
@@ -100,7 +111,6 @@ const post = <T,>(path: string, body?: unknown) => call<T>(path, { method: "POST
 
 export const api = {
   streamState: () => call<StreamState>("/stream/state"),
-  setMode: (mode: "live" | "replay", speed = 1) => post<StreamState>("/stream/mode", { mode, speed }),
   metrics: () => call<Metrics>("/metrics"),
   candidates: (q = "") => call<Page<CandidateItem>>(`/candidates${q}`),
   domain: (id: number) => call<DomainDetail>(`/domains/${id}`),
@@ -117,17 +127,24 @@ export const api = {
   publish: (campaignId: string) => post<{ queued: boolean; queue_position: number }>(`/ledger/publish/${campaignId}`),
   byKit: (kit: string) => call<ByKit>(`/ledger/by-kit/${kit}`),
   ledgerStatus: () => call<LedgerStatus>("/ledger/status"),
-  corroborate: (campaignId: string) => post<{ queued: boolean }>(`/ledger/corroborate/${campaignId}`, { as_org: "org2" }),
-  attest: (subject: string, verdict: "confirmed" | "dismissed" | "disputed", asOrg: "org1" | "org2") =>
-    post<{ queued: boolean }>("/ledger/attest", { subject_hash: subject, verdict, as_org: asOrg }),
+  // The signing organisation is the key's organisation: there is no "as org" to choose.
+  corroborate: (chainCampaignId: string) => post<{ queued: boolean; as_org: string }>(`/ledger/corroborate/${chainCampaignId}`),
+  attest: (subject: string, verdict: "confirmed" | "dismissed" | "disputed") =>
+    post<{ queued: boolean; as_org: string }>("/ledger/attest", { subject_hash: subject, verdict }),
   ops: (channel?: string) => call<Page<OpsItem>>(`/ops/log?limit=200${channel ? `&channel=${channel}` : ""}`),
   analyzeEmail: (raw: string) => post<EmailAnalysis>("/email/analyze", { raw, source: "analyst" }),
   analyzeEmailFile: async (f: File) => {
     const fd = new FormData();
     fd.append("eml", f);
-    const r = await fetch(API_URL + "/email/analyze", { method: "POST", body: fd });
+    const r = await apiFetch("/email/analyze", { method: "POST", body: fd });
     if (!r.ok) throw new ApiError(await r.json());
     return (await r.json()) as EmailAnalysis;
+  },
+  /** Binary artifacts (the screenshot) need the key too, so they are fetched, not linked. */
+  artifactBlobUrl: async (path: string) => {
+    const r = await apiFetch(path);
+    if (!r.ok) throw new ApiError({ type: "about:blank", title: r.statusText, status: r.status });
+    return URL.createObjectURL(await r.blob());
   },
   emailAnalyses: () => call<Page<EmailAnalysis>>("/email/analyses?limit=50"),
 };
