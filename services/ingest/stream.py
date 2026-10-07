@@ -54,6 +54,8 @@ class _Ctx:
         self.seen = SeenFingerprints()
         self.ctr = _Counter()
         self.buf: list[str] = []
+        self.virtual_ts: float | None = None  # replay: the original CT time of the certificate being replayed
+        self.speed: float = 1.0
 
     async def emit(self, msg: dict) -> None:
         rec = parse_message(msg, "replay" if self.mode == "replay" else "certstream")
@@ -84,6 +86,10 @@ class _Ctx:
             "names_per_sec": f"{n:.1f}",
             "replay_file": self.replay_file if self.mode == "replay" else "",
             "last_heartbeat": datetime.now(timezone.utc).isoformat(),
+            # the virtual clock: replayed certificates keep their real CT time; the UI shows it with the speed
+            "virtual_time": (datetime.fromtimestamp(self.virtual_ts, timezone.utc).isoformat()
+                             if self.mode == "replay" and self.virtual_ts else ""),
+            "replay_speed": f"{self.speed:g}" if self.mode == "replay" else "",
         })
 
 
@@ -136,12 +142,15 @@ async def _replay(ctx: _Ctx, path: str, speed: float, stop: asyncio.Event) -> No
                 else:
                     await asyncio.sleep(0)
                 prev = ts if isinstance(ts, (int, float)) else prev
+                if isinstance(ts, (int, float)):
+                    ctx.virtual_ts = ts
                 await ctx.emit(msg)
         await asyncio.sleep(0.1)  # loop the capture
 
 
 async def run(mode: str, r, *, url: str, replay_file: str, speed: float, stop: asyncio.Event) -> None:
     ctx = _Ctx(r, mode, replay_file)
+    ctx.speed = speed
     await ctx.write_state()
     hb = asyncio.create_task(_heartbeat(ctx, stop))
     fl = asyncio.create_task(_flusher(ctx, stop))

@@ -49,7 +49,9 @@ async def read_state(r) -> StreamState:
         names_per_sec=0 if stale else float(st.get("names_per_sec") or 0),
         candidates_per_min=float(st.get("candidates_per_min") or 0), queue_depth=depth,
         replay_file=st.get("replay_file") or None,
-        last_heartbeat=hb)
+        last_heartbeat=hb,
+        virtual_time=datetime.fromisoformat(st["virtual_time"]) if st.get("virtual_time") else None,
+        replay_speed=float(st["replay_speed"]) if st.get("replay_speed") else None)
 
 
 @router.get("/stream/state", response_model=StreamState)

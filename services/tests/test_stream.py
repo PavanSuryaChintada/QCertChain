@@ -113,3 +113,29 @@ def test_stream_cap_fits_in_redis_memory():
     maxmem_mb = int(re.search(r"--maxmemory (\d+)mb", compose).group(1))
     measured_bytes_per_entry = 587
     assert STREAM_MAXLEN * measured_bytes_per_entry <= 0.6 * maxmem_mb * 1024 * 1024
+
+
+async def test_replay_reports_the_virtual_clock(tmp_path):
+    """Item 7: an accelerated replay shows the replayed certificates' ORIGINAL CT time, and the speed."""
+    import asyncio
+    import gzip
+    import json
+
+    import fakeredis.aioredis as fr
+
+    from services.ingest.stream import STATE, run
+    f = tmp_path / "fx.jsonl.gz"
+    with gzip.open(f, "wt", encoding="utf-8") as out:
+        for i, ts in enumerate((1791300000.0, 1791300060.0)):
+            out.write(json.dumps({"message_type": "certificate_update", "data": {
+                "seen": ts, "leaf_cert": {"all_domains": [f"x{i}.example"], "fingerprint": f"F{i}",
+                                          "issuer": {"O": "Test CA"}, "not_before": 0, "not_after": 1,
+                                          "serial_number": "01"}, "cert_index": i}}) + "\n")
+    r = fr.FakeRedis(decode_responses=True)
+    stop = asyncio.Event()
+    task = asyncio.create_task(run("replay", r, url="", replay_file=str(f), speed=360.0, stop=stop))
+    await asyncio.sleep(1.5)
+    stop.set()
+    await asyncio.wait_for(task, 5)
+    st = await r.hgetall(STATE)
+    assert st["replay_speed"] == "360" and st["virtual_time"].startswith("2026-10-06")

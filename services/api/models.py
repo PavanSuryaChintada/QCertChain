@@ -53,6 +53,8 @@ class StreamState(BaseModel):
     replay_file: str | None = None
     uptime_s: int | None = None
     last_heartbeat: datetime | None = None
+    virtual_time: datetime | None = None   # replay only: the replayed certificates' original CT time
+    replay_speed: float | None = None      # replay only: e.g. 360 = 24 h of CT in 4 minutes
 
 
 class ModeRequest(BaseModel):
