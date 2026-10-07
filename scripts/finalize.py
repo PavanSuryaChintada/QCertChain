@@ -694,6 +694,19 @@ def summary_lines(sec: dict) -> list[str]:
     return out
 
 
+def output_paths(partial: bool, allow_partial: bool, out_dir: str | None) -> tuple[Path, Path, Path]:
+    """(metrics.json, REPORT.md, fixture dir). A PARTIAL capture never writes docs/REPORT.md or reports/metrics.json,
+    whatever the flags say: it goes to the preview locations (or --out-dir). Only a completed capture (the recorder
+    wrote its .summary.json) produces the real report."""
+    if out_dir:
+        d = Path(out_dir)
+        return d / "metrics.json", d / "REPORT.md", d
+    if partial:
+        rep = ROOT / "reports/finalize_preview"
+        return rep / "metrics.json", rep / "REPORT.md", ROOT / "data/replay/finalize_preview"
+    return METRICS, ROOT / "docs/REPORT.md", ROOT / "data/replay"
+
+
 def main(argv: list[str] | None = None) -> int:
     ap = argparse.ArgumentParser(description=__doc__.split("\n\n")[0])
     ap.add_argument("--fixture", default=str(FIXTURE_IN))
@@ -702,7 +715,7 @@ def main(argv: list[str] | None = None) -> int:
     ap.add_argument("--metrics", default=str(METRICS), help="base metrics.json the new sections are merged into")
     ap.add_argument("--out-dir", help="write metrics.json, REPORT.md and the fixture here instead")
     ap.add_argument("--allow-partial", action="store_true",
-                    help="write a PARTIAL capture to the real outputs (default: partial -> preview locations)")
+                    help="proceed on a PARTIAL capture (always to the preview locations; never the real report)")
     ap.add_argument("--skip-live", action="store_true", help="do not query Supabase (recorded as not measured)")
     a = ap.parse_args(argv)
     try:
@@ -715,14 +728,10 @@ def main(argv: list[str] | None = None) -> int:
                                  "not measured")
         summ_path = Path(a.fixture + ".summary.json")
         partial_guess = not summ_path.exists()
-        if a.out_dir:
-            rep_dir = data_dir = Path(a.out_dir)
-        elif partial_guess and not a.allow_partial:
-            rep_dir, data_dir = ROOT / "reports/finalize_preview", ROOT / "data/replay/finalize_preview"
-        else:
-            rep_dir, data_dir = None, ROOT / "data/replay"
+        m_out, r_out, data_dir = output_paths(partial_guess, a.allow_partial, a.out_dir)
         print(f"finalize: capture {'partial (no .summary.json yet)' if partial_guess else 'has a summary'}; "
-              f"outputs -> {rep_dir or 'reports/metrics.json + docs/REPORT.md'}, fixture -> {data_dir}", flush=True)
+              f"outputs -> {m_out}, {r_out}; fixture -> {data_dir}", flush=True)
+        data_dir.mkdir(parents=True, exist_ok=True)
         sec = analyze(Path(a.fixture), Path(a.sqlite), Path(a.log), fixture_out=data_dir / "ct_24h.jsonl.gz",
                       skip_live=a.skip_live)
     except InputError as e:
@@ -740,11 +749,7 @@ def main(argv: list[str] | None = None) -> int:
         print(f"finalize: ERROR: sections failed: {why}", file=sys.stderr)
         return 3
     metrics = merge_metrics(json.loads(Path(a.metrics).read_text(encoding="utf-8")), sections)
-    if rep_dir is None:
-        m_out, r_out = METRICS, ROOT / "docs/REPORT.md"
-    else:
-        rep_dir.mkdir(parents=True, exist_ok=True)
-        m_out, r_out = rep_dir / "metrics.json", rep_dir / "REPORT.md"
+    m_out.parent.mkdir(parents=True, exist_ok=True)
     m_out.write_text(json.dumps(metrics, indent=1, default=str), encoding="utf-8")
     r_out.write_text(render(metrics), encoding="utf-8")
     for line in summary_lines(sec):

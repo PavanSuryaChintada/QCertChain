@@ -223,3 +223,21 @@ def test_old_phishtank_lead_time_kept_under_its_own_key():
     old = {"lead_time": {"dataset": "our 30-min CT capture x PhishTank", "matched_domains": 11}}
     m = fz.merge_metrics(old, {"lead_time": {"status": "not measured: x"}})
     assert m["lead_time_phishtank_30min"]["matched_domains"] == 11 and m["lead_time"]["status"] == "not measured: x"
+
+
+# ---- B6: a partial capture can never reach the real report ---------------------------------------------------
+@pytest.mark.parametrize("allow_partial", [False, True])
+def test_partial_capture_never_writes_the_real_report(allow_partial):
+    m, r, d = fz.output_paths(partial=True, allow_partial=allow_partial, out_dir=None)
+    assert m != fz.METRICS and r != fz.ROOT / "docs/REPORT.md"
+    assert "finalize_preview" in str(m) and "finalize_preview" in str(r) and "finalize_preview" in str(d)
+
+
+def test_complete_capture_writes_the_real_report():
+    m, r, d = fz.output_paths(partial=False, allow_partial=False, out_dir=None)
+    assert (m, r, d) == (fz.METRICS, fz.ROOT / "docs/REPORT.md", fz.ROOT / "data/replay")
+
+
+def test_out_dir_wins(tmp_path):
+    assert fz.output_paths(partial=True, allow_partial=True, out_dir=str(tmp_path)) == (
+        tmp_path / "metrics.json", tmp_path / "REPORT.md", tmp_path)
