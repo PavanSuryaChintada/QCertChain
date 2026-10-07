@@ -89,3 +89,12 @@ def test_consortium_steps_are_numbered_in_the_report():
 def test_mutation_check_is_reported():
     md = render(metrics())
     assert "all 5 tenancy tests" in md and "row-level security" in md and "independently" in md
+
+
+def test_threshold_decision_reasoning_and_full_sweep_are_reported():
+    md = render(metrics())
+    assert "a candidate is not a verdict" in md.lower()
+    assert "fetch budget" in md and "two strong signals" in md
+    rows = [l for l in md.splitlines() if l.startswith("| 0.") and l.count("|") >= 8]
+    assert [l.split("|")[1].strip() for l in rows] == [f"{0.20 + 0.05 * i:.2f}" for i in range(13)]
+    assert "never an even" in md or "not on an even" in md

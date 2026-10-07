@@ -1,6 +1,6 @@
 # QCertChain — technical report
 
-*Generated 2026-10-06T19:18:24.150444+00:00 from `reports/metrics.json` by `scripts/build_report.py`. Every number below was measured by `scripts/evaluate.py`; anything not measured says so.*
+*Generated 2026-10-07T06:23:39.211103+00:00 from `reports/metrics.json` by `scripts/build_report.py`. Every number below was measured by `scripts/evaluate.py`; anything not measured says so.*
 
 ## Summary
 
@@ -38,24 +38,40 @@ Takedown-set selection is formulated as a QUBO. It runs on OR-Tools CP-SAT in pr
 |---|---|---|
 | Latency per name (p50 / p95 / p99) | 294.5 / 1519.2 / 5333.8 µs | 200,000 unique live CT names |
 | Candidates per minute of live stream | 1.5 | same capture |
-| Legitimate domains made candidates | 0 of 60,000 | held-out Tranco domains |
-| Hard-negative candidate rate | 2.4% | 584 legitimate domains containing a brand token |
-| Recall on real phishing naming our brands | 0.0 (9 domains) | PhishTank + OpenPhish, 90 days |
+| Legitimate domains made candidates | 18 of 60,000 | held-out Tranco domains |
+| Hard-negative candidate rate | 72.1% | 584 legitimate domains containing a brand token |
+| Recall on real phishing naming our brands | 1.0 (8 domains) | PhishTank + OpenPhish, 90 days |
 
-Precision at the real 1:1000 base rate is not meaningful here: recall on the global feeds is zero because the public phishing feeds are dominated by brands outside our list of 40 (e.g. Bradesco, Allegro); a brand-list triage scores those 0 by design, so global recall measures feed composition. Balanced-set precision is never reported.
+Precision at the real 1:1000 base rate: 0.0024. Balanced-set precision is never reported.
 
 Latency: p99 5333.8 µs sits at the 5 ms budget on this laptop; the median is 294.5 µs.
 
-Missed at the 0.45 threshold: `amazon-refund.cc`, `amazon-annulation.com`, `amazon-paiement.com`, `hdfc8-7v8vtyu.vercel.app`, `amazonstocksgo.co`, `prime-amazonfr.com`, `amazon-video-musique.com`, `chouhdfcom.com`, `yon0sbl.vercel.app`. Each carries a brand token (0.35) but no second signal from the TRD list.
+Missed at the 0.35 threshold: none of the brand-phishing set.
 
-Threshold options (owner decision pending — the default is unchanged):
+**Threshold: 0.35 (owner decision, 2026-10-07).** A candidate is not a verdict. A domain is marked confirmed only after its page is fetched and two strong signals are found, and the database itself rejects a confirmation with fewer. Precision is therefore protected downstream, while recall lost at triage cannot be recovered: a name that is never a candidate is never fetched. Lowering the threshold costs fetch budget, not false accusations. The cost is measured in candidates per hour at live CT volume, below; fetch volume is the real constraint.
 
-| Threshold | Candidates / min (live) | Brand phishing caught | Hard-negative candidate rate |
-|---|---|---|---|
-| 0.3 | 17.0 | 9/9 | 72.1% |
-| 0.35 | 11.5 | 8/9 | 72.1% |
-| 0.4 | 2.0 | 0/9 | 2.4% |
-| 0.45 | 1.5 | 0/9 | 2.4% |
+Full sweep, rules as deployed (1,837,672 live names per hour; 9 real phishing domains naming our brands; 2,767 from the global feeds; 60,000 random Tranco domains; 584 hard negatives). Precision uses a 1-in-1000 base rate, never an even phishing/benign mix: TPR × 0.001 / (TPR × 0.001 + FPR × 0.999), with TPR over all phishing and FPR over random Tranco.
+
+| Threshold | Precision at 1:1000 | Recall, our brands | Recall, all phishing | FP rate, random | Hard-negative FP | Candidates / hour |
+|---|---|---|---|---|---|---|
+| 0.20 | 0.0113 | 1.00 | 0.0072 | 0.0633% | 72.1% | 2,417 |
+| 0.25 | 0.0113 | 1.00 | 0.0072 | 0.0633% | 72.1% | 2,417 |
+| 0.30 | 0.0012 | 1.00 | 0.0007 | 0.0617% | 72.1% | 1,020 |
+| 0.35 | 0.0024 | 1.00 | 0.0007 | 0.0300% | 72.1% | 689 |
+| 0.40 | 1.0000 | 0.11 | 0.0004 | 0.0000% | 2.4% | 119 |
+| 0.45 | 1.0000 | 0.11 | 0.0004 | 0.0000% | 2.4% | 92 |
+| 0.50 | 1.0000 | 0.11 | 0.0004 | 0.0000% | 2.2% | 9 |
+| 0.55 | 1.0000 | 0.11 | 0.0004 | 0.0000% | 0.0% | 0 |
+| 0.60 | 1.0000 | 0.11 | 0.0004 | 0.0000% | 0.0% | 0 |
+| 0.65 | 1.0000 | 0.11 | 0.0004 | 0.0000% | 0.0% | 0 |
+| 0.70 | 1.0000 | 0.11 | 0.0004 | 0.0000% | 0.0% | 0 |
+| 0.75 | 1.0000 | 0.11 | 0.0004 | 0.0000% | 0.0% | 0 |
+| 0.80 | — | 0.00 | 0.0000 | 0.0000% | 0.0% | 0 |
+
+Reading it: recall on our brands falls from 100% to 11% between 0.35 and 0.40, while candidates per hour fall from 689 to 119.
+The precision of 1.0 at 0.40 and above rests on zero false positives in 60,000 random domains with near-zero recall, so it says nothing either way. The brand-phishing set is small (9 domains); the recall column is indicative, not a tight estimate. The hard-negative rate (legitimate domains containing a brand token) is the cost of 0.35: those become candidates, are fetched, and fail the two-strong-signal gate.
+
+Exact confusable-skeleton matches (a 0.75 signal on its own, owner decision 3) fired on 0 of 60,000 random Tranco domains.
 
 ### Detection: trained model (not deployed)
 

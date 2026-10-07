@@ -17,7 +17,7 @@ class Settings:
     stream_mode: str = "live"
     replay_file: str = "data/capture.jsonl"
     replay_speed: float = 1.0
-    triage_threshold: float = 0.45
+    triage_threshold: float = 0.35  # owner decision 1 (2026-10-07), from the measured 0.20-0.80 sweep
     triage_model_path: str = "services/ml/artifacts/triage_lr.joblib"
     brands_file: str = "data/brands.yaml"
     allowlist_file: str = "data/allowlist.txt"

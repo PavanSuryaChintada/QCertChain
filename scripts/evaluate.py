@@ -324,11 +324,14 @@ def lead_time():
 
 @section
 def triage_threshold_options():
-    """Owner decision input (no default changed): what each rules threshold would cost and catch."""
+    """Owner decision 1 input: the full threshold sweep 0.20-0.80. Per step: precision at a 1:1000 base rate (never on an
+    even mix of phishing and benign), recall, hard-negative FP rate, candidates per hour at live CT volume. Recomputed with whatever
+    rules are deployed (including skeleton_exact, owner decision 3)."""
     import json as _j
 
     from services.ingest.certparse import parse_message
-    from services.ingest.triage import Reason, TriageResult, triage, warm  # noqa: F401
+    from services.ingest.triage import triage, warm
+    from services.ml.split import temporal_split
     from services.tests.test_triage import LEGIT, PHISH
     warm()
     names, seen = [], set()
@@ -342,20 +345,40 @@ def triage_threshold_options():
             if len(names) >= 200_000:
                 break
     span_min = json.loads((ROOT / "reports/triage_bench.json").read_text(encoding="utf-8"))["capture_span_min"]
-    scores = [triage(n).score for n in names]
-    hard = (ROOT / "data/ml/hard_negatives.txt").read_text(encoding="utf-8").split()
-    hard_s = [triage(d).score for d in hard]
-    misses = json.loads(OUT.read_text(encoding="utf-8"))["triage_rules"]["recall_on_phishing_naming_our_40_brands"]["missed_examples"]
+    d = ROOT / "data/ml"
+    with open(d / "positives.csv", encoding="utf-8") as f:
+        pos = [{"etld1": r["etld1"], "seen": datetime.fromisoformat(r["seen"])} for r in csv.DictReader(f)]
+    seen_t = sorted(r["seen"] for r in pos)
+    _, test = temporal_split(pos, seen_t[int(len(seen_t) * 0.67)])
+    neg = (d / "negatives.txt").read_text(encoding="utf-8").split()[-60000:]
+    hard = (d / "hard_negatives.txt").read_text(encoding="utf-8").split()
+    brandish = {"brand_token_exact", "lookalike", "homoglyph_hit", "skeleton_exact"}
+    ours = [r["etld1"] for r in pos if any(x.feature in brandish for x in triage(r["etld1"]).reasons)]
+    sc = lambda xs: [triage(x).score for x in xs]  # noqa: E731
+    live_s, test_s, ours_s, neg_s, hard_s = sc(names), sc([r["etld1"] for r in test]), sc(ours), sc(neg), sc(hard)
+    skel_fp = [x for x in neg if any(r.feature == "skeleton_exact" for r in triage(x).reasons)]
     out = []
-    for t in (0.30, 0.35, 0.40, 0.45):
+    for i in range(13):
+        t = round(0.20 + 0.05 * i, 2)
+        frac = lambda xs: sum(v >= t for v in xs) / len(xs) if xs else 0.0  # noqa: E731
+        tpr_ours, tpr_all, fpr = frac(ours_s), frac(test_s), frac(neg_s)
+        # The 1:1000 base rate is ALL phishing among certificates, so the matching recall is over ALL phishing
+        # (the global feeds), not the 40-brand subset; using the subset's recall here would overstate precision.
+        prec = tpr_all * 0.001 / (tpr_all * 0.001 + fpr * 0.999) if (tpr_all + fpr) else None
         out.append({"threshold": t,
-                    "candidates_per_min_live": round(sum(x >= t for x in scores) / span_min, 1),
-                    "hard_negative_fp_rate": round(sum(x >= t for x in hard_s) / len(hard_s), 4),
-                    "brand_phishing_caught": f"{sum(triage(d).score >= t for d in misses)}/{len(misses)}",
-                    "release_gate_legit_flagged": [d for d in LEGIT if triage(d).score >= t],
-                    "release_gate_phish_missed": [d for d in PHISH if triage(d).score < t]})
+                    "precision_at_1_in_1000": round(prec, 4) if prec is not None else None,
+                    "recall_our_brands": round(tpr_ours, 4), "recall_global_feeds": round(tpr_all, 4),
+                    "fp_rate_random_tranco": round(fpr, 6), "hard_negative_fp_rate": round(frac(hard_s), 4),
+                    "candidates_per_hour_live": round(sum(v >= t for v in live_s) / span_min * 60),
+                    "release_gate_legit_flagged": [x for x in LEGIT if triage(x).score >= t],
+                    "release_gate_phish_missed": [x for x in PHISH if triage(x).score < t]})
     return {"options": out, "n_live_names": len(names), "capture_span_min": span_min,
-            "note": "rules weights unchanged; threshold remains SETTINGS.triage_threshold until the owner decides",
+            "live_names_per_hour": round(len(names) / span_min * 60),
+            "n_brand_phishing": len(ours), "n_global_test": len(test), "n_random_negatives": len(neg),
+            "n_hard_negatives": len(hard),
+            "skeleton_exact_on_random_tranco": {"count": len(skel_fp), "of": len(neg), "examples": skel_fp[:10]},
+            "precision_method": "TPR*0.001 / (TPR*0.001 + FPR*0.999) with TPR over ALL phishing (global feeds) and FPR "
+                                "over random Tranco: a 1-in-1000 base rate, never an even phishing/benign mix",
             "measured_at": NOW()}
 
 

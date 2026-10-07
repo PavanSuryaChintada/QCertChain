@@ -19,6 +19,9 @@ from services.ingest.brands import BrandIndex, load_allowlist, load_brands
 from services.ml.features import Features, extract
 
 W_BRAND, W_LOOKALIKE, W_HOMOGLYPH, W_TLD, W_KEYWORD, W_SHAPE = 0.35, 0.30, 0.30, 0.15, 0.15, 0.10
+# Owner decision 3 (2026-10-07): an exact confusable-skeleton match to a brand token is a near-certain lookalike
+# and clears the threshold on its own. Not done by lowering the global threshold, which would flood the queue.
+W_SKELETON_EXACT = 0.75
 
 
 @dataclass
@@ -61,6 +64,8 @@ def score_rules(f: Features) -> list[Reason]:
     reasons: list[Reason] = []
     if f.brand_token_exact:
         reasons.append(Reason("brand_token_exact", f.matched_token, W_BRAND))
+    if f.skeleton_exact_token:
+        reasons.append(Reason("skeleton_exact", f.skeleton_exact_token, W_SKELETON_EXACT))
     if f.lookalike_token:
         reasons.append(Reason("lookalike", f.lookalike_token, W_LOOKALIKE))
     if f.homoglyph_hit:

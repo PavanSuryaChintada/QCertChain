@@ -56,6 +56,9 @@ class Features:
     homoglyph_token: str | None = None
     keywords: list[str] = field(default_factory=list)
     is_public_suffix: bool = False
+    # A segment whose confusable skeleton IS a brand token while the segment itself is not (owner decision 3):
+    # a near-certain lookalike, scored on its own. Not a model input (the trained model was rejected).
+    skeleton_exact_token: str | None = None
 
     def vector(self) -> list[float]:
         return [float(getattr(self, f)) for f in FEATURE_ORDER]
@@ -167,9 +170,24 @@ def extract(name: str, issuer: str | None, san_count: int, idx: BrandIndex,
                 best_d, best_t = d, t
     lookalike = best_t
 
-    homo_token = None
+    # Exact skeleton match, checked BEFORE edit distance and the substring homoglyph scan: a whole segment whose
+    # skeleton equals a brand token, while the segment is not literally that token. Non-ASCII confusables count at
+    # any length; ASCII-only confusions (l/1/0) only for tokens of LOOKALIKE_MIN+ chars ("vl" -> "vi" is noise).
+    skel_exact = None
     sk = skeleton(body)
-    if sk != body:
+    if sk != body and matched is None:
+        raw_segs = [s for s in _SEG.split(body) if s]
+        for raw in raw_segs:
+            t = p.skel_of.get(skeleton(raw))
+            if t and raw != t and (not raw.isascii() or len(t) >= LOOKALIKE_MIN):
+                skel_exact = t
+                break
+    if skel_exact is not None:  # one observation, counted once: no lookalike / substring homoglyph on top
+        lookalike = None
+        best_d = 99
+
+    homo_token = None
+    if sk != body and skel_exact is None:
         for m in p.skel_long_re.finditer(sk):
             t = p.skel_of[m.group(0)]
             if t not in body:
@@ -186,7 +204,7 @@ def extract(name: str, issuer: str | None, san_count: int, idx: BrandIndex,
     kws = [k for k in KEYWORDS if k in body]
     labels = name.split(".")
     reg_label = reg[: -len(suffix) - 1] if suffix and reg.endswith("." + suffix) else reg
-    brand_tok = matched or lookalike or homo_token
+    brand_tok = matched or skel_exact or lookalike or homo_token
     return Features(
         brand_token_exact=matched is not None,
         min_edit_distance=0 if matched else best_d,
@@ -203,5 +221,5 @@ def extract(name: str, issuer: str | None, san_count: int, idx: BrandIndex,
         name=name, etld1=reg, tld=tld,
         brand=idx.by_token[brand_tok] if brand_tok else None,
         matched_token=matched, lookalike_token=lookalike, homoglyph_token=homo_token, keywords=kws,
-        is_public_suffix=is_suffix,
+        is_public_suffix=is_suffix, skeleton_exact_token=skel_exact,
     )

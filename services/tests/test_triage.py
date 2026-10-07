@@ -37,7 +37,7 @@ def test_etld1_not_naive_split():
 
 def test_homoglyph_cyrillic_is_candidate_with_reason():
     r = triage("ѕbі-kyc-verify.top")  # Cyrillic dze + byelorussian i
-    assert r.is_candidate and any(x.feature == "homoglyph_hit" for x in r.reasons)
+    assert r.is_candidate and any(x.feature in ("homoglyph_hit", "skeleton_exact") for x in r.reasons)
 
 
 def test_digit_swap_homoglyph():
@@ -122,8 +122,8 @@ def test_brand_owned_tld_is_legit():
 def test_ascii_homoglyph_never_builds_a_short_token():
     # 'vl' -> 'vi' through the l/i class: ASCII-only confusion on a 2-letter token is noise
     assert not any(x.feature == "homoglyph_hit" for x in triage("vl.65515107.xyz").reasons)
-    # but real script confusables on a short token still count
-    assert any(x.feature == "homoglyph_hit" for x in triage("ѕbі-kyc-verify.top").reasons)
+    # but real script confusables on a short token still count (now as an exact skeleton match)
+    assert any(x.feature in ("homoglyph_hit", "skeleton_exact") for x in triage("ѕbі-kyc-verify.top").reasons)
 
 
 def test_no_single_call_pathologically_slow():
@@ -160,14 +160,40 @@ def test_warm_loads_everything_up_front():
 @pytest.mark.parametrize("d", ["xn--cicibank-shh.com", "xn--hdfcbnk-6fg.com", "xn--pytm-53d.com",
                                "xn--flpkart-sog.com", "xn--bi-kyc-hvf.com"])
 def test_real_punycode_homographs_are_candidates(d):
-    """Review I8: lookalike and homoglyph_hit both fire on a pure homograph. That is kept on purpose — it is
-    what lifts a bare homograph on a low-risk TLD (no keyword, no risky TLD) over the threshold."""
+    """Review I8, superseded by owner decision 3: a pure homograph used to clear the threshold only because
+    lookalike and homoglyph_hit both fired. It is now ONE observation, skeleton_exact (0.75), which clears it on
+    its own; a homograph that is only a substring still carries homoglyph_hit."""
     r = triage(d)
-    assert r.is_candidate and any(x.feature == "homoglyph_hit" for x in r.reasons), (d, r.score, r.reasons)
+    assert r.is_candidate and any(x.feature in ("homoglyph_hit", "skeleton_exact") for x in r.reasons), (d, r.score, r.reasons)
 
 
-def test_homograph_of_a_short_brand_domain_is_a_known_miss():
-    """KNOWN MISS, pending an owner decision on the homoglyph-only threshold: Cyrillic-s 'sbi.co.in' carries
-    only homoglyph_hit (0.30). Pinned so a weight change is a visible decision, not a side effect."""
-    r = triage("xn--bi-doc.co.in")
-    assert [x.feature for x in r.reasons] == ["homoglyph_hit"] and not r.is_candidate
+# ---- confusable skeleton (owner decision 3, 2026-10-07): an exact skeleton match is its own ~0.75 signal ----------
+@pytest.mark.parametrize("d", ["xn--bi-doc.co.in",        # Cyrillic-s sbi.co.in — SBI's own domain, spoofed
+                               "xn--cicibank-shh.com",    # Cyrillic-i icicibank.com
+                               "xn--pytm-53d.com",        # Cyrillic-a paytm.com
+                               "xn--flpkart-sog.com"])    # Cyrillic-i flipkart.com
+def test_exact_skeleton_match_to_a_brand_is_a_candidate_on_its_own(d):
+    r = triage(d)
+    feats = {x.feature: x for x in r.reasons}
+    assert "skeleton_exact" in feats and feats["skeleton_exact"].contribution >= 0.75, r.reasons
+    assert r.is_candidate and r.brand is not None
+    assert "homoglyph_hit" not in feats and "lookalike" not in feats  # one observation, counted once
+
+
+def test_skeleton_runs_before_edit_distance():
+    """A homoglyph AND a typo: Cyrillic i plus n->m. Neither raw edit distance (2 + non-ASCII) nor the exact skeleton
+    sees it; edit distance over skeletons does."""
+    r = triage("іcicibamk-login.com".encode("idna").decode())
+    assert r.is_candidate and any(x.feature == "lookalike" for x in r.reasons), r.reasons
+
+
+@pytest.mark.parametrize("d", ["vl.com", "sb1.net", "0nline.com", "ici.org"])
+def test_ascii_confusions_on_short_tokens_never_fire_alone(d):
+    """l/1/0 confusions on 2-3 letter tokens are everywhere in ordinary names; only non-ASCII homoglyphs (or tokens
+    of 5+ characters) count as an exact skeleton match."""
+    assert not any(x.feature == "skeleton_exact" for x in triage(d).reasons), triage(d).reasons
+
+
+def test_brands_own_domains_stay_allowlisted_under_skeleton_matching():
+    for d in ("sbi.co.in", "icicibank.com", "paytm.com", "flipkart.com", "onlinesbi.sbi"):
+        assert not triage(d).is_candidate, d

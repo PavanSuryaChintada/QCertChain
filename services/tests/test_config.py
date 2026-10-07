@@ -5,7 +5,7 @@ def test_defaults_when_env_empty(tmp_path, monkeypatch):
     for k in ["TRIAGE_THRESHOLD", "INTERDICT_BACKEND", "CLUSTER_EDGE_THRESHOLD", "MAX_QUBO_VARIABLES"]:
         monkeypatch.delenv(k, raising=False)
     s = load_settings(env_file=tmp_path / "missing.env")
-    assert s.triage_threshold == 0.45
+    assert s.triage_threshold == 0.35  # owner decision 1
     assert s.interdict_backend == "cpsat"
     assert s.cluster_edge_threshold == 0.6
     assert s.max_qubo_variables == 24

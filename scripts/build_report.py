@@ -109,16 +109,48 @@ def render(m: dict) -> str:
         add(f"Latency: p99 {tr['latency_us_per_name']['p99']} µs sits at the 5 ms budget on this laptop; the median "
             f"is {tr['latency_us_per_name']['p50']} µs.")
         add("")
-        add(f"Missed at the 0.45 threshold: {', '.join('`' + d + '`' for d in rb.get('missed_examples', []))}. "
-            "Each carries a brand token (0.35) but no second signal from the TRD list.")
+        missed = rb.get("missed_examples", [])
+        add(f"Missed at the {tr['threshold']} threshold: " + (", ".join("`" + d + "`" for d in missed) if missed
+                                                              else "none of the brand-phishing set") + ".")
     add("")
     if not na(to):
-        add("Threshold options (owner decision pending — the default is unchanged):")
+        add(f"**Threshold: {tr['threshold'] if not na(tr) else 0.35} (owner decision, 2026-10-07).** A candidate is not "
+            "a verdict. A domain is marked confirmed only after its page is fetched and two strong signals are found, "
+            "and the database itself rejects a confirmation with fewer. Precision is therefore protected downstream, "
+            "while recall lost at triage cannot be recovered: a name that is never a candidate is never fetched. "
+            "Lowering the threshold costs fetch budget, not false accusations. The cost is measured in candidates per "
+            "hour at live CT volume, below; fetch volume is the real constraint.")
         add("")
-        add("| Threshold | Candidates / min (live) | Brand phishing caught | Hard-negative candidate rate |")
-        add("|---|---|---|---|")
+        add(f"Full sweep, rules as deployed ({to['live_names_per_hour']:,} live names per hour; "
+            f"{to['n_brand_phishing']} real phishing domains naming our brands; {to['n_global_test']:,} from the global "
+            f"feeds; {to['n_random_negatives']:,} random Tranco domains; {to['n_hard_negatives']} hard negatives). "
+            "Precision uses a 1-in-1000 base rate, never an even phishing/benign mix: "
+            "TPR × 0.001 / (TPR × 0.001 + FPR × 0.999), with TPR over all phishing and FPR over random Tranco.")
+        add("")
+        add("| Threshold | Precision at 1:1000 | Recall, our brands | Recall, all phishing | FP rate, random | "
+            "Hard-negative FP | Candidates / hour |")
+        add("|---|---|---|---|---|---|---|")
         for o in to["options"]:
-            add(f"| {o['threshold']} | {o['candidates_per_min_live']} | {o['brand_phishing_caught']} | {pctf(o['hard_negative_fp_rate'])} |")
+            prec = "—" if o["precision_at_1_in_1000"] is None else f"{o['precision_at_1_in_1000']:.4f}"
+            add(f"| {o['threshold']:.2f} | {prec} | {o['recall_our_brands']:.2f} | {o['recall_global_feeds']:.4f} | "
+                f"{o['fp_rate_random_tranco']:.4%} | {o['hard_negative_fp_rate']:.1%} | {o['candidates_per_hour_live']:,} |")
+        add("")
+        by_t = {o["threshold"]: o for o in to["options"]}
+        lo, hi = by_t.get(0.35), by_t.get(0.4)
+        if lo and hi:
+            add(f"Reading it: recall on our brands falls from {lo['recall_our_brands']:.0%} to {hi['recall_our_brands']:.0%} "
+                f"between 0.35 and 0.40, while candidates per hour fall from {lo['candidates_per_hour_live']:,} to "
+                f"{hi['candidates_per_hour_live']:,}.")
+        add("The precision of 1.0 at 0.40 and above rests on zero false positives in "
+            f"{to['n_random_negatives']:,} random domains with near-zero recall, so it says nothing either way. "
+            f"The brand-phishing set is small ({to['n_brand_phishing']} domains); the recall column is indicative, "
+            "not a tight estimate. The hard-negative rate (legitimate domains containing a brand token) is the cost of "
+            "0.35: those become candidates, are fetched, and fail the two-strong-signal gate.")
+        sk = to.get("skeleton_exact_on_random_tranco")
+        if sk:
+            add("")
+            add(f"Exact confusable-skeleton matches (a 0.75 signal on its own, owner decision 3) fired on {sk['count']} "
+                f"of {sk['of']:,} random Tranco domains.")
         add("")
     add("### Detection: trained model (not deployed)")
     add("")

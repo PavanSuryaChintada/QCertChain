@@ -1,40 +1,30 @@
 {
  "triage_rules": {
   "provenance": "rules (hand-set TRD weights; trained model rejected by hard checks)",
-  "threshold": 0.45,
+  "threshold": 0.35,
   "recall_all_global_phishing": {
-   "value": 0.0,
+   "value": 0.0007,
    "n": 2767,
    "dataset": "PhishTank verified + OpenPhish, temporal test third"
   },
   "recall_on_phishing_naming_our_40_brands": {
-   "value": 0.0,
-   "n": 9,
-   "missed_examples": [
-    "amazon-refund.cc",
-    "amazon-annulation.com",
-    "amazon-paiement.com",
-    "hdfc8-7v8vtyu.vercel.app",
-    "amazonstocksgo.co",
-    "prime-amazonfr.com",
-    "amazon-video-musique.com",
-    "chouhdfcom.com",
-    "yon0sbl.vercel.app"
-   ],
+   "value": 1.0,
+   "n": 8,
+   "missed_examples": [],
    "dataset": "all positives in which triage detects one of our 40 brands (token, lookalike or homoglyph)"
   },
   "note_global_recall": "the public feeds are dominated by brands outside our list of 40 (e.g. Bradesco, Allegro); a brand-list triage scores those 0 by design, so global recall measures feed composition",
   "false_positive_rate": {
-   "value": 0.0,
+   "value": 0.0003,
    "n": 60000,
    "dataset": "Tranco 1M random sample (held out)"
   },
   "precision_at_1_in_1000_base_rate": {
-   "value": 0.0,
+   "value": 0.0024,
    "method": "TPR*0.001/(TPR*0.001+FPR*0.999)"
   },
   "hard_negative_fp_rate": {
-   "value": 0.024,
+   "value": 0.7209,
    "n": 584,
    "dataset": "Tranco domains containing a brand token, not the brand's own"
   },
@@ -51,7 +41,7 @@
    "value": 1.5,
    "dataset": "same capture"
   },
-  "measured_at": "2026-10-06T18:41:59.062521+00:00"
+  "measured_at": "2026-10-07T06:19:48.197786+00:00"
  },
  "triage_model": {
   "decision": "rules stay (provenance 'rules'): a hard check failed",
@@ -203,46 +193,203 @@
   "caveat": "a 30-minute window: only phishing certificates issued in that window can match; lead time is bounded by when PhishTank was downloaded",
   "measured_at": "2026-10-06T18:44:00.339709+00:00"
  },
- "generated_at": "2026-10-06T19:18:24.150444+00:00",
+ "generated_at": "2026-10-07T06:23:39.211103+00:00",
  "triage_threshold_options": {
   "options": [
    {
-    "threshold": 0.3,
-    "candidates_per_min_live": 17.0,
+    "threshold": 0.2,
+    "precision_at_1_in_1000": 0.0113,
+    "recall_our_brands": 1.0,
+    "recall_global_feeds": 0.0072,
+    "fp_rate_random_tranco": 0.000633,
     "hard_negative_fp_rate": 0.7209,
-    "brand_phishing_caught": "9/9",
+    "candidates_per_hour_live": 2417,
+    "release_gate_legit_flagged": [],
+    "release_gate_phish_missed": []
+   },
+   {
+    "threshold": 0.25,
+    "precision_at_1_in_1000": 0.0113,
+    "recall_our_brands": 1.0,
+    "recall_global_feeds": 0.0072,
+    "fp_rate_random_tranco": 0.000633,
+    "hard_negative_fp_rate": 0.7209,
+    "candidates_per_hour_live": 2417,
+    "release_gate_legit_flagged": [],
+    "release_gate_phish_missed": []
+   },
+   {
+    "threshold": 0.3,
+    "precision_at_1_in_1000": 0.0012,
+    "recall_our_brands": 1.0,
+    "recall_global_feeds": 0.0007,
+    "fp_rate_random_tranco": 0.000617,
+    "hard_negative_fp_rate": 0.7209,
+    "candidates_per_hour_live": 1020,
     "release_gate_legit_flagged": [],
     "release_gate_phish_missed": []
    },
    {
     "threshold": 0.35,
-    "candidates_per_min_live": 11.5,
+    "precision_at_1_in_1000": 0.0024,
+    "recall_our_brands": 1.0,
+    "recall_global_feeds": 0.0007,
+    "fp_rate_random_tranco": 0.0003,
     "hard_negative_fp_rate": 0.7209,
-    "brand_phishing_caught": "8/9",
+    "candidates_per_hour_live": 689,
     "release_gate_legit_flagged": [],
     "release_gate_phish_missed": []
    },
    {
     "threshold": 0.4,
-    "candidates_per_min_live": 2.0,
+    "precision_at_1_in_1000": 1.0,
+    "recall_our_brands": 0.1111,
+    "recall_global_feeds": 0.0004,
+    "fp_rate_random_tranco": 0.0,
     "hard_negative_fp_rate": 0.024,
-    "brand_phishing_caught": "0/9",
+    "candidates_per_hour_live": 119,
     "release_gate_legit_flagged": [],
     "release_gate_phish_missed": []
    },
    {
     "threshold": 0.45,
-    "candidates_per_min_live": 1.5,
+    "precision_at_1_in_1000": 1.0,
+    "recall_our_brands": 0.1111,
+    "recall_global_feeds": 0.0004,
+    "fp_rate_random_tranco": 0.0,
     "hard_negative_fp_rate": 0.024,
-    "brand_phishing_caught": "0/9",
+    "candidates_per_hour_live": 92,
     "release_gate_legit_flagged": [],
     "release_gate_phish_missed": []
+   },
+   {
+    "threshold": 0.5,
+    "precision_at_1_in_1000": 1.0,
+    "recall_our_brands": 0.1111,
+    "recall_global_feeds": 0.0004,
+    "fp_rate_random_tranco": 0.0,
+    "hard_negative_fp_rate": 0.0223,
+    "candidates_per_hour_live": 9,
+    "release_gate_legit_flagged": [],
+    "release_gate_phish_missed": []
+   },
+   {
+    "threshold": 0.55,
+    "precision_at_1_in_1000": 1.0,
+    "recall_our_brands": 0.1111,
+    "recall_global_feeds": 0.0004,
+    "fp_rate_random_tranco": 0.0,
+    "hard_negative_fp_rate": 0.0,
+    "candidates_per_hour_live": 0,
+    "release_gate_legit_flagged": [],
+    "release_gate_phish_missed": [
+     "sbi-kyc-verify.weebly.com"
+    ]
+   },
+   {
+    "threshold": 0.6,
+    "precision_at_1_in_1000": 1.0,
+    "recall_our_brands": 0.1111,
+    "recall_global_feeds": 0.0004,
+    "fp_rate_random_tranco": 0.0,
+    "hard_negative_fp_rate": 0.0,
+    "candidates_per_hour_live": 0,
+    "release_gate_legit_flagged": [],
+    "release_gate_phish_missed": [
+     "sbi-kyc-verify.weebly.com"
+    ]
+   },
+   {
+    "threshold": 0.65,
+    "precision_at_1_in_1000": 1.0,
+    "recall_our_brands": 0.1111,
+    "recall_global_feeds": 0.0004,
+    "fp_rate_random_tranco": 0.0,
+    "hard_negative_fp_rate": 0.0,
+    "candidates_per_hour_live": 0,
+    "release_gate_legit_flagged": [],
+    "release_gate_phish_missed": [
+     "sbi-kyc-verify.weebly.com"
+    ]
+   },
+   {
+    "threshold": 0.7,
+    "precision_at_1_in_1000": 1.0,
+    "recall_our_brands": 0.1111,
+    "recall_global_feeds": 0.0004,
+    "fp_rate_random_tranco": 0.0,
+    "hard_negative_fp_rate": 0.0,
+    "candidates_per_hour_live": 0,
+    "release_gate_legit_flagged": [],
+    "release_gate_phish_missed": [
+     "sbi-verify-kyc.top",
+     "icici-netbanking-login.xyz",
+     "hdfc-secure-update.click",
+     "paytm-kyc-verify.buzz",
+     "incometax-refund-verify.top",
+     "login.sbi.co.in.attacker.top",
+     "icicibannk-login.top",
+     "yonosbi-update.rest",
+     "sbi-kyc-verify.weebly.com"
+    ]
+   },
+   {
+    "threshold": 0.75,
+    "precision_at_1_in_1000": 1.0,
+    "recall_our_brands": 0.1111,
+    "recall_global_feeds": 0.0004,
+    "fp_rate_random_tranco": 0.0,
+    "hard_negative_fp_rate": 0.0,
+    "candidates_per_hour_live": 0,
+    "release_gate_legit_flagged": [],
+    "release_gate_phish_missed": [
+     "sbi-verify-kyc.top",
+     "icici-netbanking-login.xyz",
+     "hdfc-secure-update.click",
+     "paytm-kyc-verify.buzz",
+     "incometax-refund-verify.top",
+     "login.sbi.co.in.attacker.top",
+     "icicibannk-login.top",
+     "yonosbi-update.rest",
+     "sbi-kyc-verify.weebly.com"
+    ]
+   },
+   {
+    "threshold": 0.8,
+    "precision_at_1_in_1000": null,
+    "recall_our_brands": 0.0,
+    "recall_global_feeds": 0.0,
+    "fp_rate_random_tranco": 0.0,
+    "hard_negative_fp_rate": 0.0,
+    "candidates_per_hour_live": 0,
+    "release_gate_legit_flagged": [],
+    "release_gate_phish_missed": [
+     "sbi-verify-kyc.top",
+     "icici-netbanking-login.xyz",
+     "hdfc-secure-update.click",
+     "paytm-kyc-verify.buzz",
+     "incometax-refund-verify.top",
+     "login.sbi.co.in.attacker.top",
+     "icicibannk-login.top",
+     "yonosbi-update.rest",
+     "sbi-kyc-verify.weebly.com"
+    ]
    }
   ],
   "n_live_names": 200000,
   "capture_span_min": 6.53,
-  "note": "rules weights unchanged; threshold remains SETTINGS.triage_threshold until the owner decides",
-  "measured_at": "2026-10-06T18:48:03.098774+00:00"
+  "live_names_per_hour": 1837672,
+  "n_brand_phishing": 9,
+  "n_global_test": 2767,
+  "n_random_negatives": 60000,
+  "n_hard_negatives": 584,
+  "skeleton_exact_on_random_tranco": {
+   "count": 0,
+   "of": 60000,
+   "examples": []
+  },
+  "precision_method": "TPR*0.001 / (TPR*0.001 + FPR*0.999) with TPR over ALL phishing (global feeds) and FPR over random Tranco: a 1-in-1000 base rate, never an even phishing/benign mix",
+  "measured_at": "2026-10-07T06:23:39.164155+00:00"
  },
  "response_time": {
   "ct_seen_to_candidate_s": {
