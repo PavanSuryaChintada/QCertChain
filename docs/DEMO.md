@@ -4,6 +4,20 @@ A timed shot list for the video. Each segment gives the exact clicks, the data s
 The script works with **no internet connection**. The seeded campaigns and the replay fixture are the baseline;
 live CT is a bonus.
 
+## The offline baseline (no internet at all)
+
+`python -m scripts.e2e_stack` stands the whole demo up on this machine only: local Postgres (its own `_e2e`
+database), local Redis, a local Hardhat chain, the API, the anchor worker and the built console (fonts are
+self-hosted). It resets the demo, publishes Bank One's campaign on chain, then drives this exact script in a browser
+that **aborts every non-localhost request**. Measured on the development laptop:
+
+- stack up, seeded and anchored: about 13 minutes (the demo reset and 470 anchors dominate; do it before recording);
+- the automated click-through, in this order, offline: **109 s**, with no request needing the internet;
+- the published demo key during a presenter-paced walk: worst 60-second window **16 requests** (limit 60), no 429.
+
+The same run is the `e2e` job in CI. Use this setup (point the browser at `http://localhost:4173`) when the venue's
+network cannot be trusted; the hosted deployment is the bonus, not the baseline.
+
 ## Before recording (5 minutes, off camera)
 
 1. **Reset the demo chain.** Chain state is not transactional, so it is reset separately: stop the Hardhat node,
