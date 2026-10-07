@@ -20,6 +20,8 @@ MAX_REDIRECTS = 5
 MAX_HTML_BYTES = 2_000_000
 MAX_SCRIPT_BYTES = 256_000
 MAX_EXTERNAL_SCRIPTS = 5
+# Script bodies Playwright saw while rendering (S1/S2 read the kit's own JS; SPA bundles exceed MAX_SCRIPT_BYTES)
+MAX_BUNDLE_BYTES, MAX_BUNDLES, MAX_BUNDLE_TOTAL = 5_000_000, 20, 10_000_000
 _ICON = re.compile(r"<link[^>]+rel=[\"']?[^\"'>]*icon[^>]*>", re.I)
 _HREF = re.compile(r"href=[\"']?([^\"' >]+)", re.I)
 _SCRIPT_SRC = re.compile(r"<script[^>]+src=[\"']?([^\"' >]+)", re.I)
@@ -37,6 +39,8 @@ class FetchedPage:
     favicon: bytes | None
     scripts: list[bytes] = field(default_factory=list)
     via: Literal["playwright", "httpx"] = "httpx"
+    bundles: list[tuple[str, bytes]] = field(default_factory=list)       # (script URL, body) as rendered
+    requests: list[tuple[str, str, str]] = field(default_factory=list)   # (method, url, type) during load only
 
 
 @dataclass
@@ -177,15 +181,25 @@ async def _fetch_httpx(domain, timeout_s, user_agent, transport, resolve) -> Fet
 
 
 async def fetch_playwright(domain: str, *, timeout_s: float, user_agent: str,
-                           resolve: Resolver | None = None) -> FetchedPage | Unreachable:
+                           resolve: Resolver | None = None, start_url: str | None = None) -> FetchedPage | Unreachable:
     from playwright.async_api import Error as PwError
     from playwright.async_api import async_playwright
 
     resolve = resolve or resolve_host
-    start = f"https://{domain}/"
+    start = start_url or f"https://{domain}/"
     if why := await _block_reason(start, resolve):
         return Unreachable(why)
     blocked: list[str] = []
+    requests: list[tuple[str, str, str]] = []
+    bundle_resps = []
+
+    def on_request(r):  # observation only: the page is never typed into, clicked or submitted
+        if r.resource_type in ("xhr", "fetch", "ping", "eventsource", "websocket", "other"):
+            requests.append((r.method, r.url, r.resource_type))
+
+    def on_response(r):
+        if r.request.resource_type == "script" and len(bundle_resps) < MAX_BUNDLES:
+            bundle_resps.append(r)
 
     async def guard(route):  # every request the page makes, redirects included, passes the SSRF guard
         if await _public(route.request.url, resolve):
@@ -201,6 +215,8 @@ async def fetch_playwright(domain: str, *, timeout_s: float, user_agent: str,
                                             java_script_enabled=True, accept_downloads=False)
             page = await ctx.new_page()
             await page.route("**/*", guard)
+            page.on("request", on_request)
+            page.on("response", on_response)
             try:
                 resp = await page.goto(start, wait_until="domcontentloaded", timeout=int(timeout_s * 1000))
             except PwError as e:
@@ -221,13 +237,23 @@ async def fetch_playwright(domain: str, *, timeout_s: float, user_agent: str,
             final = page.url
             headers = await resp.all_headers()
             status = resp.status
+            bundles, total = [], 0
+            for r in bundle_resps:
+                try:
+                    body = await r.body()
+                except PwError:
+                    continue
+                if len(body) <= MAX_BUNDLE_BYTES and total + len(body) <= MAX_BUNDLE_TOTAL:
+                    bundles.append((r.url, body))
+                    total += len(body)
         finally:
             await browser.close()
     async with httpx.AsyncClient(timeout=timeout_s, headers={"User-Agent": user_agent}, verify=False) as client:
         favicon = await _get_small(client, _icon_url(html, final), 100_000, resolve)
         scripts = [b for src in _SCRIPT_SRC.findall(html)[:MAX_EXTERNAL_SCRIPTS]
                    if (b := await _get_small(client, urljoin(final, src), MAX_SCRIPT_BYTES, resolve))]
-    return FetchedPage(start, final, status, html, headers, chain, shot, favicon, scripts, "playwright")
+    return FetchedPage(start, final, status, html, headers, chain, shot, favicon, scripts, "playwright",
+                       bundles=bundles, requests=requests)
 
 
 async def fetch(domain: str, *, timeout_s: float, user_agent: str, limiter: Limiter | None = None,

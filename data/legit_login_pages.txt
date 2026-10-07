@@ -1,0 +1,71 @@
+# S3 false-positive gate: LEGITIMATE pages that ask for a credential (password or OTP).
+# Hand-curated 2026-10-07 from the brands in data/brands.yaml (their real login portals) and widely used global
+# services. Every row is a public login page of the organisation that owns the domain. One URL per line; the gate
+# records which ones were reachable and actually rendered a credential input (only those test the signals).
+# --- global services
+https://github.com/login
+https://gitlab.com/users/sign_in
+https://bitbucket.org/account/signin/
+https://www.reddit.com/login/
+https://www.linkedin.com/login
+https://www.facebook.com/login/
+https://www.instagram.com/accounts/login/
+https://accounts.google.com/
+https://login.live.com/
+https://login.microsoftonline.com/
+https://www.dropbox.com/login
+https://www.netflix.com/login
+https://www.paypal.com/signin
+https://www.amazon.in/gp/sign-in.html
+https://wordpress.com/log-in
+https://www.tumblr.com/login
+https://stackoverflow.com/users/login
+https://news.ycombinator.com/login
+https://discord.com/login
+https://web.telegram.org/k/
+https://slack.com/signin
+https://accounts.zoho.in/signin
+https://www.canva.com/login
+https://login.yahoo.com/
+https://signin.ebay.com/
+https://id.atlassian.com/login
+https://www.notion.so/login
+https://www.figma.com/login
+https://wise.com/login
+https://accounts.binance.com/en/login
+https://login.coinbase.com/signin
+https://meta.discourse.org/login
+https://www.npmjs.com/login
+https://pypi.org/account/login/
+https://app.netlify.com/login
+https://vercel.com/login
+https://dash.cloudflare.com/login
+https://signin.aws.amazon.com/signin
+https://www.digitalocean.com/login
+https://auth.openai.com/log-in
+# --- Indian brands in data/brands.yaml
+https://retail.onlinesbi.sbi/retail/login.htm
+https://netbanking.hdfcbank.com/netbanking/
+https://infinity.icicibank.com/corp/AuthenticationController?FORMSGROUP_ID__=AuthenticationFG&__START_TRAN_FLAG__=Y&FG_BUTTONS__=LOAD&ACTION.LOAD=Y&AuthenticationFG.LOGIN_FLAG=1&BANK_ID=ICI
+https://omni.axisbank.co.in/axisretailbanking/
+https://netbanking.kotak.com/knb2/
+https://www.netpnb.com/
+https://www.bobibanking.com/
+https://www.onlinesbi.sbi/
+https://my.idfcfirstbank.com/login
+https://unifiedportal-mem.epfindia.gov.in/memberinterface/
+https://eportal.incometax.gov.in/iec/foservices/#/login
+https://services.gst.gov.in/services/login
+https://www.irctc.co.in/nget/train-search
+https://www.flipkart.com/account/login
+https://www.myntra.com/login
+https://kite.zerodha.com/
+https://groww.in/login
+https://www.jio.com/selfcare/login/
+https://www.myvi.in/login
+https://www.airtel.in/signin
+https://www.makemytrip.com/
+https://www.paytm.com/
+https://www.phonepe.com/business-solutions/payment-gateway/
+https://www.policybazaar.com/
+https://supplier.meesho.com/panel/v3/new/root/login

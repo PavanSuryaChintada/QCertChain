@@ -15,6 +15,7 @@ import asyncio
 
 from services.config import SETTINGS
 from services.enrich.enrichers import Enrichment, enrich
+from services.enrich.exfil import exfil_endpoints, foreign_post_endpoints
 from services.enrich.fetch import FetchedPage, Limiter, RateLimited, Unreachable, fetch
 from services.enrich.fingerprint import (extract_forms, favicon_hash, js_bundle_hashes,
                                          kit_hash, page_title)
@@ -65,7 +66,7 @@ def _site(host: str) -> str:
 
 def analyze_page(page: FetchedPage, domain: str, brand: Brand | None, known_kits: dict[str, str],
                  brand_favicons: dict[str, set[str]], registered_at: datetime | None, issuer: str | None,
-                 now: datetime | None = None) -> ConfirmResult:
+                 now: datetime | None = None, signal_strengths: dict[str, str] | None = None) -> ConfirmResult:
     """Pure function over an observed page. Used by live confirmation and by the labelled seed."""
     now = now or datetime.now(timezone.utc)
     html = page.html or ""
@@ -102,6 +103,23 @@ def analyze_page(page: FetchedPage, domain: str, brand: Brand | None, known_kits
     if brand and page.favicon and favicon_hash(page.favicon) in brand_favicons.get(brand.name, set()):
         signals.append(Signal("favicon_brand_match", "strong",
                               f"favicon mmh3 {favicon_hash(page.favicon)} equals {brand.name}'s real favicon"))
+
+    # ---- S1/S2: credential exfiltration in the rendered DOM + the kit's JS (strength set by the S3 gate) ------
+    st = signal_strengths if signal_strengths is not None else {
+        "exfil": SETTINGS.exfil_signal_strength, "js_post": SETTINGS.js_post_signal_strength}
+    if st.get("exfil", "off") != "off" or st.get("js_post", "off") != "off":
+        scripts_src = [(u, b.decode("utf-8", "replace")) for u, b in page.bundles] or             [(f"script#{i}", b.decode("utf-8", "replace")) for i, b in enumerate(page.scripts)]
+        if st.get("exfil", "off") != "off":
+            for h in exfil_endpoints(html, scripts_src)[:3]:
+                signals.append(Signal("credential_exfil_endpoint", st["exfil"],
+                                      f"credential page references {h.kind}: {h.match[:120]} (in {h.where[:120]})"))
+        if st.get("js_post", "off") != "off":
+            hits = foreign_post_endpoints(html, scripts_src, page.requests, page.final_url, legit_sites)
+            if hits:
+                h = hits[0]
+                signals.append(Signal("credential_post_foreign_origin_js", st["js_post"],
+                                      f"credential page's code POSTs to {h.origin} ({h.match[:120]}, in {h.where[:120]})"
+                                      + (f"; +{len(hits) - 1} more" if len(hits) > 1 else "")))
 
     # ---- moderate -------------------------------------------------------------------------------
     if brand and page_site not in legit_sites:

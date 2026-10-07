@@ -24,6 +24,10 @@ class Settings:
     confirm_timeout_s: float = 15.0
     enrich_workers: int = 4
     per_host_rate_limit_s: float = 2.0
+    # S1/S2 credential-exfiltration signals: "off" until the S3 false-positive gate (scripts/exfil_fp_gate.py) has
+    # run; then "strong" if it found no false positive on a legitimate page, else "moderate". Owner rule.
+    exfil_signal_strength: str = "off"
+    js_post_signal_strength: str = "off"
     user_agent: str = "QCertChain-Scanner/0.1 (phishing research)"
     cluster_edge_threshold: float = 0.6
     interdict_budget_k: int = 5

