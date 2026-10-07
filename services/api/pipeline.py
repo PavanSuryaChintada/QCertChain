@@ -134,6 +134,10 @@ def persist_result(c: sa.Connection, domain_id: int, name: str, result: ConfirmR
         recluster(c)
     bundle_id = make_bundle(c, domain_id, name, result, page, e, evidence_dir=evidence_dir,
                             signing_key_hex=signing_key_hex, source=source)
+    from services.email.analyze import rescore_for_domain  # owner decision 2: cold-start emails catch up
+    label = c.execute(sa.text("select c.label from org_domains d join campaigns c on c.id = d.campaign_id "
+                              "where d.id = :d"), {"d": domain_id}).scalar()
+    rescore_for_domain(c, domain_id, name, label)
     repo.log(c, "confirm", f"{name}: confirmed ({result.strong_count} strong) · bundle {bundle_id[:8]}",
              context={"domain_id": domain_id, "bundle_id": bundle_id})
     return bundle_id

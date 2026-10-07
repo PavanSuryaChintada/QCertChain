@@ -353,6 +353,9 @@ create table if not exists email_analyses (
   constraint email_malicious_needs_two_strong check (verdict <> 'malicious' or strong_count >= 2)
 );
 create index if not exists email_verdict_idx on email_analyses (verdict, received_at desc);
+-- owner decision 2 (option B): an analysis is re-scored when one of its domains is confirmed later
+alter table email_analyses add column if not exists verdict_history jsonb not null default '[]'::jsonb;
+alter table email_analyses add column if not exists rescored_at timestamptz;
 
 -- ===============================================================
 -- OWNERSHIP  ·  org_id on every org-owned table. Idempotent: on an existing database the rows that

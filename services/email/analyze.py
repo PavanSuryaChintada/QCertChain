@@ -22,7 +22,7 @@ from services.enrich.confirm import Signal
 from services.ingest.brands import BrandIndex
 from services.ingest.triage import triage
 
-__all__ = ["DomainLookup", "EmailVerdict", "analyze", "db_lookup", "persist_and_correlate"]
+__all__ = ["DomainLookup", "EmailVerdict", "analyze", "db_lookup", "persist_and_correlate", "rescore_for_domain"]
 
 
 @dataclass
@@ -89,3 +89,59 @@ def persist_and_correlate(c: sa.Connection, v: EmailVerdict, source: Literal["an
     repo.log(c, "email", f"email {aid[:8]}: {v.verdict} ({v.strong_count} strong) from {p.from_etld1 or 'unknown'}"
              + (f"; {len(new_ids)} new candidates" if new_ids else ""), context={"analysis_id": aid})
     return aid, new_ids
+
+
+def _link_etld1s(urls: list[str] | None) -> set[str]:
+    from urllib.parse import urlsplit
+
+    from services.ingest.brands import etld1
+    out = set()
+    for u in urls or []:
+        host = (urlsplit(u).hostname or "").lower().rstrip(".")
+        if host:
+            out.add(etld1(host))
+    return out
+
+
+def rescore_for_domain(c: sa.Connection, domain_id: int, name: str, campaign_label: str | None = None) -> list[str]:
+    """Owner decision 2 (option B): `name` was just CONFIRMED by the current org. Every earlier analysis of THIS org
+    that links to it (or was sent from it) gains the strong signal it would have had, and its verdict is recomputed
+    under the unchanged rule (malicious needs two strong signals; the database enforces it). Returns re-scored ids.
+    Idempotent; never touches another organisation's analyses."""
+    from services.ingest.brands import etld1
+    e = etld1(name)
+    rows = c.execute(sa.text("""
+        select id::text as id, verdict, strong_count, signals, urls, from_etld1, reply_to_etld1, return_path_etld1,
+               linked_domain_ids
+        from email_analyses
+        where org_id = current_org() and verdict <> 'malicious'
+          and (from_etld1 = :e or reply_to_etld1 = :e or return_path_etld1 = :e
+               or exists (select 1 from unnest(urls) u where position(:e in lower(u)) > 0))"""),
+        {"e": e}).mappings().all()
+    done = []
+    for r in rows:
+        senders = {r["from_etld1"], r["reply_to_etld1"], r["return_path_etld1"]} - {None}
+        kind = "link_domain_confirmed" if e in _link_etld1s(r["urls"]) else (
+            "sender_domain_confirmed" if e in senders else None)
+        if kind is None or any(s["name"] == kind for s in r["signals"]):
+            continue  # a substring false hit, or this signal already counted
+        detail = (f"{'link to' if kind == 'link_domain_confirmed' else 'sender domain'} {e}: confirmed after this "
+                  f"email was analysed (re-scored)" + (f", campaign {campaign_label}" if campaign_label else ""))
+        signals = [*r["signals"], {"name": kind, "strength": "strong", "detail": detail}]
+        strong = sum(s["strength"] == "strong" for s in signals)
+        verdict = "malicious" if strong >= 2 else "suspicious"
+        c.execute(sa.text("""
+            update email_analyses set signals = cast(:sig as jsonb), strong_count = :sc, verdict = :v,
+                   linked_domain_ids = (select array(select distinct x from unnest(coalesce(linked_domain_ids, '{}')
+                                                                                 || cast(:d as bigint)) x)),
+                   rescored_at = clock_timestamp(),
+                   verdict_history = verdict_history || jsonb_build_array(jsonb_build_object(
+                       'at', clock_timestamp(), 'from', cast(:old as text), 'to', cast(:v as text),
+                       'reason', cast(:why as text)))
+            where id = :id and org_id = current_org()"""),
+            {"sig": json.dumps(signals), "sc": strong, "v": verdict, "d": domain_id, "old": r["verdict"],
+             "why": detail, "id": r["id"]})
+        repo.log(c, "email", f"email {r['id'][:8]} re-scored: {r['verdict']} -> {verdict} ({e} confirmed)",
+                 context={"analysis_id": r["id"], "domain_id": domain_id})
+        done.append(r["id"])
+    return done
