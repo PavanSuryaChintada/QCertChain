@@ -7,6 +7,7 @@ terminating the child, which an in-process timeout check cannot guarantee.
 """
 from __future__ import annotations
 
+import multiprocessing
 import threading
 from concurrent.futures import ProcessPoolExecutor
 from concurrent.futures import TimeoutError as FuturesTimeout
@@ -32,7 +33,9 @@ def _pool() -> ProcessPoolExecutor:
     global _POOL
     with _LOCK:
         if _POOL is None:
-            _POOL = ProcessPoolExecutor(max_workers=1, initializer=_warm)
+            # spawn, never fork: forking a multi-threaded host (uvicorn, OR-Tools, test runners) can deadlock the
+            # child on Linux (CI found it; Windows always spawns, which hid it locally).
+            _POOL = ProcessPoolExecutor(max_workers=1, initializer=_warm, mp_context=multiprocessing.get_context("spawn"))
         return _POOL
 
 

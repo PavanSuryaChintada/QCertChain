@@ -77,3 +77,16 @@ def seeded(api):
                  json={"label": "smoke", "domains": 60, "ips": 12, "asns": 3, "nameservers": 4, "org": "org1"})
     assert r.status_code == 200, r.text
     return r.json()["campaign_id"]
+
+
+@pytest.fixture(autouse=True)
+def _collector_key(monkeypatch):
+    """Tests never depend on a developer's .env: if no collector signing key is configured, use a throwaway one."""
+    import dataclasses
+
+    import nacl.signing
+
+    from services.api import seed
+    if not seed.SETTINGS.collector_private_key:
+        monkeypatch.setattr(seed, "SETTINGS", dataclasses.replace(
+            seed.SETTINGS, collector_private_key=nacl.signing.SigningKey.generate().encode().hex()))
