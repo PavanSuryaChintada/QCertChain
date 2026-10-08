@@ -4,6 +4,7 @@ from __future__ import annotations
 from typing import Literal
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Request
+from starlette.concurrency import run_in_threadpool
 
 from services.api import cursor
 from services.api.deps import Scope, get_redis, get_scope
@@ -51,7 +52,7 @@ async def analyze_email(request: Request, s: Scope = Depends(get_scope), r=Depen
         raw = raw.encode("utf-8", errors="replace")
     if len(raw) > MAX_BYTES:
         raise HTTPException(413, "email larger than 2 MB")
-    v, aid, new_ids = repo_email.analyze_and_store(s, raw, source, _brands())
+    v, aid, new_ids = await run_in_threadpool(repo_email.analyze_and_store, s, raw, source, _brands())
     for d in new_ids:  # private candidates go through the same evidence gate as CT ones, for THIS org
         await r.lpush("enrich:queue", f"{s.org_id}:{d}")
     p = v.parsed

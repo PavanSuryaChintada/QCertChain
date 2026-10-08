@@ -54,7 +54,9 @@ app = FastAPI(title="QCertChain API", version="0.1.0", lifespan=lifespan, docs_u
 app.add_middleware(TimingMiddleware)
 app.add_middleware(GZipMiddleware, minimum_size=1024)  # graph and list payloads compress ~5-10x
 app.add_middleware(CORSMiddleware,
-                   allow_origins=[o for o in os.environ.get("CONSOLE_ORIGINS", "http://localhost:5180").split(",") if o],
+                   # both spellings of this machine: a demo opened at 127.0.0.1 must not fail on CORS
+                   allow_origins=[o for o in os.environ.get(
+                       "CONSOLE_ORIGINS", "http://localhost:5180,http://127.0.0.1:5180").split(",") if o],
                    allow_methods=["*"], allow_headers=["*"])
 
 

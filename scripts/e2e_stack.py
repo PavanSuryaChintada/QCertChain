@@ -142,7 +142,20 @@ def serve(root: str, port: int) -> None:
 
         def log_message(self, fmt, *args):
             pass
-    http.server.ThreadingHTTPServer(("127.0.0.1", port), functools.partial(SPA, directory=root)).serve_forever()
+    import socket
+    import threading
+    handler = functools.partial(SPA, directory=root)
+
+    class V6(http.server.ThreadingHTTPServer):
+        address_family = socket.AF_INET6
+
+    # loopback only, on BOTH families: a browser opening "localhost" tries ::1 first, and an IPv4-only server costs
+    # ~200 ms per connection on Windows. If IPv6 loopback is unavailable, IPv4 alone still serves.
+    try:
+        threading.Thread(target=V6(("::1", port), handler).serve_forever, daemon=True).start()
+    except OSError:
+        pass
+    http.server.ThreadingHTTPServer(("127.0.0.1", port), handler).serve_forever()
 
 
 if __name__ == "__main__":

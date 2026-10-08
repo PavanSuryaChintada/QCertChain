@@ -1,6 +1,7 @@
 import { type ReactNode, useEffect, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { getKey, onKeyChange, setKey } from "../lib/auth";
+import { prefetchDemoPath } from "../lib/prefetch";
 
 /** Nothing renders without an API key: the key decides which organisation's data exists. */
 export function KeyGate({ children }: { children: ReactNode }) {
@@ -8,6 +9,8 @@ export function KeyGate({ children }: { children: ReactNode }) {
   const [key, setLocal] = useState(getKey());
   const [draft, setDraft] = useState("");
   useEffect(() => onKeyChange(() => { setLocal(getKey()); qc.clear(); }), [qc]);
+  // warm the demo path once per signed-in key, so each page opens from cache (best-effort, never errors)
+  useEffect(() => { if (key) void prefetchDemoPath(qc); }, [key, qc]);
   if (key) return <>{children}</>;
   return (
     <main style={{ padding: 48, maxWidth: 640 }}>

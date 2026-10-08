@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 from fastapi import APIRouter, Depends, HTTPException, Query
+from starlette.concurrency import run_in_threadpool
 
 from services.api import cursor
 from services.api.deps import Scope, get_redis, get_scope
@@ -57,7 +58,7 @@ def domain_detail(domain_id: int, s: Scope = Depends(get_scope)):
 
 @router.post("/domains/{domain_id}/confirm", status_code=202)
 async def force_confirm(domain_id: int, s: Scope = Depends(get_scope), r=Depends(get_redis)):
-    if not repo_domains.exists(s, domain_id):
+    if not await run_in_threadpool(repo_domains.exists, s, domain_id):
         raise HTTPException(404, f"domain {domain_id} not found")
     await r.lpush("enrich:queue", f"force:{s.org_id}:{domain_id}")  # confirmed on behalf of THIS org
     return {"queued": True, "domain_id": domain_id}

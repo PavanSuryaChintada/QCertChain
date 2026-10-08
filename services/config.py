@@ -12,8 +12,8 @@ ROOT = Path(__file__).resolve().parent.parent
 class Settings:
     database_url: str = ""
     test_database_url: str = "postgresql+psycopg://qcertchain:qcertchain@localhost:5433/qcertchain_test"
-    redis_url: str = "redis://localhost:6379"
-    certstream_url: str = "ws://localhost:8080/"  # lite stream: has sha256 + issuer, no DER/chain
+    redis_url: str = "redis://127.0.0.1:6379"  # 127.0.0.1, not localhost: Windows tries IPv6 ::1 first (~200 ms per connection)
+    certstream_url: str = "ws://127.0.0.1:8080/"  # lite stream: has sha256 + issuer, no DER/chain
     stream_mode: str = "live"
     replay_file: str = "data/capture.jsonl"
     replay_speed: float = 1.0
@@ -35,7 +35,7 @@ class Settings:
     max_qubo_variables: int = 24
     evidence_dir: str = "data/evidence"
     collector_private_key: str = ""
-    chain_rpc: str = "http://localhost:8545"
+    chain_rpc: str = "http://127.0.0.1:8545"
     # chain tests write to their OWN node so they never leave records on the demo chain
     test_chain_rpc: str = "http://127.0.0.1:8546"
     org_private_key: str = ""

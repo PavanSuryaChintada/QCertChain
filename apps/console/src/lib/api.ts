@@ -1,7 +1,7 @@
 // Typed client for the QCertChain API. The console talks only to this API, always with the X-API-Key header.
 import { authHeaders, setKey } from "./auth";
 
-export const API_URL: string = (import.meta.env.VITE_API_URL as string | undefined) ?? "http://localhost:8000";
+export const API_URL: string = (import.meta.env.VITE_API_URL as string | undefined) ?? "http://127.0.0.1:8000"; // not localhost: on Windows each new connection to localhost first tries IPv6 (~200 ms)
 
 export type DomainStatus = "candidate" | "confirmed" | "dismissed" | "unreachable";
 export type EmailVerdict = "malicious" | "suspicious" | "clean";

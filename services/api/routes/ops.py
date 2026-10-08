@@ -4,6 +4,7 @@ from __future__ import annotations
 from datetime import datetime
 
 from fastapi import APIRouter, Depends, Query
+from starlette.concurrency import run_in_threadpool
 
 from services.api import cursor
 from services.api.deps import Scope, get_ledger, get_redis, get_scope
@@ -17,7 +18,7 @@ CHANNELS = ("stream", "triage", "confirm", "enrich", "graph", "interdict", "evid
 
 @router.get("/metrics", response_model=Metrics)
 async def metrics(s: Scope = Depends(get_scope), r=Depends(get_redis)):
-    m = repo_ops.metrics(s)
+    m = await run_in_threadpool(repo_ops.metrics, s)  # blocking DB I/O off the event loop
     return {**m, "certs_per_sec": (await read_state(r)).certs_per_sec}  # 0 when the heartbeat is stale
 
 
@@ -51,10 +52,10 @@ async def status(s: Scope = Depends(get_scope), r=Depends(get_redis), ledger=Dep
     """ONE batched poll for the console chrome (top bar, rail, architecture page): org, key kind, stream, counters,
     per-component status, and /health. Keeps the published demo key far under its 60 requests/minute."""
     from services.api.health import report
-    counts = repo_ops.status_counts(s)
+    counts = await run_in_threadpool(repo_ops.status_counts, s)  # off the event loop: polled every 5 s
     stream = await read_state(r)
     try:
-        ledger_up = bool(ledger.available())
+        ledger_up = bool(await run_in_threadpool(ledger.available))
     except Exception:
         ledger_up = False
     metrics = {k: counts[k] for k in ("campaigns_active", "domains_confirmed", "domains_candidate", "plans_today",
@@ -63,7 +64,7 @@ async def status(s: Scope = Depends(get_scope), r=Depends(get_redis), ledger=Dep
     return {"org": {"slug": s.org_slug, "name": counts["org_name"]}, "key_kind": s.kind,
             "stream": stream.model_dump(mode="json"), "metrics": {**metrics, "certs_per_sec": stream.certs_per_sec},
             "ledger": {"available": ledger_up, "queue_depth": counts["anchor_queue_depth"]},
-            "components": _components(stream, counts, ledger_up), "health": report()}
+            "components": _components(stream, counts, ledger_up), "health": await run_in_threadpool(report)}
 
 
 @router.get("/scaling")

@@ -596,3 +596,19 @@ Format: **AI did** · **Owner decided** · **Verified by** · **Rulings** (AI ju
   (Geomys 589, 546 of them connections closed by the server) so per-operator coverage is explained, not guessed; the
   report heading carries the measured hours, gaps are plural, and cross-log duplication is stated as expected.
 - **Verified by:** test_certstream_errors, test_build_report (heading, duplicates, operator errors), the full finalize run.
+
+## Demo readiness: speed and no errors on the presenting laptop (2026-10-09 night)
+
+- **Measured first:** steady API calls ~0.4-0.9 s (Supabase in Singapore from India, ~8 round trips per request);
+  after a reset the solver benchmark took up to 32 s cold, `/status` 6.9 s, evidence verify 3.6 s; chain-backed
+  endpoints ~3 s because `localhost` on Windows tries IPv6 first (225 ms vs 16 ms per new connection); `/status`
+  (polled every 5 s) ran blocking database and chain calls inside an `async` route, stalling other requests.
+- **AI did:** `scripts/demo.py` (`reset` = reset + publish + anchor + warm; `warm` pre-computes every page incl. the
+  benchmark for exactly the slider's k values; `check` = READY table; `console` = production build; `flush` = drop the
+  stale page-fetch backlog so the enrich stage reads ok); local services on 127.0.0.1; blocking calls in async routes
+  moved to the thread pool (static test guards it); CORS allows both localhost and 127.0.0.1; console prefetches the
+  demo path after sign-in; the console's static server answers on IPv4 and IPv6 loopback; DEMO.md prep rewritten and
+  the shot list corrected to the current screens (470 domains, k = 5 covers 382 of 470, 440 reachable, five solvers).
+- **Verified by:** test_async_routes_static, test_cors, test_demo_script, prefetch.test.ts (console 60/60), the API
+  test files (88 passed), and the DEMO.md click-through in a real browser against the live stack: 61 s, 2/2 passed.
+  After warming: median API call ~0.5 s, solver table 0.47 s, evidence verify 0.66 s.

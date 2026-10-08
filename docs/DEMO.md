@@ -18,27 +18,41 @@ that **aborts every non-localhost request**. Measured on the development laptop:
 The same run is the `e2e` job in CI. Use this setup (point the browser at `http://localhost:4173`) when the venue's
 network cannot be trusted; the hosted deployment is the bonus, not the baseline.
 
-## Before recording (5 minutes, off camera)
+## Before recording (10 minutes, off camera)
 
-1. **Reset the demo chain.** Chain state is not transactional, so it is reset separately: stop the Hardhat node,
-   start it again (`cd contracts && npx hardhat node`), then
-   `npx hardhat run scripts/deploy.ts --network localhost`. The contract addresses are deterministic, so
-   nothing else changes.
-2. **Reset the demo data** (admin key, one transaction, demo data only):
-   `curl -X POST localhost:8000/admin/reset -H "X-API-Key: $QCC_KEY_ADMIN"`.
-   It gives Bank One SOC its 400-domain ICICI-themed campaign and Bank Two SOC its 50-domain HDFC-themed campaign
-   on the same kit, sharing one hosting IP and one nameserver. Live CT data is kept.
-3. **Publish Bank One's campaign to the ledger:** `POST /ledger/publish/{campaign_id}` with Bank One's key. Wait
-   for the anchor worker to drain (the top bar's ledger queue reaches 0).
-4. **Warm the benchmark:** open the Bank One campaign page once, so the solver table is cached; "Run again" stays
-   live.
-5. **Replay as the stream source** (admin): `POST /admin/stream/mode {"mode":"replay","speed":360}` with
-   `REPLAY_FILE=data/replay/ct_live.jsonl.gz`. That plays 24 hours of recorded CT in about 4 minutes, and the UI
-   labels it as replay throughout.
-6. Two browser profiles: profile A signed in with **Bank One's** key, profile B with **Bank Two's**. Window
-   size 1280×800.
+Everything below is one command each (`PYTHONPATH=.` from the repo root, keys read from `.env`). Use
+`http://localhost:5180` or `http://127.0.0.1:5180`; both work.
 
-Required state at "Action": both orgs seeded, Bank One's campaign anchored, replay running, `/health` green.
+1. **Start the stack** (each in its own terminal): Docker Desktop (Redis, certstream); the demo chain
+   `cd contracts && npx hardhat node --hostname 127.0.0.1 --port 8545` then
+   `npx hardhat run scripts/deploy.ts --network localhost` (addresses are deterministic, nothing else changes);
+   `uvicorn services.api.main:app --host 127.0.0.1 --port 8000`; the four workers from the README.
+2. **Production console:** `python -m scripts.demo console` builds the console and serves it on :5180. It loads
+   much faster than `npm run dev` (one 108 KB gzipped bundle instead of hundreds of dev modules).
+3. **Reset, publish, anchor, warm:** `python -m scripts.demo reset`. It resets the demo data (admin key, one
+   transaction, demo data only: Bank One SOC's 470-domain ICICI-themed campaign, Bank Two SOC's 50-domain
+   HDFC-themed campaign on the same kit, sharing one hosting IP and one nameserver; live CT data is kept), publishes
+   Bank One's campaign to the ledger, waits for the anchors, then warms every page the script below visits for both
+   organisations: the solver benchmark for every k on the slider (cold, the first one takes up to 30 s; warm, under
+   1 s), sweep, graph, evidence verification, the ledger lookup. "Run again" on camera stays a genuine live run.
+4. **Optional: replay as the stream source** (admin): `POST /admin/stream/mode {"mode":"replay","speed":360}` with
+   `REPLAY_FILE=data/replay/ct_24h.jsonl.gz` (the finalized capture: 22.6 hours of recorded CT, deduplicated and
+   sorted, about 3.4 minutes at 360x). The UI labels replay throughout.
+5. **Right before presenting:** `python -m scripts.demo flush` drops the stale page-fetch backlog (those domains stay
+   candidates). On one laptop the fetcher (~240/h) cannot keep up with the live feed (~600 candidates/h), so the
+   backlog only grows and the top bar would show the enrich stage as degraded; flushed, the running enrich worker
+   stays under the "ok" line for over an hour. Keep the enrich worker running.
+6. **Readiness:** `python -m scripts.demo check` must print `READY` (API and database, chain and anchor queue, CT
+   stream, enrich backlog, both organisations' campaigns, console).
+7. Two browser profiles: profile A signed in with **Bank One's** key, profile B with **Bank Two's**. Window
+   size 1280x800.
+
+Measured on the presenting laptop (2026-10-09, live Supabase in Singapore): the full click-through below, automated
+in a real browser against this stack (`e2e/test_demo_path.py`), passes in **61 s** with no page error and no request
+leaving the machine except to the API; after warming, the median API call is about 0.5 s, the solver table and
+evidence verification under 0.7 s.
+
+Required state at "Action": `scripts.demo check` prints READY (both orgs seeded, Bank One's campaign anchored, every component ok).
 
 ---
 
@@ -57,10 +71,10 @@ Required state at "Action": both orgs seeded, Bank One's campaign anchored, repl
 
 | Time | Click | On screen | Say |
 |---|---|---|---|
-| 2:00 | Campaigns → the 400-domain campaign | The graph: domains around shared infrastructure | "400 domains, one operator. We found them by shared kit, hosting, nameservers and registrar." |
+| 2:00 | Campaigns → the 470-domain campaign | The graph: domains around shared infrastructure | "470 domains, one operator. We found them by shared kit, hosting, nameservers and registrar." |
 | 2:30 | Point at the legend | Filled squares = takedown targets (IP, nameserver, registrar); dashed circles = evidence only | "We can ask a host, a DNS provider or a registrar to act. We cannot take down a hash, so it is evidence, not a target." |
-| 3:00 | Drag the budget slider from 1 to 10 | Targets light up and domains go dark; the coverage curve flattens | "Which k takedowns kill the most domains? That is maximum coverage, which is NP-hard." |
-| 3:40 | Set k = 5 | **"2^19 candidate subsets, solved in … ms"** and **400 / 400 covered** | "Five takedowns end all 400 domains. CP-SAT proves it optimal in milliseconds." |
+| 3:00 | Drag the budget slider from 1 to 15 | Targets light up and domains go dark; the coverage curve flattens toward the "440 reachable" line | "Which k takedowns kill the most domains? That is maximum coverage, which is NP-hard." |
+| 3:40 | Set k = 5 | **"k = 5 covers 382 of 470 domains (440 reachable)"**, "16,108,764 possible 5-target plans here (74 targetable nodes) ... solved exactly", and the band "30 unreachable at any k" | "Five takedowns cover 382 of 470. Thirty sit only on shared DNS, so no budget reaches them: the best any plan can do is 440. The solver finds the exact optimum among sixteen million plans." |
 | 4:15 | Read "Why this plan" | Each target, its route (hosting abuse / DNS abuse / registrar suspension) and the domains it covers | "Every target says who to ask and why." |
 | 4:40 | Domain → Abuse report | The generated report, marked **not sent** | "We generate the request. We never send it. One false positive would take a real business offline." |
 
@@ -68,7 +82,7 @@ Required state at "Action": both orgs seeded, Bank One's campaign anchored, repl
 
 | Time | Click | On screen | Say |
 |---|---|---|---|
-| 5:00 | Scroll to Solvers | Greedy, CP-SAT, annealing and QAOA: covered, targets, ms, gap vs CP-SAT | "Same problem, four solvers, every row shown, including where QAOA loses." |
+| 5:00 | Scroll to Solvers | Greedy, CP-SAT, simulated annealing, QAOA and exhaustive search: covered, targets, ms, gap vs CP-SAT | "Same problem, five solvers, every row shown. Exhaustive search checks every plan after reduction and confirms CP-SAT's optimum." |
 | 5:40 | Click **Run again** | It re-runs live (seconds for QAOA) | "Nothing pre-baked: a judge can run it." |
 | 6:10 | Scroll to the formulation panel | QUBO variables, qubits, circuit depth, what the reduction discarded | "CP-SAT is production. The same QUBO runs on QAOA. The claim is about scaling, not speed today." |
 
@@ -81,7 +95,7 @@ Required state at "Action": both orgs seeded, Bank One's campaign anchored, repl
 | 7:50 | **Tamper (demo)** | FAIL: expected vs actual hash with differing characters marked; the root and the chain no longer match | "Flip one byte, in memory: the evidence on disk is never touched, and the proof breaks." |
 | 8:10 | **Restore** | Green again | |
 | 8:20 | **Switch to profile B (Bank Two)** | A populated console, Bank Two's own 50-domain campaign | "A second bank. It cannot see Bank One's data: that is a 404, not a 403." |
-| 8:35 | Ledger → paste the kit hash from its own campaign → Look up | Bank One's report: IOC root, kit hash, 400 domains, confidence, reporter, time. **No names, no IPs, no content** | "Bank Two found Bank One's campaign through the ledger, without receiving any of its data. One bank's detection protects the next." |
+| 8:35 | Ledger → paste the kit hash from its own campaign → Look up | Bank One's report: IOC root, kit hash, 470 domains, confidence, reporter, time. **No names, no IPs, no content** | "Bank Two found Bank One's campaign through the ledger, without receiving any of its data. One bank's detection protects the next." |
 | 8:50 | **Corroborate** (or Dispute) | The queued write, signed as Bank Two | "Its signature is its own key's. Nobody can sign as another bank." |
 
 ## 9:00–10:00 Email correlation (profile A)
