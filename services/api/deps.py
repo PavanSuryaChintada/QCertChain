@@ -23,12 +23,29 @@ from services.config import SETTINGS
 READ_METHODS = ("GET", "HEAD", "OPTIONS")
 
 
+def _connect() -> sa.Connection:
+    """One retry: a transient DNS or connection blip (seen on a home network: getaddrinfo failed) must not become a
+    500 on screen. If the database is still unreachable, a clear 503 the console shows as a retry notice."""
+    for attempt in (1, 2):
+        try:
+            return engine().connect()
+        except sa.exc.OperationalError:
+            if attempt == 2:
+                raise HTTPException(503, "The database is unreachable right now (network). Retry in a few seconds.")                     from None
+            time.sleep(0.5)
+    raise AssertionError("unreachable")
+
+
 def get_conn() -> Iterator[sa.Connection]:
     """PRIVILEGED transaction provider. Only auth, get_scope and admin routes may depend on it directly."""
     if not SETTINGS.database_url:
         raise HTTPException(503, "The database is not configured (DATABASE_URL).")
-    with engine().begin() as c:
-        yield c
+    c = _connect()
+    try:
+        with c.begin():
+            yield c
+    finally:
+        c.close()
 
 
 def require_key_header(request: Request) -> None:

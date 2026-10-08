@@ -612,3 +612,7 @@ Format: **AI did** · **Owner decided** · **Verified by** · **Rulings** (AI ju
 - **Verified by:** test_async_routes_static, test_cors, test_demo_script, prefetch.test.ts (console 60/60), the API
   test files (88 passed), and the DEMO.md click-through in a real browser against the live stack: 61 s, 2/2 passed.
   After warming: median API call ~0.5 s, solver table 0.47 s, evidence verify 0.66 s.
+- **Network blips:** the workers' logs showed intermittent `getaddrinfo failed` resolving the Supabase host on this
+  home network (none in the API). The API now retries opening a database connection once and otherwise answers a
+  clear 503 ("unreachable, retry in a few seconds") instead of a 500 (test_get_conn_retry). Re-verified after: warm
+  71/71 200, `demo check` READY, live click-through 2/2 in 48 s. The offline e2e stack also passes locally (52 s).
