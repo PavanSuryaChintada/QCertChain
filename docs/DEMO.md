@@ -18,23 +18,31 @@ that **aborts every non-localhost request**. Measured on the development laptop:
 The same run is the `e2e` job in CI. Use this setup (point the browser at `http://localhost:4173`) when the venue's
 network cannot be trusted; the hosted deployment is the bonus, not the baseline.
 
-## Before recording (10 minutes, off camera)
+## Before recording (15 minutes, off camera)
 
-Everything below is one command each (`PYTHONPATH=.` from the repo root, keys read from `.env`). Use
-`http://localhost:5180` or `http://127.0.0.1:5180`; both work.
+From a PowerShell or terminal window you keep open, in the repo root (keys are read from `.env`):
 
-1. **Start the stack** (each in its own terminal): Docker Desktop (Redis, certstream); the demo chain
-   `cd contracts && npx hardhat node --hostname 127.0.0.1 --port 8545` then
-   `npx hardhat run scripts/deploy.ts --network localhost` (addresses are deterministic, nothing else changes);
-   `uvicorn services.api.main:app --host 127.0.0.1 --port 8000`; the four workers from the README.
-2. **Production console:** `python -m scripts.demo console` builds the console and serves it on :5180. It loads
-   much faster than `npm run dev` (one 108 KB gzipped bundle instead of hundreds of dev modules).
-3. **Reset, publish, anchor, warm:** `python -m scripts.demo reset`. It resets the demo data (admin key, one
-   transaction, demo data only: Bank One SOC's 470-domain ICICI-themed campaign, Bank Two SOC's 50-domain
-   HDFC-themed campaign on the same kit, sharing one hosting IP and one nameserver; live CT data is kept), publishes
-   Bank One's campaign to the ledger, waits for the anchors, then warms every page the script below visits for both
-   organisations: the solver benchmark for every k on the slider (cold, the first one takes up to 30 s; warm, under
-   1 s), sweep, graph, evidence verification, the ledger lookup. "Run again" on camera stays a genuine live run.
+```
+$env:PYTHONPATH="."; .venv\Scripts\python -m scripts.demo up
+```
+
+That one command, safe to re-run (nothing starts twice), brings the whole demo up from cold and ends with `READY`:
+
+1. **Starts everything detached**: Docker containers (Redis, certstream; starts Docker Desktop if needed), the demo
+   chain on :8545 with the contracts (addresses are deterministic), the API on :8000, the four workers, the
+   production console on :5180, and a **supervisor** that restarts any of them within 15 s if one dies
+   (`.superpowers/watch.log`). Logs: `.superpowers/<name>.log`. Stop it all with `python -m scripts.demo down`.
+2. **If the chain is new** (it lost its anchors): resets the demo data (admin key, one transaction, demo data
+   only: Bank One SOC's 470-domain ICICI-themed campaign, Bank Two SOC's 50-domain HDFC-themed campaign on the same
+   kit, sharing one hosting IP and one nameserver; live CT data is kept), publishes Bank One's campaign and waits for
+   the anchors. Otherwise it keeps the anchored state.
+3. **Warms** every page the script below visits, for both organisations: the solver benchmark for every k on the
+   slider (cold, the first one takes up to 30 s; warm, under 1 s), sweep, graph, evidence verification, the ledger
+   lookup. "Run again" on camera stays a genuine live run.
+
+Measured on the presenting laptop (2026-10-09): from cold to `READY` in about 14 minutes; re-run on a running stack,
+about 70 s.
+
 4. **Optional: replay as the stream source** (admin): `POST /admin/stream/mode {"mode":"replay","speed":360}` with
    `REPLAY_FILE=data/replay/ct_24h.jsonl.gz` (the finalized capture: 22.6 hours of recorded CT, deduplicated and
    sorted, about 3.4 minutes at 360x). The UI labels replay throughout.

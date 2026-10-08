@@ -33,3 +33,38 @@ async def test_flush_drops_only_the_pending_fetch_backlog():
     assert out == {"queued": 2, "scheduled_rechecks": 1}
     assert await r.llen("enrich:queue") == 0 and await r.zcard("enrich:retry") == 0
     assert await r.hget("stream:mode", "mode") == "live"
+
+
+def test_up_starts_only_what_is_not_already_running():
+    from scripts.demo import services_to_start
+    alive = {"chain": True, "api": False, "console": True, "ingest": False, "triage": True, "enrich": False,
+             "anchor": True}
+    assert services_to_start(alive) == ["api", "ingest", "enrich"]
+
+
+def test_a_fresh_chain_needs_deploy_and_reset_an_old_one_only_warming():
+    from scripts.demo import chain_plan
+    assert chain_plan(chain_was_running=False, contracts_deployed=False) == ["deploy", "reset"]
+    assert chain_plan(chain_was_running=True, contracts_deployed=True) == ["warm"]
+    assert chain_plan(chain_was_running=True, contracts_deployed=False) == ["deploy", "reset"]
+
+
+def test_pidfiles_round_trip(tmp_path):
+    from scripts.demo import read_pid, write_pid
+    write_pid(tmp_path, "api", 4242)
+    assert read_pid(tmp_path, "api") == 4242 and read_pid(tmp_path, "nope") is None
+
+
+def test_supervisor_revives_dead_services_by_process_not_by_http():
+    """A busy API that is slow to answer is NOT restarted (that would clash on its port): liveness is the process."""
+    from scripts.demo_stack import API, CONSOLE, WORKERS, alive_map
+    procs = [(1, f"python -m {API[1]} --port 8000"), (2, f"python -m scripts.e2e_stack --serve x/apps/console/{CONSOLE[1]}"),
+             (3, "python -m services.ingest.stream")]
+    alive = alive_map(procs)
+    assert alive["api"] and alive["console"] and alive["ingest"]
+    assert not alive["triage"] and not alive["enrich"] and not alive["anchor"]
+
+
+def test_offline_e2e_console_does_not_mask_a_dead_demo_console():
+    from scripts.demo_stack import alive_map
+    assert not alive_map([(9, r"python -m scripts.e2e_stack --serve C:\x\apps\console\dist-e2e 4173")])["console"]

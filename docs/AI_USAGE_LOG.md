@@ -616,3 +616,9 @@ Format: **AI did** · **Owner decided** · **Verified by** · **Rulings** (AI ju
   home network (none in the API). The API now retries opening a database connection once and otherwise answers a
   clear 503 ("unreachable, retry in a few seconds") instead of a 500 (test_get_conn_retry). Re-verified after: warm
   71/71 200, `demo check` READY, live click-through 2/2 in 48 s. The offline e2e stack also passes locally (52 s).
+- **One command for demo day:** `scripts.demo up` starts the stack detached from cold (Docker, chain + contracts,
+  API, workers, production console), re-anchors when the chain is new, warms, flushes and checks; a supervisor
+  restarts any demo process that dies (an anchor worker did vanish once overnight with no traceback; cause not
+  found, so the supervisor covers it); `down` stops it. Verified: down, then up from cold to READY in ~14 min;
+  re-run idempotent (nothing started twice, READY in 71 s); killing the anchor worker on purpose, the supervisor
+  restarted it within its 15 s cycle (test_demo_script covers the decisions: 9 tests).

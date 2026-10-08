@@ -1,5 +1,11 @@
 """Demo-day tooling: make every page fast before the audience sees it, and know the stack is ready.
 
+    PYTHONPATH=. python -m scripts.demo up         ONE command from cold: Docker containers, demo chain (+ contracts),
+                                                   API, four workers, production console, all DETACHED (they survive
+                                                   this terminal); then reset+publish+anchor if the chain is new, else
+                                                   warm; flush; READY check. Safe to re-run: nothing starts twice.
+    PYTHONPATH=. python -m scripts.demo down       stop the demo processes (not Docker, not the test chain on :8546)
+    PYTHONPATH=. python -m scripts.demo watch      the supervisor `up` starts: restarts any demo process that dies
     PYTHONPATH=. python -m scripts.demo reset      reset demo data (admin), publish Bank One's campaign, wait for the
                                                    anchors, then warm
     PYTHONPATH=. python -m scripts.demo warm       pre-compute everything a page could be cold on (exit 1 on any non-200)
@@ -29,6 +35,7 @@ import urllib.request
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
+from scripts.demo_stack import chain_plan, read_pid, services_to_start, write_pid  # noqa: E402,F401 (re-exported)
 SWEEP_KS = range(1, 16)  # fallback only; the sweep's own k values are used
 
 
@@ -227,12 +234,27 @@ def serve_console(api: str, port: int) -> int:
 
 def main() -> int:
     ap = argparse.ArgumentParser(description=__doc__.split("\n\n")[0])
-    ap.add_argument("command", choices=["reset", "warm", "check", "console", "flush"])
+    ap.add_argument("command", choices=["up", "down", "watch", "reset", "warm", "check", "console", "flush"])
     ap.add_argument("--api", default="http://127.0.0.1:8000")
     ap.add_argument("--console", default="http://localhost:5180")
     ap.add_argument("--port", type=int, default=5180)
     a = ap.parse_args()
     keys = env_keys()
+    if a.command == "watch":
+        from scripts import demo_stack
+        demo_stack.watch()
+        return 0
+    if a.command == "down":
+        from scripts import demo_stack
+        return demo_stack.down()
+    if a.command == "up":
+        from scripts import demo_stack
+        plan = demo_stack.up()
+        rc = reset(a.api, keys) if "reset" in plan else run_warm(a.api, keys)
+        if rc:
+            return rc
+        flush()
+        a.command = "check"
     if a.command == "console":
         return serve_console(a.api, a.port)  # 127.0.0.1: no IPv6-first penalty per connection
     if a.command == "reset":

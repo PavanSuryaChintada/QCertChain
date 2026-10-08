@@ -183,6 +183,11 @@ curl -X POST localhost:8000/admin/reset -H "X-API-Key: $QCC_KEY_ADMIN"   # seed 
 cd apps/console && npm install && npm run dev   # http://localhost:5180, paste a key on first load
 ```
 
+**Demo day: one command instead of the list above.** `python -m scripts.demo up` (with `PYTHONPATH=.`) starts the
+containers, the demo chain and contracts, the API, the four workers and the production console, all detached and
+supervised (a process that dies is restarted within 15 s), re-anchors if the chain is new, warms every demo page and
+ends with a `READY` check. `python -m scripts.demo down` stops it. Details: [docs/DEMO.md](docs/DEMO.md).
+
 Or everything in containers: `docker compose up -d` (API on `localhost:8000`). Tests:
 `docker compose --profile test up -d postgres-test && pytest`.
 
