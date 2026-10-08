@@ -289,19 +289,73 @@
   "owner_decision_pending": "cold-start gate options A-D reported 2026-10-06; >=2-strong rule unchanged"
  },
  "lead_time": {
-  "matched_domains": 11,
-  "ct_first": 0,
-  "lead_hours": {
-   "p50": null,
-   "p95": null,
-   "max": null
+  "exact_hostname": {
+   "unit": "exact hostname",
+   "entries": 589,
+   "excluded": {
+    "E1_listed_at_first_poll": 259,
+    "E2_listing_interval_overlaps_gap": 0,
+    "E3_unmatched_listed_after_gap_start": 322,
+    "E4_ct_first_seen_within_W_of_start_or_gap_end": 8
+   },
+   "excluded_total": 589,
+   "retained_matched_ct_first": 0,
+   "retained_matched_listed_first": 0,
+   "retained_unmatched": 0,
+   "value": null,
+   "status": "not measured: 0 CT-first matches on the exact hostname (fewer than 10); 589 OpenPhish entries, 589 excluded (E1 259, E2 0, E3 322, E4 8), 0 listed before CT showed them, 0 with no CT sighting",
+   "unmatched_allowlisted_not_indexed": 51
   },
-  "listed_before_ct_seen": 11,
-  "dataset": "our 30-min CT capture (2026-10-06 13:28-13:58 UTC) x PhishTank verified-online submission times, matched on the EXACT hostname named in the certificate",
-  "caveat": "a 30-minute window: only phishing certificates issued in that window can match; lead time is bounded by when PhishTank was downloaded",
-  "measured_at": "2026-10-06T18:44:00.339709+00:00"
+  "etld1": {
+   "unit": "eTLD+1",
+   "entries": 510,
+   "excluded": {
+    "E1_listed_at_first_poll": 231,
+    "E2_listing_interval_overlaps_gap": 0,
+    "E3_unmatched_listed_after_gap_start": 264,
+    "E4_ct_first_seen_within_W_of_start_or_gap_end": 15
+   },
+   "excluded_total": 510,
+   "retained_matched_ct_first": 0,
+   "retained_matched_listed_first": 0,
+   "retained_unmatched": 0,
+   "value": null,
+   "status": "not measured: 0 CT-first matches on the eTLD+1 (fewer than 10); 510 OpenPhish entries, 510 excluded (E1 231, E2 0, E3 264, E4 15), 0 listed before CT showed them, 0 with no CT sighting"
+  },
+  "openphish_urls": 735,
+  "openphish_hosts": 589,
+  "openphish_urls_without_host": 0,
+  "polls_in_log": 39,
+  "polls_that_added_new_urls": 3,
+  "window": {
+   "from": "2026-10-07T06:30:36Z",
+   "to": "2026-10-08T05:05:22Z",
+   "hours": 22.58,
+   "state": "complete"
+  },
+  "state": "complete",
+  "rules": {
+   "E1_listed_at_first_poll": "present in the first OpenPhish poll: listed before the capture started",
+   "E2_listing_interval_overlaps_gap": "the poll interval in which it was first listed overlaps a capture gap (listing time not known to the 30-min resolution)",
+   "E3_unmatched_listed_after_gap_start": "no CT sighting and first listed after a gap began: its certificate may have been issued during the gap",
+   "E4_ct_first_seen_within_W_of_start_or_gap_end": "CT first sighting within W after the capture start or a gap end: an earlier sighting may have been missed"
+  },
+  "W": {
+   "seconds": 41400,
+   "quantile": 0.99,
+   "quantile_value_s": 39694.7,
+   "n_names_seen_twice": 38222,
+   "rounded_up_to_s": 1800,
+   "derivation": "p99 of the delay between the first and second sighting of a name in scored certificates (38222 names seen twice) = 661.6 min, rounded up to the 30-min poll resolution: a name first shown during a gap is, with that probability, seen again before W has passed, so first sightings later than W after a gap are not re-sightings of a missed one"
+  },
+  "min_ct_first_matches": 10,
+  "listing_time_resolution": "+/-30 min: the OpenPhish feed is polled every 30 min, so a URL's listing time lies in the 30 min before the poll that first saw it",
+  "match_rule": "exact hostname of the OpenPhish URL == a name in ct_first_seen (non-allowlisted names from every certificate in the capture); eTLD+1 matches reported separately, never mixed",
+  "dataset": "OpenPhish public feed polled every 30 min x CT first sighting (ct_live.sqlite), complete capture",
+  "measured_at": "2026-10-08T17:56:08Z",
+  "status": "not measured: 0 CT-first matches on the exact hostname (fewer than 10); 589 OpenPhish entries, 589 excluded (E1 259, E2 0, E3 322, E4 8), 0 listed before CT showed them, 0 with no CT sighting"
  },
- "generated_at": "2026-10-08T02:10:33.976160+00:00",
+ "generated_at": "2026-10-08T18:18:54.331931+00:00",
  "triage_threshold_options": {
   "options": [
    {
@@ -1057,5 +1111,409 @@
   "dataset": "live public-feed candidates of the pipeline operator (org 1), capture window; the same fixed domain set before and after the S4 re-check",
   "method": "scripts/diagnose_confirm.py (verdict reasons, favicon census, unreachable causes); S4 = every domain re-checked through the real enrichment worker with the shipped logic",
   "measured_at": "2026-10-08T02:10:33.975165+00:00"
+ },
+ "ct_capture": {
+  "state": "complete",
+  "window": {
+   "from": "2026-10-07T06:30:36Z",
+   "to": "2026-10-08T05:05:22Z",
+   "hours": 22.58,
+   "state": "complete"
+  },
+  "dataset": "data/replay/ct_live.jsonl.gz (complete capture), certstream-server-go lite stream",
+  "runs": [
+   {
+    "run": 0,
+    "messages": 843,
+    "first_seen": "2026-10-07T06:30:36Z",
+    "last_seen": "2026-10-07T06:31:49Z"
+   },
+   {
+    "run": 1,
+    "messages": 30850,
+    "first_seen": "2026-10-07T06:32:15Z",
+    "last_seen": "2026-10-07T08:15:14Z"
+   },
+   {
+    "run": 2,
+    "messages": 215978,
+    "first_seen": "2026-10-07T08:55:04Z",
+    "last_seen": "2026-10-08T05:05:22Z"
+   }
+  ],
+  "gzip_reader": {
+   "bytes": 65648462,
+   "members": 3,
+   "members_without_end_marker": 2,
+   "partial_lines_dropped": 0,
+   "decode_errors": []
+  },
+  "messages": {
+   "total": 247671,
+   "by_tag": {
+    "background_sample": 199572,
+    "scored": 48099
+   },
+   "bad_json": 0,
+   "without_seen": 0
+  },
+  "gap": {
+   "threshold_s": 300,
+   "gaps": [
+    {
+     "from": "2026-10-07T08:15:14Z",
+     "to": "2026-10-07T08:55:04Z",
+     "minutes": 39.8
+    },
+    {
+     "from": "2026-10-07T18:00:01Z",
+     "to": "2026-10-07T18:13:22Z",
+     "minutes": 13.4
+    },
+    {
+     "from": "2026-10-07T20:02:57Z",
+     "to": "2026-10-07T20:13:32Z",
+     "minutes": 10.6
+    },
+    {
+     "from": "2026-10-08T02:18:02Z",
+     "to": "2026-10-08T03:09:14Z",
+     "minutes": 51.2
+    },
+    {
+     "from": "2026-10-08T03:13:30Z",
+     "to": "2026-10-08T04:14:27Z",
+     "minutes": 60.9
+    }
+   ],
+   "total_minutes": 175.9,
+   "largest_other_interarrival_s": 278.4,
+   "recorder_log": {
+    "largest_silence": {
+     "from": "2026-10-08T02:07:00Z",
+     "to": "2026-10-08T03:12:00Z",
+     "minutes": 65
+    },
+    "reconnects": 315,
+    "openphish_polls": 39,
+    "openphish_poll_failures": 13
+   },
+   "method": "max inter-arrival gap of data.seen over all messages (>= 300 s counts as a gap), cross-checked with the recorder log"
+  },
+  "coverage": {
+   "minutes_in_window": 1356,
+   "minutes_covered": 1163,
+   "pct": 85.77,
+   "minutes_inside_gaps": 171,
+   "per_operator": {
+    "Cloudflare": {
+     "minutes_covered": 1068,
+     "pct": 78.76,
+     "pct_outside_gaps": 90.13,
+     "messages": 13253,
+     "logs": [
+      "Cloudflare 'Nimbus2026'",
+      "Cloudflare 'Nimbus2027'"
+     ]
+    },
+    "DigiCert": {
+     "minutes_covered": 1107,
+     "pct": 81.64,
+     "pct_outside_gaps": 93.42,
+     "messages": 27462,
+     "logs": [
+      "DigiCert 'Sphinx2026h2'",
+      "DigiCert 'Wyvern2026h2'",
+      "DigiCert 'Wyvern2027h1'",
+      "DigiCert 'sphinx2027h1'"
+     ]
+    },
+    "Geomys": {
+     "minutes_covered": 531,
+     "pct": 39.16,
+     "pct_outside_gaps": 44.81,
+     "messages": 9405,
+     "logs": [
+      "Geomys 'Tuscolo2026h2'",
+      "Geomys 'Tuscolo2027h1'",
+      "Geomys 'Tuscolo2027h2'",
+      "Geomys Trastevere2026h2",
+      "Geomys Trastevere2027h1",
+      "Geomys Trastevere2027h2",
+      "Geomys Trastevere2028h1",
+      "Geomys Trastevere2028h2",
+      "Geomys Tuscolo2028h2"
+     ]
+    },
+    "Google": {
+     "minutes_covered": 1122,
+     "pct": 82.74,
+     "pct_outside_gaps": 94.68,
+     "messages": 49952,
+     "logs": [
+      "Google 'Argon2026h2' log",
+      "Google 'Argon2027h1'",
+      "Google 'ParcelYard2026h2' log",
+      "Google 'ParcelYard2027h1' log",
+      "Google 'PlumbersArms2026h2' log",
+      "Google 'PlumbersArms2027h1' log",
+      "Google 'Xenon2026h2' log",
+      "Google 'Xenon2027h1'"
+     ]
+    },
+    "IPng Networks": {
+     "minutes_covered": 1044,
+     "pct": 76.99,
+     "pct_outside_gaps": 88.1,
+     "messages": 39405,
+     "logs": [
+      "IPng Networks 'Gouda2026h2'",
+      "IPng Networks 'Gouda2027h1'",
+      "IPng Networks 'Gouda2027h2'",
+      "IPng Networks 'Halloumi2026h2a'",
+      "IPng Networks 'Halloumi2027h1'",
+      "IPng Networks Gouda2028h1",
+      "IPng Networks Halloumi2028h1"
+     ]
+    },
+    "Let's Encrypt": {
+     "minutes_covered": 1058,
+     "pct": 78.02,
+     "pct_outside_gaps": 89.28,
+     "messages": 48360,
+     "logs": [
+      "Let's Encrypt 'Sycamore2026h2'",
+      "Let's Encrypt 'Sycamore2027h1'",
+      "Let's Encrypt 'Willow2026h2'",
+      "Let's Encrypt 'Willow2027h1'"
+     ]
+    },
+    "Sectigo": {
+     "minutes_covered": 1105,
+     "pct": 81.49,
+     "pct_outside_gaps": 93.25,
+     "messages": 26765,
+     "logs": [
+      "Sectigo 'Elephant2026h2'",
+      "Sectigo 'Elephant2027h1'",
+      "Sectigo 'Elephant2027h2'",
+      "Sectigo 'Tiger2026h2'",
+      "Sectigo 'Tiger2027h1'",
+      "Sectigo 'Tiger2027h2'"
+     ]
+    },
+    "TrustAsia": {
+     "minutes_covered": 1114,
+     "pct": 82.15,
+     "pct_outside_gaps": 94.01,
+     "messages": 32419,
+     "logs": [
+      "TrustAsia 'HETU2027'",
+      "TrustAsia 'log2026a'",
+      "TrustAsia 'log2026b'",
+      "TrustAsia Luoshu2027"
+     ]
+    },
+    "Other": {
+     "minutes_covered": 350,
+     "pct": 25.81,
+     "pct_outside_gaps": 29.54,
+     "messages": 650,
+     "logs": [
+      "GoDaddy Aquamarine2027h1",
+      "Microsec Eszigno2026h2",
+      "Microsec Eszigno2027h1",
+      "Microsec Eszigno2027h2"
+     ]
+    }
+   },
+   "method": "minutes with >= 1 message (all messages: scored + 1 % sample) / minutes in the window; operator from data.source url/name",
+   "note": "The fixture keeps a 1 % background sample, so a low-volume operator can miss a minute without any capture loss: pct_outside_gaps separates that from the gap"
+  },
+  "duplicates": {
+   "same_certificate": 85885,
+   "same_certificate_across_runs": 64489,
+   "n_messages": 247671,
+   "definition": "same_certificate: same leaf sha256 (else log url + cert_index) seen again, including the same certificate from another CT log; same_log_entry_redelivered: identical log url + cert_index; *_across_runs: the first copy is in an earlier run (gzip member)"
+  },
+  "candidates_at_threshold": {
+   "certificates": 4616,
+   "unique_names": 4841,
+   "messages": 8760,
+   "messages_scored": 8760,
+   "messages_background_sample": 0,
+   "unique_certificates_triaged": 161786,
+   "threshold": 0.35,
+   "rules": "services.ingest.triage.triage as deployed",
+   "window": {
+    "from": "2026-10-07T06:30:36Z",
+    "to": "2026-10-08T05:05:22Z",
+    "hours": 22.58,
+    "state": "complete"
+   },
+   "dataset": "data/replay/ct_live.jsonl.gz (complete capture), certstream-server-go lite stream",
+   "coverage_note": "The fixture holds every certificate that scored >= 0.20 when recorded plus a 1 % sample of the rest; a certificate the deployed rules would now score >= threshold but scored < 0.20 at recording is only present if sampled"
+  },
+  "resighting_window_W": {
+   "seconds": 41400,
+   "quantile": 0.99,
+   "quantile_value_s": 39694.7,
+   "n_names_seen_twice": 38222,
+   "rounded_up_to_s": 1800,
+   "derivation": "p99 of the delay between the first and second sighting of a name in scored certificates (38222 names seen twice) = 661.6 min, rounded up to the 30-min poll resolution: a name first shown during a gap is, with that probability, seen again before W has passed, so first sightings later than W after a gap are not re-sightings of a missed one"
+  },
+  "measured_at": "2026-10-08T17:54:32Z",
+  "recorder_summary": {
+   "started": "2026-10-07T08:54:58.365913+00:00",
+   "finished": "2026-10-08T16:31:39.671306+00:00",
+   "certs": 17435395,
+   "kept_scored": 41989,
+   "kept_sample": 173989,
+   "candidates_at_0_35": 9971,
+   "sample": 0.01,
+   "keep_score": 0.2
+  },
+  "replay_fixture": {
+   "path": "data/replay/ct_24h.jsonl.gz",
+   "messages": 161786,
+   "kept_scored": 17439,
+   "kept_background_sample": 144347,
+   "sorted_by_seen": true,
+   "replay_seconds_at_speed": {
+    "360": 206.1
+   },
+   "window": {
+    "from": "2026-10-07T06:30:36Z",
+    "to": "2026-10-08T05:05:22Z",
+    "hours": 22.58,
+    "state": "complete"
+   },
+   "gaps": [
+    {
+     "from": "2026-10-07T08:15:14Z",
+     "to": "2026-10-07T08:55:04Z",
+     "minutes": 39.8
+    },
+    {
+     "from": "2026-10-07T18:00:01Z",
+     "to": "2026-10-07T18:13:22Z",
+     "minutes": 13.4
+    },
+    {
+     "from": "2026-10-07T20:02:57Z",
+     "to": "2026-10-07T20:13:32Z",
+     "minutes": 10.6
+    },
+    {
+     "from": "2026-10-08T02:18:02Z",
+     "to": "2026-10-08T03:09:14Z",
+     "minutes": 51.2
+    },
+    {
+     "from": "2026-10-08T03:13:30Z",
+     "to": "2026-10-08T04:14:27Z",
+     "minutes": 60.9
+    }
+   ],
+   "messages_in": 247671,
+   "duplicates_removed": 85885,
+   "sample_rate": 0.01,
+   "keep_score": 0.2,
+   "replay_note": "stream.py replay sleeps min(delta / speed, 2.0 s) between messages; the capture gap therefore costs at most 2 s",
+   "state": "complete",
+   "measured_at": "2026-10-08T17:54:32Z"
+  }
+ },
+ "live_pipeline_counts": {
+  "threshold": 0.35,
+  "window": {
+   "from": "2026-10-07T06:30:36Z",
+   "to": "2026-10-08T05:05:22Z",
+   "hours": 22.58,
+   "state": "complete"
+  },
+  "candidates": {
+   "value": 4920,
+   "first_candidate_at": "2026-10-07T06:37:03.084306+00:00",
+   "last_candidate_at": "2026-10-08T02:17:41.978738+00:00",
+   "dataset": "Supabase domains: source=certstream, shared (origin_org_id null), candidate_at in window"
+  },
+  "org_verdicts": {
+   "org": "org1",
+   "org_id": 1,
+   "by_status": {
+    "candidate": 444,
+    "no verdict row (candidate)": 3443,
+    "unreachable": 814,
+    "dismissed": 219
+   },
+   "confirmed": 0,
+   "dismissed": 219,
+   "unreachable": 814,
+   "n_candidates": 4920,
+   "dataset": "domain_verdicts of the pipeline org for those candidates; status as of measured_at"
+  },
+  "pipeline_largest_gap": {
+   "from": "2026-10-07T08:15:22Z",
+   "to": "2026-10-07T08:55:10Z",
+   "minutes": 39.8
+  },
+  "redelivery": {
+   "certificates_rows_in_window": 4765,
+   "candidate_rows_touched_again": 1516,
+   "touched_again_across_the_gap": 11,
+   "note": "certificates.fingerprint is unique and a repeat is absorbed by ON CONFLICT without a counter, so certificate re-deliveries are not measurable. domains.last_seen is touched on every repeat candidate sighting (precertificate + final certificate, other logs, re-delivery); rows first seen before the gap and touched after it bound restart re-deliveries from above"
+  },
+  "measured_at": "2026-10-08T17:56:16Z",
+  "state": "complete"
+ },
+ "ct_operator_errors": {
+  "errors_by_operator": {
+   "geomys.org": 589,
+   "ipng.ch": 109,
+   "googleapis.com": 80,
+   "letsencrypt.org": 56,
+   "godaddy.com": 45,
+   "e-szigno.hu": 43,
+   "trustasia.com": 35
+  },
+  "causes_by_operator": {
+   "godaddy.com": {
+    "HTTP error status": 45
+   },
+   "trustasia.com": {
+    "HTTP error status": 27,
+    "timeout": 7,
+    "DNS failure": 1
+   },
+   "geomys.org": {
+    "connection closed by the server (EOF)": 546,
+    "timeout": 30,
+    "other": 10,
+    "DNS failure": 3
+   },
+   "ipng.ch": {
+    "timeout": 99,
+    "connection closed by the server (EOF)": 5,
+    "DNS failure": 5
+   },
+   "googleapis.com": {
+    "timeout": 74,
+    "connection closed by the server (EOF)": 3,
+    "DNS failure": 3
+   },
+   "letsencrypt.org": {
+    "timeout": 52,
+    "DNS failure": 3,
+    "connection closed by the server (EOF)": 1
+   },
+   "e-szigno.hu": {
+    "timeout": 40,
+    "connection closed by the server (EOF)": 2,
+    "DNS failure": 1
+   }
+  },
+  "dataset": "certstream-server-go container log, all runs of the capture",
+  "measured_at": "2026-10-08T18:18:54.330932+00:00"
  }
 }

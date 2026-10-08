@@ -289,6 +289,17 @@ def live_confirmation():
             "measured_at": NOW()}
 
 
+@section
+def ct_operator_errors():
+    """B3: the aggregator's per-operator fetch errors, from its saved container log (scripts/certstream_errors.py)."""
+    from scripts.certstream_errors import parse
+    log = ROOT / ".superpowers/certstream_container.log"
+    if not log.exists():
+        raise FileNotFoundError("save it first: docker logs qcertchain-certstream-1 > .superpowers/certstream_container.log")
+    return {**parse(log.read_text(encoding="utf-8", errors="replace").splitlines()),
+            "dataset": "certstream-server-go container log, all runs of the capture", "measured_at": NOW()}
+
+
 # ---- email ---------------------------------------------------------------------------------------------------
 @section
 def email():
@@ -554,7 +565,8 @@ def evidence_ledger():
 
 
 SECTIONS = {"evidence_ledger": evidence_ledger, "triage_threshold_options": triage_threshold_options, "triage_rules": triage_rules, "triage_model": triage_model, "ingest": ingest,
-            "confirmation": confirmation, "live_confirmation": live_confirmation, "email": email,
+            "confirmation": confirmation, "live_confirmation": live_confirmation,
+            "ct_operator_errors": ct_operator_errors, "email": email,
             "response_time": response_time,
             "interdiction": interdiction, "lead_time_phishtank_30min": lead_time_phishtank_30min,
             "ct_capture": ct_capture, "live_pipeline_counts": live_pipeline_counts, "lead_time": lead_time}

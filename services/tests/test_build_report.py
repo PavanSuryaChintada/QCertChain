@@ -294,3 +294,21 @@ def test_empty_detector_breakdown_reads_none():
              "strong_signals_by_detector": {}, "in_a_campaign": 0}
     md = render(metrics(live_confirmation=_live(after=after)))
     assert "(by detector: none)" in md and "`{}`" not in md
+
+
+def test_capture_heading_uses_the_measured_hours_and_explains_duplicates_and_operator_errors():
+    m = metrics()
+    if "ct_capture" not in m or "window" not in m["ct_capture"]:
+        import pytest
+        pytest.skip("metrics.json has no finalized capture")
+    m["ct_operator_errors"] = {"errors_by_operator": {"geomys.org": 589, "ipng.ch": 109},
+                               "causes_by_operator": {"geomys.org": {"connection closed by the server (EOF)": 546,
+                                                                     "timeout": 30},
+                                                      "ipng.ch": {"timeout": 99}},
+                               "dataset": "certstream-server-go container log"}
+    md = render(m)
+    hours = m["ct_capture"]["window"]["hours"]
+    assert f"### CT capture ({hours} h): integrity and coverage" in md and "(24 hours)" not in md
+    assert "inside the gaps" in md and "pct_outside_gaps" not in md
+    assert "Cross-log duplication is expected" in md
+    assert "geomys.org 589" in md and "connection closed by the server (EOF) 546" in md

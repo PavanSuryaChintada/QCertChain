@@ -590,7 +590,7 @@ def analyze(fixture: Path = FIXTURE_IN, sqlite_path: Path = SQLITE_IN, log: Path
         "coverage": cov | {"method": "minutes with >= 1 message (all messages: scored + 1 % sample) / minutes in the "
                                      "window; operator from data.source url/name",
                            "note": "The fixture keeps a 1 % background sample, so a low-volume operator can miss a "
-                                   "minute without any capture loss: pct_outside_gaps separates that from the gap"},
+                                   "minute without any capture loss; the column outside the gaps separates that from the gaps themselves"},
         "duplicates": dict(s.dup) | {"n_messages": s.messages,
                                      "definition": "same_certificate: same leaf sha256 (else log url + cert_index) "
                                                    "seen again, including the same certificate from another CT log; "

@@ -586,3 +586,13 @@ Format: **AI did** · **Owner decided** · **Verified by** · **Rulings** (AI ju
   endpoint +1), and the test passed alone on the idle machine. The 4 timing failures (QAOA isolation, CP-SAT time
   limit) passed 6/6 alone on the idle machine. No code was changed for them; a test-side hardening is proposed in
   BUILD_DECISIONS.md, not made.
+
+## Finalize on the completed capture, report polish (2026-10-08 evening)
+
+- **Situation:** the session restart lost the scheduled 13:07 finalize; the recorder had finished and written its
+  summary, but the laptop slept, so messages stop at 05:05 UTC and the measured window is 22.58 h with 5 gaps.
+- **AI did:** ran `npm run finalize` on the complete capture (coverage, duplicates, live counts, lead time "not
+  measured" with its exclusion table); `scripts/certstream_errors.py` counts the aggregator's per-operator fetch errors
+  (Geomys 589, 546 of them connections closed by the server) so per-operator coverage is explained, not guessed; the
+  report heading carries the measured hours, gaps are plural, and cross-log duplication is stated as expected.
+- **Verified by:** test_certstream_errors, test_build_report (heading, duplicates, operator errors), the full finalize run.

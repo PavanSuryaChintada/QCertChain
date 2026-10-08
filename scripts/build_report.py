@@ -38,6 +38,21 @@ def lead_sentence(lt: dict) -> str:
     return f"lead time over OpenPhish is {ex.get('status', 'not measured: no data')}"
 
 
+def render_operator_errors(oe: dict | None) -> list[str]:
+    """B3: per-operator coverage explained by the aggregator's own fetch errors (measured, never inferred)."""
+    if not oe or "errors_by_operator" not in oe:
+        return []
+    parts = []
+    for op, n in oe["errors_by_operator"].items():
+        c = oe.get("causes_by_operator", {}).get(op, {})
+        why = ", ".join(f"{k} {_n(v)}" for k, v in c.items())
+        parts.append(f"{op} {_n(n)} ({why})" if why else f"{op} {_n(n)}")
+    return ["", "Why operators differ: the self-hosted aggregator's own fetch errors, counted from its log "
+            f"({oe.get('dataset', 'certstream-server-go log')}): " + "; ".join(parts) + ". Each error costs a 5 s "
+            "back-off and a worker restart for that log, so the operator with the most errors loses the most "
+            "minutes. The errors are on the connection to the operator's servers, not in our pipeline."]
+
+
 def render_capture(cc: dict) -> list[str]:
     L: list[str] = []
     if na(cc):
@@ -64,16 +79,17 @@ def render_capture(cc: dict) -> list[str]:
     cv = cc["coverage"]
     outside_all = cv["minutes_in_window"] - cv["minutes_inside_gaps"]
     L.append("Coverage = minutes with at least one certificate ÷ minutes in the window "
-             f"({cv['minutes_in_window']:,} minutes, {cv['minutes_inside_gaps']} of them inside the gap).")
+             f"({cv['minutes_in_window']:,} minutes, {cv['minutes_inside_gaps']} of them inside the gaps).")
     L.append("")
-    L.append("| CT log operator | Coverage | Coverage outside the gap | Messages |")
+    L.append("| CT log operator | Coverage | Coverage outside the gaps | Messages |")
     L.append("|---|---|---|---|")
     L.append(f"| **All operators** | **{cv['pct']}%** | "
              f"{round(100 * cv['minutes_covered'] / outside_all, 2) if outside_all else '—'}% | {_n(msgs['total'])} |")
     for op, d in cv["per_operator"].items():
         L.append(f"| {op} | {d['pct']}% | {d['pct_outside_gaps']}% | {_n(d.get('messages'))} |")
     L.append("")
-    L.append(cv.get("note", ""))
+    L.append("The fixture keeps a 1 % background sample, so a low-volume operator can miss a minute without any "
+             "capture loss; the column outside the gaps separates that from the gaps themselves.")
     L.append("")
     du = cc["duplicates"]
     L.append(f"Duplicates: {_n(du.get('same_certificate', 0))} messages repeat a certificate already in the capture "
@@ -81,7 +97,10 @@ def render_capture(cc: dict) -> list[str]:
              f"{_n(du.get('same_log_entry_redelivered', 0))} are the same log entry delivered twice "
              f"({_n(du.get('same_log_entry_redelivered_across_runs', 0))} across a restart); the rest are the same "
              "certificate from another CT log. n = "
-             f"{_n(du.get('n_messages'))} messages.")
+             f"{_n(du.get('n_messages'))} messages. Cross-log duplication is expected: browsers require a certificate "
+             "to carry signed timestamps from more than one CT log, so each certificate is submitted to several logs "
+             "and the stream delivers every copy. Deduplication is by the leaf certificate's SHA-256 fingerprint, so "
+             "a raw message count overstates the number of distinct certificates by the duplicate share above.")
     L.append("")
     ca = cc["candidates_at_threshold"]
     L.append(f"Triage of the whole capture with the deployed rules at **{ca['threshold']}**: **{_n(ca['certificates'])} "
@@ -657,9 +676,13 @@ def render(m: dict) -> str:
         add("The second-organisation view queries the ledger by kit fingerprint and receives the campaign's size, "
             "reporter and transaction — never the first organisation's domains or telemetry.")
     add("")
-    add("### CT capture (24 hours): integrity and coverage")
+    _cc = m.get("ct_capture", {"unavailable": "section missing (run npm run finalize)"})
+    _h = (_cc.get("window") or {}).get("hours") if isinstance(_cc, dict) else None
+    add(f"### CT capture ({_h} h): integrity and coverage" if _h else "### CT capture: integrity and coverage")
     add("")
-    for line in render_capture(m.get("ct_capture", {"unavailable": "section missing (run npm run finalize)"})):
+    for line in render_capture(_cc):
+        add(line)
+    for line in render_operator_errors(m.get("ct_operator_errors")):
         add(line)
     add("")
     tl = m.get("live_pipeline_counts", {"unavailable": "section missing (run npm run finalize)"})

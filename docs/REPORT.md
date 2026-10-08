@@ -1,12 +1,12 @@
 # QCertChain — technical report
 
-*Generated 2026-10-08T02:10:33.976160+00:00 from `reports/metrics.json` by `scripts/build_report.py`. Every number below was measured by `scripts/evaluate.py`; anything not measured says so.*
+*Generated 2026-10-08T18:18:54.331931+00:00 from `reports/metrics.json` by `scripts/build_report.py`. Every number below was measured by `scripts/evaluate.py`; anything not measured says so.*
 
 ## Summary
 
 QCertChain watches the public Certificate Transparency (CT) logs for lookalike domains, confirms phishing only on page evidence, groups confirmed domains into campaigns by shared infrastructure, and computes the smallest set of takedowns (hosting IPs, nameservers, registrars) that removes the most of a campaign. Each confirmed domain gets a signed, Merkle-rooted evidence bundle and a registrar-ready abuse report — **generated, never sent**. Campaign commitments and evidence roots go to a permissioned ledger so a second organisation can inherit a campaign without receiving the first one's telemetry. An email-header module links sender and link domains in a pasted message to the same pipeline.
 
-What the measurements show, in one paragraph: the evidence gate held — on labelled pages it never confirmed a legitimate page (precision 1.0), every stored evidence bundle re-verified and every one-byte tamper was caught and named, and the takedown optimiser plans a 400-domain campaign in under a quarter of a second. The weak points are upstream: at the specified triage threshold the rules missed every real phishing domain naming our brands that the public feeds contained, and lead time over OpenPhish is not measured: no data. Both are stated below with the numbers and the open decision.
+What the measurements show, in one paragraph: the evidence gate held — on labelled pages it never confirmed a legitimate page (precision 1.0), every stored evidence bundle re-verified and every one-byte tamper was caught and named, and the takedown optimiser plans a 400-domain campaign in under a quarter of a second. The weak points are upstream: at the specified triage threshold the rules missed every real phishing domain naming our brands that the public feeds contained, and lead time over OpenPhish is not measured: 0 CT-first matches on the exact hostname (fewer than 10); 589 OpenPhish entries, 589 excluded (E1 259, E2 0, E3 322, E4 8), 0 listed before CT showed them, 0 with no CT sighting. Both are stated below with the numbers and the open decision.
 
 ## How it works
 
@@ -142,7 +142,7 @@ Shipped strengths: S1 `strong`, S2 `moderate`.
 
 Which signals fired: S1 fired on 0 live domains; S2 fired on 6 live domains (moderate), destination sites: contaboserver.net 3, shopifysvc.com 2, mydukaan.io 1. Where those destinations are hosting platforms' own services, these are the false positives the held-out gate predicted, now seen on live traffic, which is why S2 is not a strong signal.
 
-**What the zero means, and what it does not.** Triage works on live traffic at scale: 1,435 live domains in the capture window reached a verdict. Clustering and takedown planning are demonstrated on seeded data: the seeded 400-domain campaign (synthetic data, labelled as such) is clustered and its takedown plan solved by CP-SAT in 131 ms (median, through the API). The page-content confirmation layer does not fire on modern JS kits, and because clustering takes confirmed domains as its input, no live domain has reached the campaign layer. The system detects at live scale and clusters and plans on seeded data; it does not currently confirm by page content on live traffic.
+**What the zero means, and what it does not.** Triage works on live traffic at scale: 4,841 unique candidate names at the 0.35 threshold in the CT capture. Clustering and takedown planning are demonstrated on seeded data: the seeded 400-domain campaign (synthetic data, labelled as such) is clustered and its takedown plan solved by CP-SAT in 131 ms (median, through the API). The page-content confirmation layer does not fire on modern JS kits, and because clustering takes confirmed domains as its input, no live domain has reached the campaign layer. The system detects at live scale and clusters and plans on seeded data; it does not currently confirm by page content on live traffic.
 
 ### Email headers
 
@@ -196,17 +196,78 @@ All backends reach the same coverage on this campaign; CP-SAT is the fastest exa
 
 The second-organisation view queries the ledger by kit fingerprint and receives the campaign's size, reporter and transaction — never the first organisation's domains or telemetry.
 
-### CT capture (24 hours): integrity and coverage
+### CT capture (22.58 h): integrity and coverage
 
-not measured: section missing (run npm run finalize)
+Window 2026-10-07T06:30:36Z → 2026-10-08T05:05:22Z (22.58 h); 247,671 certstream messages in 3 recorder runs (one gzip member each). Dataset: data/replay/ct_live.jsonl.gz (complete capture), certstream-server-go lite stream. Measured 2026-10-08T17:54:32Z.
+
+Capture gap: 2026-10-07T08:15:14Z → 2026-10-07T08:55:04Z (**39.8 min**); 2026-10-07T18:00:01Z → 2026-10-07T18:13:22Z (**13.4 min**); 2026-10-07T20:02:57Z → 2026-10-07T20:13:32Z (**10.6 min**); 2026-10-08T02:18:02Z → 2026-10-08T03:09:14Z (**51.2 min**); 2026-10-08T03:13:30Z → 2026-10-08T04:14:27Z (**60.9 min**), 175.9 min in total. Every other silence between messages was under 278.4 s.
+Recorder log cross-check: its largest silence is 2026-10-08T02:07:00Z → 2026-10-08T03:12:00Z (65 min); 315 websocket reconnects; 39 OpenPhish polls, 13 failed.
+
+Coverage = minutes with at least one certificate ÷ minutes in the window (1,356 minutes, 171 of them inside the gaps).
+
+| CT log operator | Coverage | Coverage outside the gaps | Messages |
+|---|---|---|---|
+| **All operators** | **85.77%** | 98.14% | 247,671 |
+| Cloudflare | 78.76% | 90.13% | 13,253 |
+| DigiCert | 81.64% | 93.42% | 27,462 |
+| Geomys | 39.16% | 44.81% | 9,405 |
+| Google | 82.74% | 94.68% | 49,952 |
+| IPng Networks | 76.99% | 88.1% | 39,405 |
+| Let's Encrypt | 78.02% | 89.28% | 48,360 |
+| Sectigo | 81.49% | 93.25% | 26,765 |
+| TrustAsia | 82.15% | 94.01% | 32,419 |
+| Other | 25.81% | 29.54% | 650 |
+
+The fixture keeps a 1 % background sample, so a low-volume operator can miss a minute without any capture loss; the column outside the gaps separates that from the gaps themselves.
+
+Duplicates: 85,885 messages repeat a certificate already in the capture (64,489 across a restart). Of those, 0 are the same log entry delivered twice (0 across a restart); the rest are the same certificate from another CT log. n = 247,671 messages. Cross-log duplication is expected: browsers require a certificate to carry signed timestamps from more than one CT log, so each certificate is submitted to several logs and the stream delivers every copy. Deduplication is by the leaf certificate's SHA-256 fingerprint, so a raw message count overstates the number of distinct certificates by the duplicate share above.
+
+Triage of the whole capture with the deployed rules at **0.35**: **4,616 candidate certificates**, **4,841 unique candidate names** (8,760 messages; n = 161,786 unique certificates triaged). The fixture holds every certificate that scored >= 0.20 when recorded plus a 1 % sample of the rest; a certificate the deployed rules would now score >= threshold but scored < 0.20 at recording is only present if sampled.
+
+Replay fixture `data/replay/ct_24h.jsonl.gz`: 161,786 messages sorted by `seen`, 85,885 duplicates removed, 17,439 scored (≥ 0.2) + 144,347 background sample (1 %). Replay at 360× takes **3.4 min** (stream.py replay sleeps min(delta / speed, 2.0 s) between messages; the capture gap therefore costs at most 2 s).
+
+Why operators differ: the self-hosted aggregator's own fetch errors, counted from its log (certstream-server-go container log, all runs of the capture): geomys.org 589 (connection closed by the server (EOF) 546, timeout 30, other 10, DNS failure 3); ipng.ch 109 (timeout 99, connection closed by the server (EOF) 5, DNS failure 5); googleapis.com 80 (timeout 74, connection closed by the server (EOF) 3, DNS failure 3); letsencrypt.org 56 (timeout 52, DNS failure 3, connection closed by the server (EOF) 1); godaddy.com 45 (HTTP error status 45); e-szigno.hu 43 (timeout 40, connection closed by the server (EOF) 2, DNS failure 1); trustasia.com 35 (HTTP error status 27, timeout 7, DNS failure 1). Each error costs a 5 s back-off and a worker restart for that log, so the operator with the most errors loses the most minutes. The errors are on the connection to the operator's servers, not in our pipeline.
 
 ### Live pipeline counts at threshold 0.35
 
-not measured: section missing (run npm run finalize)
+Window 2026-10-07T06:30:36Z → 2026-10-08T05:05:22Z (the capture window); first candidate 2026-10-07T06:37:03.084306+00:00, last 2026-10-08T02:17:41.978738+00:00. Measured 2026-10-08T17:56:16Z.
+
+| Count at threshold 0.35 | Value | n | Data |
+|---|---|---|---|
+| Live candidates from CT | 4,920 | — | Supabase domains: source=certstream, shared (origin_org_id null), candidate_at in window |
+| org1 confirmed | 0 | 4,920 candidates | domain_verdicts of the pipeline org for those candidates; status as of measured_at |
+| org1 dismissed | 219 | 4,920 candidates | domain_verdicts of the pipeline org for those candidates; status as of measured_at |
+| org1 unreachable | 814 | 4,920 candidates | domain_verdicts of the pipeline org for those candidates; status as of measured_at |
+
+All org1 statuses: `{"candidate": 444, "no verdict row (candidate)": 3443, "unreachable": 814, "dismissed": 219}`.
+The pipeline's own largest gap between candidates: 2026-10-07T08:15:22Z → 2026-10-07T08:55:10Z (39.8 min).
+Re-deliveries: 1,516 candidate rows were seen again (`last_seen` > `first_seen`), 11 of them across the gap. certificates.fingerprint is unique and a repeat is absorbed by ON CONFLICT without a counter, so certificate re-deliveries are not measurable. domains.last_seen is touched on every repeat candidate sighting (precertificate + final certificate, other logs, re-delivery); rows first seen before the gap and touched after it bound restart re-deliveries from above.
 
 ### Lead time over phishing feeds
 
-not measured: the 24-hour lead time has not been computed yet (run npm run finalize)
+Dataset: OpenPhish public feed polled every 30 min x CT first sighting (ct_live.sqlite), complete capture. Match: exact hostname of the OpenPhish URL == a name in ct_first_seen (non-allowlisted names from every certificate in the capture); eTLD+1 matches reported separately, never mixed. Listing time: +/-30 min: the OpenPhish feed is polled every 30 min, so a URL's listing time lies in the 30 min before the poll that first saw it. Measured 2026-10-08T17:56:08Z.
+
+**Exact hostname: not measured: 0 CT-first matches on the exact hostname (fewer than 10); 589 OpenPhish entries, 589 excluded (E1 259, E2 0, E3 322, E4 8), 0 listed before CT showed them, 0 with no CT sighting.**
+
+Exclusions (each OpenPhish entry falls under the first rule that applies):
+
+| Rule | Exact hostname | eTLD+1 (separate) |
+|---|---|---|
+| E1: present in the first OpenPhish poll: listed before the capture started | 259 | 231 |
+| E2: the poll interval in which it was first listed overlaps a capture gap (listing time not known to the 30-min resolution) | 0 | 0 |
+| E3: no CT sighting and first listed after a gap began: its certificate may have been issued during the gap | 322 | 264 |
+| E4: CT first sighting within W after the capture start or a gap end: an earlier sighting may have been missed | 8 | 15 |
+| Retained: seen in CT before listing | 0 | 0 |
+| Retained: listed before CT showed it | 0 | 0 |
+| Retained: no CT sighting (not in this capture) | 0 | 0 |
+| Entries | 589 hosts | 510 eTLD+1s |
+
+eTLD+1 (reported separately, never mixed with the exact match): not measured: 0 CT-first matches on the eTLD+1 (fewer than 10); 510 OpenPhish entries, 510 excluded (E1 231, E2 0, E3 264, E4 15), 0 listed before CT showed them, 0 with no CT sighting.
+W = 690 min: p99 of the delay between the first and second sighting of a name in scored certificates (38222 names seen twice) = 661.6 min, rounded up to the 30-min poll resolution: a name first shown during a gap is, with that probability, seen again before W has passed, so first sightings later than W after a gap are not re-sightings of a missed one.
+51 of the 589 hosts (before exclusions) are on allowlisted domains, which the first-seen index does not store by design, so they cannot match.
+OpenPhish: 735 URLs (589 hosts) over 39 polls; new URLs first appeared in 3 of them.
+
+The earlier check (kept as `lead_time_phishtank_30min`): 11 PhishTank hostnames had their own certificate in a 30-minute capture and 0 were seen in CT first; no lead time was claimed from it.
 
 ## Trust boundaries
 
