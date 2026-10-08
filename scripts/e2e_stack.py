@@ -102,14 +102,16 @@ def main() -> int:
 
         npm = shutil.which("npm") or "npm"
         console = ROOT / "apps" / "console"
-        b = subprocess.run(f'"{npm}" run build', cwd=console, shell=True, env={**env, "VITE_API_URL": API},
+        # its own output folder: never overwrite a demo build in dist/ that is pointed at the real API
+        b = subprocess.run(f'"{npm}" run build -- --outDir dist-e2e --emptyOutDir', cwd=console, shell=True,
+                           env={**env, "VITE_API_URL": API},
                            capture_output=True, text=True)
         if b.returncode:
             print(b.stdout[-3000:], b.stderr[-3000:])
             return 2
         # the built console is static: serve dist/ with a stdlib server (SPA fallback to index.html). `vite preview`
         # needs esbuild at start-up, which proved flaky on Windows; this has no moving parts.
-        start([PY, "-m", "scripts.e2e_stack", "--serve", str(console / "dist"), str(CONSOLE_PORT)], "console")
+        start([PY, "-m", "scripts.e2e_stack", "--serve", str(console / "dist-e2e"), str(CONSOLE_PORT)], "console")
         _wait(CONSOLE, 60, "console")
 
         test_env = {**env, "E2E_CONSOLE_URL": CONSOLE, "E2E_API_URL": API, "E2E_ARTIFACTS": str(logs),

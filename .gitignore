@@ -30,6 +30,7 @@ reports/ct_capture/*.log
 data/capture_full.jsonl
 data/probe.jsonl
 apps/console/dist/
+apps/console/dist-e2e/
 data/ml/
 services/ml/artifacts/*.joblib
 
