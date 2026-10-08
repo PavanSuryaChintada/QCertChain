@@ -63,6 +63,69 @@ Every decision taken on the owner's behalf during the build (`Ruling:`), and eve
 - Final: fixed candidate_at/verdict_at used transaction-start now() — test_candidate_stores_our_receipt_time RED→GREEN with clock_timestamp(); Ruling: test allows 1 s host/DB clock skew — cost if wrong: none (latencies are seconds).
 - Task 26: Ruling: STREAM_MAXLEN 1,000,000 -> 500,000 — §7 smoke found XADD rejected (Redis 512 MB noeviction, 587 B/entry measured); pinned by test_stream_cap_fits_in_redis_memory; live stream trimmed after confirming lag 0 / pending 0 — cost if wrong: 4.5 min of backlog at 1,840 certs/s instead of 9.
 
+## Live confirmation findings (2026-10-07, measured on the live CT feed)
+
+- **Safety hole, fixed: one artifact could confirm a domain on its own.** While wiring the new S1 (exfiltration
+  endpoint) and S2 (credential POST in the page's code) signals, one Telegram bot URL produced TWO strong signals
+  (S1 saw the endpoint, S2 saw the cross-origin POST to it), so a page could reach "confirmed" on a single
+  observation while the spec promises two independent signals. The same flaw existed one level up for every
+  detector pair (a static form and the page's code POSTing to the same host). Impact had it shipped: confirmations
+  resting on one piece of evidence, the exact failure the two-strong rule exists to prevent. Fix (S3b), one shared
+  rule: every strong signal declares the artifacts it rests on (destination site, DOM hash, favicon hash); two count
+  together only if they come from different detectors and share no artifact. Enforced in code
+  (`confirm.independent_strong`) AND in the database (`has_two_independent_strong`, the `dv_confirmed_needs_two_strong`
+  check). Pinned by test_one_exfil_endpoint_is_one_strong_signal_not_two, test_rule_is_shared_by_the_static_form_check_too,
+  test_db_rejects_two_strong_signals_on_one_artifact, test_db_rejects_two_instances_of_one_detector.
+- **Mislabel, fixed: 134 DNS failures reported as SSRF blocks.** The SSRF guard returned "resolves to a non-public
+  address" for a name that does not resolve at all. The guard still fails closed; the reason is now `dns: ...`.
+  Impact: the unreachable breakdown overstated SSRF rejections 34x (4 real, 134 NXDOMAIN) and hid that most of
+  those candidates simply did not exist yet. Pinned by test_dns_failure_is_reported_as_dns_not_as_ssrf_block.
+- **Backwards verdict, fixed: 9 pages behind Cloudflare's "Suspected Phishing" interstitial were DISMISSED.** Another
+  system had already flagged them, which is corroboration, and the content was hidden from us, so it could not be
+  judged at all. Now: not assessable (unreachable), still a candidate, rechecked; never a dismissal and never our
+  evidence for a confirmation. Pinned by test_host_phishing_interstitial_is_not_assessable_never_dismissed.
+- Ruling: S2 refinement (owner-approved) dropped requests fired during page load (5 of 6 gate false positives were
+  analytics/telemetry) and requires a real hostname (the 6th was the string "https://www."). Re-gated once on the
+  same set: 0 FP. Because that refinement was designed against the same pages, I added a held-out set (45 legitimate
+  login pages never used in development) and ran it ONCE. Result: S1 0 FP; **S2 1 FP** (twitch.tv's own feature-flag
+  bundle POSTs to eppo.cloud). Owner rule: any FP -> S2 ships MODERATE; S2 is not tuned again against the held-out
+  set (that would make it a training set). Consequence, accepted by the owner: with S1 the only live-capable strong
+  signal, live confirmations stay at or near zero, reported with the diagnosis. Cost if wrong: none for precision;
+  recall on JS-era kits stays low until an independent second strong signal exists.
+- Ruling: the kill switch can only LOWER a configured strength, never raise it — a runtime knob must not promote a
+  signal past the false-positive gate — cost if wrong: raising a signal needs a config change and a commit.
+- Ruling: one vote per detector (several S1 hits on different endpoints still count once) — the detectors share
+  failure modes, so two hits from one heuristic are not independent evidence — cost if wrong: a page with two
+  different exfil endpoints and nothing else stays a candidate.
+- **Two overclaims in the draft report, caught against the measured data and corrected before publication.**
+  (1) "The triage and campaign layers are demonstrably working at scale": clustering, takedown planning, evidence
+  bundles and anchoring take CONFIRMED domains as their input (services/graph/build.py, pipeline.persist_result), and no
+  live domain has been confirmed, so nothing live has reached the campaign layer; every campaign in the database is
+  seeded (470 + 50 domains, `source: seed`). The draft's S3e sentence ("an unconfirmed domain can still be reached
+  through its infrastructure") had the same flaw. Corrected: triage works on live traffic at scale; clustering and
+  planning are demonstrated on seeded data; the live pipeline ends at the confirmation gate (not "at triage": live
+  candidates are also fetched and assessed); reaching unconfirmed domains through a confirmed neighbour's
+  infrastructure is named as future work, not claimed. (2) "Interdiction solved in 166 ms": no such figure is in the
+  measured metrics; the report carries the measured CP-SAT values (131 ms median through the API; 58–228 ms median
+  across k = 2..5 in the benchmark). Both claims came from the conversation, not from a measurement script.
+- **Five local test failures under load (2026-10-08 night run), all explained and re-run; none is a code defect.**
+  The full suite ran beside the S4 re-check on one laptop (database round trip p95 490 ms):
+  (1) `test_latency_budgets_and_one_data_query_per_endpoint` failed the query-count rule: `org2 GET /candidates`
+  ran 2 statements where 1 is allowed. Statements, captured: `select k.id, k.kind, k.org_id, o.slug from api_keys k
+  left join organisations o on o.id = k.org_id where k.key_hash = :h and k.revoked_at is null` (the auth
+  dependency's API-key lookup) and the single `org_domains` candidates query. Not a tenancy fallback (the org-2 path
+  issues one statement) and not a serialization lazy load. Mechanism: the key lookup is cached for 30 s
+  (`auth.CACHE_TTL_S`); under load a request took 2-60 s, so the cache expired inside a measured run. Proved by
+  forcing the TTL to 0: every endpoint of both orgs rose by exactly one statement (lists 2, interdiction 3). Re-run
+  alone on the idle machine: passed, every list/graph endpoint 1 data statement, interdiction 2 (its maximum).
+  (2-5) `test_cpsat_hard_random_respects_time_limit_and_reports_gap` (1.8 s vs 1.5 s), `test_busy_host_process_does_
+  not_slow_the_solve` (56 s vs 15 s), `test_hard_timeout_is_enforced_even_if_the_child_overruns` and
+  `test_router_uses_isolated_process_when_enabled` (QAOA child timed out, router fell back to cpsat as designed):
+  wall-clock assertions; packages/interdict unchanged since e9c2fa4; re-run alone on the idle machine: 6/6 passed.
+  CI passed all five on 5baf70b. Latency BUDGETS were not enforced in any local run (round trip 130-660 ms, not
+  co-located); they are enforced in CI. Proposed, not done: make the query-count rule ignore the auth lookup (or
+  refresh the key cache before each measured run) so a slow machine cannot produce a false query-count failure.
+
 ## Deferred minor findings (whole-branch review)
 
 - candidates flash red (flare keyframe) — spec conflict DESIGN.md vs CLAUDE.md §2.2, owner to rule

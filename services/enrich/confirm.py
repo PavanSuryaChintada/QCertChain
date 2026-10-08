@@ -1,6 +1,10 @@
 """Confirmation: evidence, not prediction (TRD §3, MODELS §5).
 
-confirmed  <=>  at least TWO STRONG signals. Never one. Never a moderate-only combination.
+confirmed  <=>  at least TWO INDEPENDENT STRONG signals. Never one. Never a moderate-only combination.
+Independent (S3b, one rule for every signal): from different detectors AND resting on different artifacts (the
+destination site a credential goes to, the page's DOM hash, its favicon hash). One observation seen by two detectors,
+such as a POST to api.telegram.org seen by S1 and by S2, is ONE piece of evidence. The database enforces the same rule
+(has_two_independent_strong in schema.sql).
 Every verdict carries the signals that produced it; the UI and the abuse report show them verbatim.
 """
 from __future__ import annotations
@@ -41,6 +45,25 @@ class Signal:
     name: str
     strength: Strength
     detail: str
+    artifacts: tuple[str, ...] = ()   # what the signal rests on: "endpoint:<site>", "dom:<hash>", "favicon:<hash>"
+
+
+MAX_INSTANCES = 3  # per detector: a few distinct artifacts are enough to find an independent pairing
+
+
+def independent_strong(signals: list[Signal]) -> int:
+    """The largest set of strong signals from DIFFERENT detectors whose artifacts are pairwise disjoint (S3b).
+    Exact (all subsets): at most a handful of strong signals exist per page."""
+    strong = [s for s in signals if s.strength == "strong"]
+    best = 0
+    for mask in range(1, 1 << len(strong)):
+        pick = [s for i, s in enumerate(strong) if mask >> i & 1]
+        if len(pick) <= best or len({s.name for s in pick}) < len(pick):
+            continue
+        arts = [a for s in pick for a in set(s.artifacts)]
+        if len(set(arts)) == len(arts):
+            best = len(pick)
+    return best
 
 
 @dataclass
@@ -51,8 +74,9 @@ class ConfirmResult:
     strong_count: int = 0
 
     def reasons(self) -> dict:
+        """strong_count is the INDEPENDENT count (S3b); each signal lists the artifacts it rests on."""
         return {"verdict": self.verdict, "confidence": self.confidence, "strong_count": self.strong_count,
-                "signals": [s.__dict__ for s in self.signals]}
+                "signals": [{**s.__dict__, "artifacts": list(s.artifacts)} for s in self.signals]}
 
 
 def _host(url: str) -> str:
@@ -94,15 +118,17 @@ def analyze_page(page: FetchedPage, domain: str, brand: Brand | None, known_kits
         if target and _site(target) != page_site and _site(target) not in legit_sites:
             brand_txt = f" (not {sorted(legit)[0]})" if legit else ""
             signals.append(Signal("credential_post_foreign_origin", "strong",
-                                  f"form {f.method.upper()} with password field -> {target}{brand_txt}"))
+                                  f"form {f.method.upper()} with password field -> {target}{brand_txt}",
+                                  (f"endpoint:{_site(target)}",)))
             break
     dom = kit_hash(html)
     if dom is not None and dom in known_kits:
         signals.append(Signal("kit_dom_hash_match", "strong",
-                              f"DOM structure {dom[:12]}... matches known kit {known_kits[dom]}"))
+                              f"DOM structure {dom[:12]}... matches known kit {known_kits[dom]}", (f"dom:{dom}",)))
     if brand and page.favicon and favicon_hash(page.favicon) in brand_favicons.get(brand.name, set()):
-        signals.append(Signal("favicon_brand_match", "strong",
-                              f"favicon mmh3 {favicon_hash(page.favicon)} equals {brand.name}'s real favicon"))
+        fh = favicon_hash(page.favicon)
+        signals.append(Signal("favicon_brand_match", "strong", f"favicon mmh3 {fh} equals {brand.name}'s real favicon",
+                              (f"favicon:{fh}",)))
 
     # ---- S1/S2: credential exfiltration in the rendered DOM + the kit's JS (strength set by the S3 gate) ------
     st = signal_strengths if signal_strengths is not None else {
@@ -110,16 +136,19 @@ def analyze_page(page: FetchedPage, domain: str, brand: Brand | None, known_kits
     if st.get("exfil", "off") != "off" or st.get("js_post", "off") != "off":
         scripts_src = [(u, b.decode("utf-8", "replace")) for u, b in page.bundles] or             [(f"script#{i}", b.decode("utf-8", "replace")) for i, b in enumerate(page.scripts)]
         if st.get("exfil", "off") != "off":
-            for h in exfil_endpoints(html, scripts_src)[:3]:
-                signals.append(Signal("credential_exfil_endpoint", st["exfil"],
-                                      f"credential page references {h.kind}: {h.match[:120]} (in {h.where[:120]})"))
+            seen: set[str] = set()
+            for h in exfil_endpoints(html, scripts_src):
+                art = f"endpoint:{_site(h.match.split('/')[0].lower())}"
+                if art not in seen and len(seen) < MAX_INSTANCES:
+                    seen.add(art)
+                    signals.append(Signal("credential_exfil_endpoint", st["exfil"],
+                                          f"credential page references {h.kind}: {h.match[:120]} (in {h.where[:120]})",
+                                          (art,)))
         if st.get("js_post", "off") != "off":
-            hits = foreign_post_endpoints(html, scripts_src, page.requests, page.final_url, legit_sites)
-            if hits:
-                h = hits[0]
+            for h in foreign_post_endpoints(html, scripts_src, page.final_url, legit_sites)[:MAX_INSTANCES]:
                 signals.append(Signal("credential_post_foreign_origin_js", st["js_post"],
-                                      f"credential page's code POSTs to {h.origin} ({h.match[:120]}, in {h.where[:120]})"
-                                      + (f"; +{len(hits) - 1} more" if len(hits) > 1 else "")))
+                                      f"credential page's code POSTs to {h.origin} ({h.match[:120]}, in {h.where[:120]})",
+                                      (f"endpoint:{_site(_host(h.origin))}",)))
 
     # ---- moderate -------------------------------------------------------------------------------
     if brand and page_site not in legit_sites:
@@ -140,7 +169,7 @@ def analyze_page(page: FetchedPage, domain: str, brand: Brand | None, known_kits
     if issuer and issuer.lower().startswith(FREE_CAS):
         signals.append(Signal("issuer_is_free_ca", "weak", f"certificate issued by {issuer}"))
 
-    strong = sum(s.strength == "strong" for s in signals)
+    strong = independent_strong(signals)   # S3b: independent evidence, not a count of labels
     moderate = sum(s.strength == "moderate" for s in signals)
     weak = sum(s.strength == "weak" for s in signals)
     if strong >= 2:
@@ -155,7 +184,8 @@ def analyze_page(page: FetchedPage, domain: str, brand: Brand | None, known_kits
 
 async def confirm(domain: str, brand: Brand | None, *, known_kits: dict[str, str],
                   brand_favicons: dict[str, set[str]], issuer: str | None, limiter: Limiter | None = None,
-                  use_playwright: bool = True, now: datetime | None = None
+                  use_playwright: bool = True, now: datetime | None = None,
+                  signal_strengths: dict[str, str] | None = None
                   ) -> tuple[ConfirmResult, FetchedPage | None, Enrichment]:
     """candidate -> confirmed | dismissed | unreachable | candidate (insufficient evidence / rate limited).
     The page fetch and the DNS/RDAP/TLS/ASN lookups run concurrently (< 20 s budget, CLAUDE.md §5)."""
@@ -177,5 +207,5 @@ async def confirm(domain: str, brand: Brand | None, *, known_kits: dict[str, str
         e.partial = True
         e.errors.setdefault("screenshot", f"fetched via {got.via}; no screenshot")
     result = analyze_page(got, domain, brand, known_kits, brand_favicons, e.registered_at,
-                          issuer or e.cert_issuer, now=now)
+                          issuer or e.cert_issuer, now=now, signal_strengths=signal_strengths)
     return result, got, e

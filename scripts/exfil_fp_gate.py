@@ -9,6 +9,10 @@
 
 Every false positive is listed individually with its matched text and source. Rule (owner, S3): a single false
 positive on a legitimate page means that signal ships as MODERATE, not strong.
+
+Run 1 (2026-10-07 23:05 IST): S1 0 FP, S2 6 FP (5 were POSTs fired during page load, 1 was the non-URL
+"https://www."). Run 2 measures S2 after the one approved refinement: load-time requests dropped, real hostnames
+only. The gate set is not tuned further: changing S2 again and re-running would turn the gate into a training set.
 """
 from __future__ import annotations
 
@@ -35,7 +39,7 @@ def signals(p: FetchedPage, legit_sites: set[str]) -> dict:
     sc = page_scripts(p)
     return {"credential_input": credential_input(p.html),
             "S1": [h.__dict__ for h in exfil_endpoints(p.html, sc)],
-            "S2": [h.__dict__ for h in foreign_post_endpoints(p.html, sc, p.requests, p.final_url, legit_sites)]}
+            "S2": [h.__dict__ for h in foreign_post_endpoints(p.html, sc, p.final_url, legit_sites)]}
 
 
 async def legit_rows(urls: list[str]) -> list[dict]:

@@ -9,9 +9,13 @@ Both require a password or OTP input in the RENDERED DOM. Nothing is typed, clic
 
   S1 exfil_endpoints       a hardcoded exfiltration endpoint: a Telegram bot API URL WITH a bot token, a Discord
                            webhook, or a mail-sending / form-relay API. A bare t.me link or share button never fires.
-  S2 foreign_post_endpoints a POST the page's code sends (fetch, XHR, axios, jQuery, sendBeacon) or sent while
-                           loading, to a site that is neither the page's own eTLD+1, the impersonated brand's, nor a
-                           listed analytics / captcha / error-reporting service.
+  S2 foreign_post_endpoints a POST written in the page's code (fetch, XHR, axios, jQuery, sendBeacon) to a site that
+                           is neither the page's own eTLD+1, the impersonated brand's, nor a listed analytics /
+                           captcha / error-reporting service. Requests the page fires while LOADING do not count:
+                           on the S3 gate they were analytics and telemetry on 5 of 6 legitimate login pages.
+
+Independence: these functions report what they see. That one observation (a POST to api.telegram.org seen by both
+S1 and S2) counts as ONE strong signal is enforced once, for every signal, in confirm.independent_strong.
 
 Limits, stated: URLs assembled at runtime from variables, or posted to the page's own origin and relayed server-side,
 are not seen. Handlers are read from shipped code, not resolved through framework internals.
@@ -99,9 +103,16 @@ BENIGN_SITES = frozenset({
 })
 
 
+_HOST = re.compile(r"^(?=.{4,253}$)([a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\.)+[a-z]{2,63}$")
+
+
 def _site(url: str) -> str:
-    host = (urlsplit(url).hostname or "").lower()
-    return etld1(host) if host else ""
+    """eTLD+1 of a real public hostname, else "" ("https://www." or "https://localhost/" is not a destination)."""
+    try:
+        host = (urlsplit(url).hostname or "").lower().rstrip(".") if "://" in url else url.split("/")[0].lower()
+    except ValueError:
+        return ""
+    return etld1(host) if _HOST.match(host) else ""
 
 
 def _origin(url: str) -> str:
@@ -109,9 +120,9 @@ def _origin(url: str) -> str:
     return f"{u.scheme}://{u.hostname}" + (f":{u.port}" if u.port else "")
 
 
-def foreign_post_endpoints(html: str, scripts: list[tuple[str, str]], requests: list[tuple[str, str, str]],
-                           page_url: str, legit_sites: set[str]) -> list[Hit]:
-    """S2. `requests` = (method, url, resource type) observed while the page loaded (never after interaction)."""
+def foreign_post_endpoints(html: str, scripts: list[tuple[str, str]], page_url: str,
+                           legit_sites: set[str]) -> list[Hit]:
+    """S2. POSTs written in the rendered DOM's inline code and in the page's scripts; one Hit per destination."""
     if not credential_input(html):
         return []
     own = _site(page_url)
@@ -124,11 +135,8 @@ def foreign_post_endpoints(html: str, scripts: list[tuple[str, str]], requests: 
             u = _AJAX_URL.search(m.group(1))
             if u and _AJAX_POST.search(m.group(1)):
                 found.append((u.group(1), where))
-    found += [(url, "network: POST during page load") for method, url, _ in requests if method.upper() == "POST"]
     hits: dict[str, Hit] = {}
     for url, where in found:
-        if any(rx.search(url) for _, rx in S1_PATTERNS) or "api.telegram.org/bot" in url.lower():
-            continue  # an exfiltration endpoint is S1's evidence: one endpoint is never counted as two signals
         if _site(url) and _site(url) not in ok:
             hits.setdefault(_origin(url), Hit("credential_post_foreign_origin_js", url, where, _origin(url)))
     return list(hits.values())

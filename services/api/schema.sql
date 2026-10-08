@@ -94,6 +94,25 @@ language sql immutable as $$
   where s->>'strength' = 'strong'
 $$;
 
+-- S3b, the independence rule (same as services/enrich/confirm.independent_strong): a confirmation needs two strong
+-- signals from DIFFERENT detectors that rest on NO common artifact (destination site, DOM hash, favicon hash).
+-- One observation seen by two detectors (a POST to api.telegram.org seen by S1 and S2) is one piece of evidence.
+create or replace function _artifacts(sig jsonb) returns jsonb
+language sql immutable as $$
+  select case when jsonb_typeof(sig->'artifacts') = 'array' then sig->'artifacts' else '[]'::jsonb end
+$$;
+
+create or replace function has_two_independent_strong(reasons jsonb) returns boolean
+language sql immutable as $$
+  select exists (
+    select 1
+    from jsonb_array_elements(coalesce(reasons->'signals', '[]'::jsonb)) a,
+         jsonb_array_elements(coalesce(reasons->'signals', '[]'::jsonb)) b
+    where a->>'strength' = 'strong' and b->>'strength' = 'strong' and a->>'name' < b->>'name'
+      and not exists (select 1 from jsonb_array_elements_text(_artifacts(a)) x
+                      join jsonb_array_elements_text(_artifacts(b)) y on x = y))
+$$;
+
 -- ===============================================================
 -- ENRICHMENT  ·  infrastructure + fingerprints
 -- These attributes become the EDGES of the campaign graph.
@@ -434,9 +453,18 @@ create table if not exists domain_verdicts (
   -- a confirmed verdict without stored reasons is rejected by the database
   constraint dv_confirmed_has_reasons check (
     status <> 'confirmed' or jsonb_array_length(coalesce(confirm_reasons->'signals', '[]'::jsonb)) > 0),
-  -- CLAUDE.md non-negotiable: confirmed needs >= 2 STRONG signals
-  constraint dv_confirmed_needs_two_strong check (status <> 'confirmed' or strong_signal_count(confirm_reasons) >= 2)
+  -- CLAUDE.md non-negotiable: confirmed needs >= 2 STRONG signals, and they must be INDEPENDENT (S3b)
+  constraint dv_confirmed_needs_two_strong check (status <> 'confirmed' or has_two_independent_strong(confirm_reasons))
 );
+-- existing databases: replace the label-counting check with the independence check (validated against current rows)
+do $$ begin
+  if not exists (select 1 from pg_constraint where conname = 'dv_confirmed_needs_two_strong'
+                 and pg_get_constraintdef(oid) like '%has_two_independent_strong%') then
+    alter table domain_verdicts drop constraint if exists dv_confirmed_needs_two_strong;
+    alter table domain_verdicts add constraint dv_confirmed_needs_two_strong
+      check (status <> 'confirmed' or has_two_independent_strong(confirm_reasons));
+  end if;
+end $$;
 create index if not exists dv_org_status_idx   on domain_verdicts (org_id, status);
 create index if not exists dv_org_campaign_idx on domain_verdicts (org_id, campaign_id);
 create index if not exists dv_domain_idx       on domain_verdicts (domain_id);

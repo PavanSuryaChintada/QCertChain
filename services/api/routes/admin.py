@@ -1,7 +1,7 @@
 """Platform-admin routes (admin key only; for any other key these routes do not exist: 404).
 
-The admin key reads NO org-owned data: it can seed a named org and switch the shared ingest's mode,
-nothing else. This is the only router allowed to depend on the privileged connection directly.
+The admin key reads NO org-owned data: it can seed a named org, switch the shared ingest's mode and lower the
+S1/S2 confirmation signals (the S3c kill switch), nothing else. This is the only router allowed to depend on the privileged connection directly.
 """
 from __future__ import annotations
 
@@ -9,11 +9,12 @@ from typing import Literal
 
 import sqlalchemy as sa
 from fastapi import APIRouter, Depends, HTTPException
-from pydantic import Field
+from pydantic import BaseModel, Field
 
 from services.api.deps import get_conn, get_evidence_dir, get_redis, get_signing_key, require_admin
 from services.api.models import ModeRequest, SeedRequest, StreamState
 from services.api.repos import admin as repo_admin
+from services.enrich import signal_switch
 from services.api.routes.stream import MODE_REQ, read_state
 
 router = APIRouter(prefix="/admin", dependencies=[Depends(require_admin)])
@@ -51,6 +52,36 @@ def reset(c: sa.Connection = Depends(get_conn), evidence_dir=Depends(get_evidenc
     """Restore the known-good demo state for both organisations in one transaction (demo data only; live CT data
     and its verdicts are kept). The demo CHAIN is reset separately (DEMO.md): chain state is not transactional."""
     return repo_admin.reset_demo(c, evidence_dir=evidence_dir, signing_key_hex=key)
+
+
+class SignalsRequest(BaseModel):
+    exfil: Literal["off", "moderate", "strong"] | None = None
+    js_post: Literal["off", "moderate", "strong"] | None = None
+
+
+async def _signals(r) -> dict:
+    return {"configured": signal_switch.configured(), "override": await r.hgetall(signal_switch.KEY) or {},
+            "effective": await signal_switch.current(r)}
+
+
+@router.get("/signals")
+async def signals(r=Depends(get_redis)):
+    """S3c kill switch state for the S1/S2 credential-exfiltration signals (configured, runtime override, effective)."""
+    return await _signals(r)
+
+
+@router.post("/signals")
+async def set_signals(body: SignalsRequest, r=Depends(get_redis)):
+    """Lower S1/S2 at runtime (e.g. "off" during an evaluation). Read by the enrichment worker for every domain.
+    An override can only lower a configured strength, never raise it past the false-positive gate."""
+    await signal_switch.set_override(r, body.model_dump(exclude_none=True))
+    return await _signals(r)
+
+
+@router.delete("/signals")
+async def clear_signals(r=Depends(get_redis)):
+    await signal_switch.clear(r)
+    return await _signals(r)
 
 
 @router.post("/stream/mode", response_model=StreamState)

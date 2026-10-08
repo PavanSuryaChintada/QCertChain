@@ -239,3 +239,14 @@ async def test_queue_depth_is_consumer_lag_not_stream_length():
     st = await read_state(r)
     assert st.queue_depth["certs_raw"] == 3  # 10 in the stream, 7 processed: 3 waiting
     await r.flushdb()
+
+
+def test_signal_kill_switch_is_admin_only_and_can_only_lower(api):
+    """S3c: disable S1/S2 at runtime without a redeploy. Admin key only; never raises a strength past the gate."""
+    admin = api.as_("admin")
+    assert api.post("/admin/signals", json={"exfil": "off"}).status_code == 404       # an org key: no such route
+    r = api.post("/admin/signals", json={"exfil": "off", "js_post": "off"}, headers=admin)
+    assert r.status_code == 200 and r.json()["effective"] == {"exfil": "off", "js_post": "off"}
+    assert api.post("/admin/signals", json={"exfil": "loud"}, headers=admin).status_code == 422
+    r = api.delete("/admin/signals", headers=admin)
+    assert r.status_code == 200 and r.json()["effective"] == r.json()["configured"] and r.json()["override"] == {}

@@ -94,6 +94,7 @@ class SignalOut(BaseModel):
     name: str
     strength: SignalStrength
     detail: str
+    artifacts: list[str] = []   # what it rests on (S3b): two strong signals count only on different artifacts
 
 
 class ConfirmationOut(BaseModel):

@@ -94,3 +94,23 @@ async def test_unreachable_is_rechecked_later_with_backoff(db, tmp_path, monkeyp
         await r.zrem(enrich_worker.RETRY_ZSET, f"force:{d}")
     assert delays[0] >= 300 and delays[1] > delays[0]
     assert delays[-1] is None  # gives up after the schedule (72 h)
+
+
+async def test_kill_switch_reaches_confirmation_without_a_restart(db, tmp_path, monkeypatch):
+    """S3c: setting the override in Redis changes the very next confirmation (no redeploy, no restart)."""
+    from services.enrich import signal_switch
+    t = triage("sbi-kyc-online.top")
+    d, _ = repo.upsert_candidate(db, name="sbi-kyc-online.top", etld1=t.etld1, cert_id=None, triage=t,
+                                 source="certstream", ct_seen_at=datetime.now(timezone.utc))
+    seen = {}
+
+    async def fake_confirm(domain, brand, **kw):
+        seen.update(kw.get("signal_strengths") or {})
+        return ConfirmResult("dismissed", 0.0, [], 0), None, Enrichment()
+
+    monkeypatch.setattr(enrich_worker, "confirm", fake_confirm)
+    r = fr.FakeRedis(decode_responses=True)
+    await signal_switch.set_override(r, {"exfil": "off", "js_post": "off"})
+    await enrich_worker.handle_one(d, conn=db, redis=r, evidence_dir=tmp_path,
+                                   signing_key_hex=nacl.signing.SigningKey.generate().encode().hex())
+    assert seen == {"exfil": "off", "js_post": "off"}

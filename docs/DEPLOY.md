@@ -130,7 +130,25 @@ after deploy (MIGRATION_RUNBOOK §5):
 | org1 (Bank One SOC) | read/write its own org + shared feed | evaluators, privately on request |
 | org2 (Bank Two SOC) | read/write its own org + shared feed | evaluators, privately on request |
 | demo (Bank One SOC) | GET only (405 otherwise; verification via `GET /evidence/{id}/verify`), Bank One SOC only, 60/min | published in the README at submission |
-| admin | `/admin/seed`, `/admin/reset`, `/admin/stream/mode` only; reads no org data | never published |
+| admin | `/admin/seed`, `/admin/reset`, `/admin/stream/mode`, `/admin/signals` only; reads no org data | never published |
+
+### Evaluation-time safety control: the confirmation-signal kill switch
+
+The two credential-exfiltration signals added on 2026-10-07 (S1 `exfil`, shipped **strong**; S2 `js_post`, shipped
+**moderate** after one held-out false positive) can be lowered at runtime, without a redeploy or a restart, if a false
+positive appears while evaluators are using the system:
+
+```bash
+curl -X POST "$API/admin/signals" -H "X-API-Key: $QCC_KEY_ADMIN" -H 'content-type: application/json'      -d '{"exfil":"off","js_post":"off"}'          # takes effect on the next domain the enrich worker confirms
+curl "$API/admin/signals" -H "X-API-Key: $QCC_KEY_ADMIN"     # configured / override / effective
+curl -X DELETE "$API/admin/signals" -H "X-API-Key: $QCC_KEY_ADMIN"   # back to the configured strengths
+```
+
+It is a one-way safety control by design: an override can only **lower** a signal's strength (strong -> moderate ->
+off), never raise it. Promoting a signal past the false-positive gate (`scripts/exfil_fp_gate.py`) takes a config
+change and a commit, not a runtime switch. The override lives in Redis (`confirm:signal_strengths`), so it survives
+API restarts and applies to every enrich worker at once; verdicts already written are not changed (re-check them to
+apply it).
 
 ## 7. Known constraints
 

@@ -1,0 +1,79 @@
+{
+ "dataset": "domain_verdicts (live, source <> 'seed')",
+ "org_id": 1,
+ "since": "2026-10-07T06:30:36Z",
+ "domain_set": "verdict_at >= since",
+ "n_domains": 1435,
+ "measured_at": "2026-10-07T18:33:46Z",
+ "verdicts": {
+  "candidate": 445,
+  "unreachable": 776,
+  "dismissed": 214
+ },
+ "pages_assessed": 659,
+ "with_at_least_one_strong_signal": 0,
+ "strong_signals_by_detector": {},
+ "favicon_census": {
+  "pages_with_favicon": 432,
+  "own_brand_match": 0,
+  "any_brand_match": 3,
+  "reference_brands": 34,
+  "reference_hashes": 73
+ },
+ "unreachable": {
+  "n": 776,
+  "by_cause": {
+   "HTTP 404 error page": 391,
+   "dns: name does not resolve": 142,
+   "tls / http protocol error": 70,
+   "timeout": 47,
+   "parked page (HTTP 2xx/3xx)": 42,
+   "HTTP 401 error page": 23,
+   "HTTP 403 error page": 22,
+   "HTTP 4xx error page (400)": 9,
+   "connection refused / reset": 6,
+   "HTTP 5xx error page (503)": 6,
+   "ssrf guard: non-public address": 4,
+   "HTTP 5xx error page (502)": 3,
+   "redirect loop": 2,
+   "resolves publicly now (was not, or DNS changed)": 2,
+   "other: could not fetch: playwright: Page.goto: net::ERR_INVALID_RES": 2,
+   "HTTP 4xx error page (418)": 2,
+   "HTTP 4xx error page (406)": 1,
+   "other: could not fetch: playwright: Page.goto: net::ERR_SOCKET_NOT_": 1,
+   "hosting provider phishing interstitial": 1
+  },
+  "relabelled_at_diagnosis": {
+   "dns: name does not resolve": 115,
+   "ssrf guard: non-public address": 4,
+   "resolves publicly now (was not, or DNS changed)": 2
+  },
+  "distinct_sites": 326,
+  "top_sites": [
+   [
+    "kennelstudio.com",
+    318
+   ],
+   [
+    "amazonlightsailgamma.com",
+    15
+   ],
+   [
+    "icicicardservices.online",
+    10
+   ],
+   [
+    "amazonlightsailbeta.com",
+    9
+   ],
+   [
+    "helioscope.fr",
+    9
+   ]
+  ],
+  "excluding_top_site": {
+   "site": "kennelstudio.com",
+   "n": 458
+  }
+ }
+}

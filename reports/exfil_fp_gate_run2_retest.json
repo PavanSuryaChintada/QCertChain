@@ -1,0 +1,390 @@
+{
+ "measured_at": "2026-10-07T18:22:31Z",
+ "dataset": {
+  "legit_login_pages": 4,
+  "reachable": 4,
+  "reachable_with_credential_input": 2,
+  "labelled_pages": 45
+ },
+ "gate": {
+  "S1": {
+   "false_positives": 0,
+   "false_positive_detail": [],
+   "legit_pages_tested": 27,
+   "fires_on_labelled_phishing": "0/20",
+   "precision_on_labelled": null,
+   "ships_as": "strong"
+  },
+  "S2": {
+   "false_positives": 0,
+   "false_positive_detail": [],
+   "legit_pages_tested": 27,
+   "fires_on_labelled_phishing": "0/20",
+   "precision_on_labelled": null,
+   "ships_as": "strong"
+  }
+ },
+ "legit_rows": [
+  {
+   "url": "https://www.dropbox.com/login",
+   "final_url": "https://www.dropbox.com/login",
+   "status": 200,
+   "reachable": true,
+   "bundles": 18,
+   "load_requests": 35,
+   "credential_input": true,
+   "S1": [],
+   "S2": []
+  },
+  {
+   "url": "https://www.figma.com/login",
+   "final_url": "https://www.figma.com/login",
+   "status": 200,
+   "reachable": true,
+   "bundles": 8,
+   "load_requests": 12,
+   "credential_input": true,
+   "S1": [],
+   "S2": []
+  },
+  {
+   "url": "https://wise.com/login",
+   "final_url": "https://wise.com/login",
+   "status": 200,
+   "reachable": true,
+   "bundles": 18,
+   "load_requests": 27,
+   "credential_input": false,
+   "S1": [],
+   "S2": []
+  },
+  {
+   "url": "https://infinity.icicibank.com/corp/AuthenticationController?FORMSGROUP_ID__=AuthenticationFG&__START_TRAN_FLAG__=Y&FG_BUTTONS__=LOAD&ACTION.LOAD=Y&AuthenticationFG.LOGIN_FLAG=1&BANK_ID=ICI",
+   "final_url": "https://retailnetbanking.icici.bank.in/login-page?FORMSGROUP_ID__=AuthenticationFG&__START_TRAN_FLAG__=Y&FG_BUTTONS__=LOAD&ACTION.LOAD=Y&AuthenticationFG.LOGIN_FLAG=1&BANK_ID=ICI",
+   "status": 200,
+   "reachable": true,
+   "bundles": 16,
+   "load_requests": 30,
+   "credential_input": false,
+   "S1": [],
+   "S2": []
+  }
+ ],
+ "labelled_rows": [
+  {
+   "page": "pA0",
+   "truth": "phishing",
+   "credential_input": true,
+   "S1": [],
+   "S2": []
+  },
+  {
+   "page": "pA1",
+   "truth": "phishing",
+   "credential_input": true,
+   "S1": [],
+   "S2": []
+  },
+  {
+   "page": "pA2",
+   "truth": "phishing",
+   "credential_input": true,
+   "S1": [],
+   "S2": []
+  },
+  {
+   "page": "pA3",
+   "truth": "phishing",
+   "credential_input": true,
+   "S1": [],
+   "S2": []
+  },
+  {
+   "page": "pA4",
+   "truth": "phishing",
+   "credential_input": true,
+   "S1": [],
+   "S2": []
+  },
+  {
+   "page": "pA5",
+   "truth": "phishing",
+   "credential_input": true,
+   "S1": [],
+   "S2": []
+  },
+  {
+   "page": "pA6",
+   "truth": "phishing",
+   "credential_input": true,
+   "S1": [],
+   "S2": []
+  },
+  {
+   "page": "pA7",
+   "truth": "phishing",
+   "credential_input": true,
+   "S1": [],
+   "S2": []
+  },
+  {
+   "page": "pA8",
+   "truth": "phishing",
+   "credential_input": true,
+   "S1": [],
+   "S2": []
+  },
+  {
+   "page": "pA9",
+   "truth": "phishing",
+   "credential_input": true,
+   "S1": [],
+   "S2": []
+  },
+  {
+   "page": "pB0",
+   "truth": "phishing",
+   "credential_input": true,
+   "S1": [],
+   "S2": []
+  },
+  {
+   "page": "pB1",
+   "truth": "phishing",
+   "credential_input": true,
+   "S1": [],
+   "S2": []
+  },
+  {
+   "page": "pB2",
+   "truth": "phishing",
+   "credential_input": true,
+   "S1": [],
+   "S2": []
+  },
+  {
+   "page": "pB3",
+   "truth": "phishing",
+   "credential_input": true,
+   "S1": [],
+   "S2": []
+  },
+  {
+   "page": "pB4",
+   "truth": "phishing",
+   "credential_input": true,
+   "S1": [],
+   "S2": []
+  },
+  {
+   "page": "pB5",
+   "truth": "phishing",
+   "credential_input": true,
+   "S1": [],
+   "S2": []
+  },
+  {
+   "page": "pB6",
+   "truth": "phishing",
+   "credential_input": true,
+   "S1": [],
+   "S2": []
+  },
+  {
+   "page": "pB7",
+   "truth": "phishing",
+   "credential_input": true,
+   "S1": [],
+   "S2": []
+  },
+  {
+   "page": "pB8",
+   "truth": "phishing",
+   "credential_input": true,
+   "S1": [],
+   "S2": []
+  },
+  {
+   "page": "pB9",
+   "truth": "phishing",
+   "credential_input": true,
+   "S1": [],
+   "S2": []
+  },
+  {
+   "page": "lB0",
+   "truth": "legit",
+   "credential_input": true,
+   "S1": [],
+   "S2": []
+  },
+  {
+   "page": "lB1",
+   "truth": "legit",
+   "credential_input": true,
+   "S1": [],
+   "S2": []
+  },
+  {
+   "page": "lB2",
+   "truth": "legit",
+   "credential_input": true,
+   "S1": [],
+   "S2": []
+  },
+  {
+   "page": "lB3",
+   "truth": "legit",
+   "credential_input": true,
+   "S1": [],
+   "S2": []
+  },
+  {
+   "page": "lB4",
+   "truth": "legit",
+   "credential_input": true,
+   "S1": [],
+   "S2": []
+  },
+  {
+   "page": "lB5",
+   "truth": "legit",
+   "credential_input": true,
+   "S1": [],
+   "S2": []
+  },
+  {
+   "page": "lB6",
+   "truth": "legit",
+   "credential_input": true,
+   "S1": [],
+   "S2": []
+  },
+  {
+   "page": "lB7",
+   "truth": "legit",
+   "credential_input": true,
+   "S1": [],
+   "S2": []
+  },
+  {
+   "page": "lB8",
+   "truth": "legit",
+   "credential_input": true,
+   "S1": [],
+   "S2": []
+  },
+  {
+   "page": "lB9",
+   "truth": "legit",
+   "credential_input": true,
+   "S1": [],
+   "S2": []
+  },
+  {
+   "page": "lG0",
+   "truth": "legit",
+   "credential_input": false,
+   "S1": [],
+   "S2": []
+  },
+  {
+   "page": "lG1",
+   "truth": "legit",
+   "credential_input": false,
+   "S1": [],
+   "S2": []
+  },
+  {
+   "page": "lG2",
+   "truth": "legit",
+   "credential_input": false,
+   "S1": [],
+   "S2": []
+  },
+  {
+   "page": "lG3",
+   "truth": "legit",
+   "credential_input": false,
+   "S1": [],
+   "S2": []
+  },
+  {
+   "page": "lG4",
+   "truth": "legit",
+   "credential_input": false,
+   "S1": [],
+   "S2": []
+  },
+  {
+   "page": "lG5",
+   "truth": "legit",
+   "credential_input": false,
+   "S1": [],
+   "S2": []
+  },
+  {
+   "page": "lG6",
+   "truth": "legit",
+   "credential_input": false,
+   "S1": [],
+   "S2": []
+  },
+  {
+   "page": "lG7",
+   "truth": "legit",
+   "credential_input": false,
+   "S1": [],
+   "S2": []
+  },
+  {
+   "page": "lG8",
+   "truth": "legit",
+   "credential_input": false,
+   "S1": [],
+   "S2": []
+  },
+  {
+   "page": "lG9",
+   "truth": "legit",
+   "credential_input": false,
+   "S1": [],
+   "S2": []
+  },
+  {
+   "page": "lP0",
+   "truth": "legit",
+   "credential_input": false,
+   "S1": [],
+   "S2": []
+  },
+  {
+   "page": "lP1",
+   "truth": "legit",
+   "credential_input": false,
+   "S1": [],
+   "S2": []
+  },
+  {
+   "page": "lP2",
+   "truth": "legit",
+   "credential_input": false,
+   "S1": [],
+   "S2": []
+  },
+  {
+   "page": "lP3",
+   "truth": "legit",
+   "credential_input": false,
+   "S1": [],
+   "S2": []
+  },
+  {
+   "page": "lP4",
+   "truth": "legit",
+   "credential_input": false,
+   "S1": [],
+   "S2": []
+  }
+ ]
+}

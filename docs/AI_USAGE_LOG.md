@@ -535,3 +535,54 @@ Format: **AI did** · **Owner decided** · **Verified by** · **Rulings** (AI ju
   - Rehearsed on the test database with old-schema data.
   - Applied in one transaction: 731 verdicts moved; 402 domains are org1-private and 329 shared.
   - Live curl matrix: org2 gets 404 on 6 org-1 resources, an empty email list, and 329 shared candidates with no org-1 verdicts.
+
+## Live confirmation: diagnosis, JS-era signals, false-positive gate (owner briefs B1–B7, S1–S7, C1–C5; 2026-10-07/08)
+
+- **Found first, from measurement:** on the live feed the confirmation layer had confirmed nothing. Of the 1,435 live
+  domains in the capture window, 659 were assessed and 0 came back with any strong signal; of the 432 with a favicon,
+  0 appeared with their own brand's icon; 776 were unreachable (318 from one auto-generated host, kennelstudio.com).
+- **Owner decisions applied:**
+  - S1 (exfiltration endpoint on a credential page) ships strong: 0 false positives in every gate run.
+  - S2 (credential POST in the page's code) was refined once (drop load-time requests, real hostnames only), then run
+    once on a held-out set; one false positive there (twitch.tv's feature-flag POST to eppo.cloud) means it ships
+    moderate and is not re-tuned against the held-out set.
+  - The two-strong rule is unchanged; zero live confirmations is an accepted, reported outcome.
+- **AI did:**
+  - `scripts/diagnose_confirm.py`: unreachable breakdown by cause, site concentration, favicon census, strong signals
+    by detector, on a fixed domain set so before and after describe the same domains.
+  - Fixed: DNS failures reported as SSRF blocks (134 of 138); Cloudflare "Suspected Phishing" interstitials dismissed
+    (9) instead of treated as not assessable; brand references now hash every declared icon (33 -> 73 hashes).
+  - `services/enrich/exfil.py` (S1, S2), Playwright capture of script bundles; `scripts/exfil_fp_gate.py` with a
+    development set (65 pages), a re-test, and a held-out set (45 pages) run once.
+  - Found and fixed a safety hole while wiring S1/S2: one Telegram URL counted as two strong signals, and one detector
+    reporting two endpoints counted twice. One shared independence rule (different detectors, no shared artifact) in
+    `confirm.independent_strong` AND the database check `has_two_independent_strong` (applied to Supabase; all 520
+    existing confirmed rows still valid).
+  - Kill switch: `POST /admin/signals` (Redis override read per domain, can only lower a strength).
+  - 7 modern JS-kit cases + 2 legitimate modern controls in the labelled evaluation, reported per family.
+  - REPORT.md: one definitions block for the live counts; the held-out methodology stated; the same-origin relay
+    limitation (meesho-all.cfd, `/dev-api/mobileUser`) stated as built (clustering takes confirmed domains only).
+  - `--allow-partial` can no longer write the real report; hourly OpenPhish snapshotter for forward lead time.
+- **Verified by:**
+  - Tests first for each change (red, then green): test_exfil, test_confirm (independence, shipped defaults),
+    test_schema (database rejects one artifact counted twice and two instances of one detector), test_signal_switch,
+    test_diagnose_confirm, test_build_report (definitions, methodology, what the zero means), test_evaluate, test_fetch.
+  - The held-out gate itself, run once and reported as measured.
+- **Corrected the owner, with evidence:** "427" was the number of live domains with a favicon earlier that evening, not
+  the number checked; "the campaign layer works at scale on live data" would overclaim, because clustering takes
+  confirmed domains as its input and no live domain has been confirmed; the report says it is demonstrated on the
+  seeded campaign. The quoted 166 ms solve time is not in the measured metrics; the report uses the measured value.
+- **S4 result (same 1,435 domains, shipped logic, measured 2026-10-08T02:09:52Z):** 0 confirmed; 647 assessed;
+  0 with any strong signal; 0 live domains in a campaign; S1 fired on 0 live domains; S2 (moderate) fired on 6, with
+  destinations contaboserver.net, shopifysvc.com (Shopify's own telemetry) and mydukaan.io (a store platform's API),
+  the platform false positives the held-out gate predicted.
+- **Owner follow-ups applied (C1–C5, D1–D3, E1–E3):** held-out method stated in the report; one definitions block for
+  the live counts; the kill switch documented as an evaluation-time control; "the live pipeline ends at the
+  confirmation gate" stated in Results with the measured campaign count as a number; infrastructure co-location named
+  as future work, not built; the two caught overclaims recorded in BUILD_DECISIONS.md.
+- **Test failures, investigated before any push (E1/E2):** 5 local failures in the overnight suite, run beside S4
+  (database round trip p95 490 ms). The query-count failure was the API-key lookup re-running after its 30 s cache
+  expired inside a slow request: statements captured, mechanism proved with the cache forced to expire (every
+  endpoint +1), and the test passed alone on the idle machine. The 4 timing failures (QAOA isolation, CP-SAT time
+  limit) passed 6/6 alone on the idle machine. No code was changed for them; a test-side hardening is proposed in
+  BUILD_DECISIONS.md, not made.

@@ -1,27 +1,148 @@
 {
- "measured_at": "2026-10-07T18:17:48Z",
+ "measured_at": "2026-10-07T17:35:19Z",
  "dataset": {
   "legit_login_pages": 65,
-  "reachable": 51,
-  "reachable_with_credential_input": 14,
+  "reachable": 53,
+  "reachable_with_credential_input": 18,
   "labelled_pages": 45
  },
  "gate": {
   "S1": {
    "false_positives": 0,
    "false_positive_detail": [],
-   "legit_pages_tested": 39,
+   "legit_pages_tested": 43,
    "fires_on_labelled_phishing": "0/20",
    "precision_on_labelled": null,
    "ships_as": "strong"
   },
   "S2": {
-   "false_positives": 0,
-   "false_positive_detail": [],
-   "legit_pages_tested": 39,
+   "false_positives": 6,
+   "false_positive_detail": [
+    {
+     "url": "https://www.linkedin.com/login",
+     "hits": [
+      {
+       "kind": "credential_post_foreign_origin_js",
+       "match": "https://www.",
+       "where": "https://static.licdn.com/aero-v1/sc/h/assets/CIroO5sW.js",
+       "origin": "https://www."
+      }
+     ]
+    },
+    {
+     "url": "https://www.dropbox.com/login",
+     "hits": [
+      {
+       "kind": "credential_post_foreign_origin_js",
+       "match": "https://t.co/i/adsctp",
+       "where": "network: POST during page load",
+       "origin": "https://t.co"
+      },
+      {
+       "kind": "credential_post_foreign_origin_js",
+       "match": "https://analytics.twitter.com/i/adsctp",
+       "where": "network: POST during page load",
+       "origin": "https://analytics.twitter.com"
+      },
+      {
+       "kind": "credential_post_foreign_origin_js",
+       "match": "https://alb.reddit.com/rp?id=t2_2cfvuhxy&event=PageVisit",
+       "where": "network: POST during page load",
+       "origin": "https://alb.reddit.com"
+      }
+     ]
+    },
+    {
+     "url": "https://www.amazon.in/gp/sign-in.html",
+     "hits": [
+      {
+       "kind": "credential_post_foreign_origin_js",
+       "match": "https://unagi-eu.amazon.com/1/events/com.amazon.eel.katal.metrics.core.nexus",
+       "where": "network: POST during page load",
+       "origin": "https://unagi-eu.amazon.com"
+      }
+     ]
+    },
+    {
+     "url": "https://www.tumblr.com/login",
+     "hits": [
+      {
+       "kind": "credential_post_foreign_origin_js",
+       "match": "https://blackbox-api.wp.com/v1/collect",
+       "where": "network: POST during page load",
+       "origin": "https://blackbox-api.wp.com"
+      }
+     ]
+    },
+    {
+     "url": "https://infinity.icicibank.com/corp/AuthenticationController?FORMSGROUP_ID__=AuthenticationFG&__START_TRAN_FLAG__=Y&FG_BUTTONS__=LOAD&ACTION.LOAD=Y&AuthenticationFG.LOGIN_FLAG=1&BANK_ID=ICI",
+     "hits": [
+      {
+       "kind": "credential_post_foreign_origin_js",
+       "match": "https://arcotw.icicibank.com/client/v3/web/wup?cid=ironheart",
+       "where": "network: POST during page load",
+       "origin": "https://arcotw.icicibank.com"
+      },
+      {
+       "kind": "credential_post_foreign_origin_js",
+       "match": "https://arcotl.icicibank.com/api/v1/sendLogs?cid=ironheart&cdsnum=fictional_sid&csid=null&ds=js&sdkVer=2.35.0.1699.27c90a3",
+       "where": "network: POST during page load",
+       "origin": "https://arcotl.icicibank.com"
+      },
+      {
+       "kind": "credential_post_foreign_origin_js",
+       "match": "https://dynatrace.icicibank.com/bf/925c9130-f84f-4f21-9717-953b1a3ba1db?type=js3&sn=v_4_srv_24_sn_504EC885E78FA2B3063491B42F87D3EF_perc_100000_ol_0_mul_1_app-3A3bd4932b3a7f7741_1_rcs-3Acss_0&svrid=24&flavor=cors&vi=HBEKPWPCBBVQRTUKEVEMOCLFNILEBQKP-0&modifiedSince=1791204482232&bp=3&app=3bd4932b3a7f7741&crc=3683916861&en=ltf9474i&end=1",
+       "where": "network: POST during page load",
+       "origin": "https://dynatrace.icicibank.com"
+      },
+      {
+       "kind": "credential_post_foreign_origin_js",
+       "match": "https://dvrv-in-1-api.devrev.ai/internal/rev-users.identify",
+       "where": "network: POST during page load",
+       "origin": "https://dvrv-in-1-api.devrev.ai"
+      },
+      {
+       "kind": "credential_post_foreign_origin_js",
+       "match": "https://ingestion-apsouth1.devrev.ai/web/api/ingest/startSession/",
+       "where": "network: POST during page load",
+       "origin": "https://ingestion-apsouth1.devrev.ai"
+      }
+     ]
+    },
+    {
+     "url": "https://www.myvi.in/login",
+     "hits": [
+      {
+       "kind": "credential_post_foreign_origin_js",
+       "match": "https://wa.appsflyersdk.com/events?site-id=6355c3d5-6eb2-4ef5-81e7-62e3865e8382",
+       "where": "network: POST during page load",
+       "origin": "https://wa.appsflyersdk.com"
+      },
+      {
+       "kind": "credential_post_foreign_origin_js",
+       "match": "https://edge.adobedc.net/ee/ind1/v1/interact?configId=7a72c885-48e8-4a4e-851f-71aca9562a35&requestId=98480c8f-f116-4668-9af8-b44c09ee2c0b",
+       "where": "network: POST during page load",
+       "origin": "https://edge.adobedc.net"
+      },
+      {
+       "kind": "credential_post_foreign_origin_js",
+       "match": "https://m6-211026f8a25b42c08fc190458268b30e.ecs.us-east-2.on.aws/events?cee=no",
+       "where": "network: POST during page load",
+       "origin": "https://m6-211026f8a25b42c08fc190458268b30e.ecs.us-east-2.on.aws"
+      },
+      {
+       "kind": "credential_post_foreign_origin_js",
+       "match": "https://mpc-prod-25-s6uit34pua-wl.a.run.app/events?cee=no",
+       "where": "network: POST during page load",
+       "origin": "https://mpc-prod-25-s6uit34pua-wl.a.run.app"
+      }
+     ]
+    }
+   ],
+   "legit_pages_tested": 43,
    "fires_on_labelled_phishing": "0/20",
-   "precision_on_labelled": null,
-   "ships_as": "strong"
+   "precision_on_labelled": 0.0,
+   "ships_as": "MODERATE (false positive on a legitimate page)"
   }
  },
  "legit_rows": [
@@ -49,22 +170,16 @@
   },
   {
    "url": "https://bitbucket.org/account/signin/",
-   "final_url": "https://id.atlassian.com/login?application=bitbucket&continue=https%3A%2F%2Fbitbucket.org%2Faccount%2Fsignin%2F%3Fnext%3D%252F%26redirectCount%3D1",
-   "status": 202,
-   "reachable": true,
-   "bundles": 0,
-   "load_requests": 2,
-   "credential_input": false,
-   "S1": [],
-   "S2": []
+   "reachable": false,
+   "why": "Error: Page.content: Unable to retrieve content because the page is navigating and changing the content."
   },
   {
    "url": "https://www.reddit.com/login/",
-   "final_url": "https://www.reddit.com/login/?solution=eec46d261df677b8eec46d261df677b8&js_challenge=1&jsc_token=2824be10929bdc604753c70a67a1c3313725e67d4beaf6344f3174c2334aa8d8&jsc_orig_r=",
+   "final_url": "https://www.reddit.com/login/?solution=feb8c740054e8013feb8c740054e8013&js_challenge=1&jsc_token=2824be10929bdc604753c70a67a1c331ac55504d020eef458dfd35c791fc97de&jsc_orig_r=",
    "status": 200,
    "reachable": true,
-   "bundles": 16,
-   "load_requests": 21,
+   "bundles": 15,
+   "load_requests": 13,
    "credential_input": false,
    "S1": [],
    "S2": []
@@ -75,10 +190,17 @@
    "status": 200,
    "reachable": true,
    "bundles": 20,
-   "load_requests": 5,
+   "load_requests": 4,
    "credential_input": true,
    "S1": [],
-   "S2": []
+   "S2": [
+    {
+     "kind": "credential_post_foreign_origin_js",
+     "match": "https://www.",
+     "where": "https://static.licdn.com/aero-v1/sc/h/assets/CIroO5sW.js",
+     "origin": "https://www."
+    }
+   ]
   },
   {
    "url": "https://www.facebook.com/login/",
@@ -86,7 +208,7 @@
    "status": 200,
    "reachable": true,
    "bundles": 17,
-   "load_requests": 9,
+   "load_requests": 6,
    "credential_input": true,
    "S1": [],
    "S2": []
@@ -97,14 +219,14 @@
    "status": 200,
    "reachable": true,
    "bundles": 20,
-   "load_requests": 14,
+   "load_requests": 11,
    "credential_input": true,
    "S1": [],
    "S2": []
   },
   {
    "url": "https://accounts.google.com/",
-   "final_url": "https://accounts.google.com/v3/signin/identifier?continue=https://accounts.google.com/&followup=https://accounts.google.com/&passive=1209600&flowName=WebLiteSignIn&flowEntry=ServiceLogin&dsh=S1076442801:1791395487726290",
+   "final_url": "https://accounts.google.com/v3/signin/identifier?continue=https://accounts.google.com/&followup=https://accounts.google.com/&passive=1209600&flowName=WebLiteSignIn&flowEntry=ServiceLogin&dsh=S1814813259:1791393816434200",
    "status": 200,
    "reachable": true,
    "bundles": 0,
@@ -119,18 +241,18 @@
    "status": 200,
    "reachable": true,
    "bundles": 4,
-   "load_requests": 8,
+   "load_requests": 6,
    "credential_input": false,
    "S1": [],
    "S2": []
   },
   {
    "url": "https://login.microsoftonline.com/",
-   "final_url": "https://login.microsoftonline.com/common/oauth2/v2.0/authorize?client_id=4765445b-32c6-49b0-83e6-1d93765276ca&redirect_uri=https%3A%2F%2Fwww.office.com%2Flandingv2&response_type=code%20id_token&scope=openid%20profile%20https%3A%2F%2Fwww.office.com%2Fv2%2FOfficeHome.All&response_mode=form_post&nonce=639269923957095002.YTY1ZDU5ZWQtMmE4Zi00OGU1LThkNzgtYzE0MTEzNzY0YTEyNDVhY2IwZWItZjlhMi00NzJmLWIxNWYtYjVhYzM1YTM0ZmJl&ui_locales=en-US&mkt=en-US&client-request-id=a871891c-cecb-409d-8ba8-e3e08f73e7b8&siwa=1&siwg=1&state=ZEceABmYU0PLw4Yq5iL6x514dDEKeDVRuEDfsoIMle6-dYbc26m3JkpkZuWboISHI5R3bS5AsbwrMiUk0jX4mra9-ylJPioECBdX-DUqMWYMg_aW01pStI-iXgky0tXvp9RS-KcMwqEJFlx8IheAsKGSKuvIrqoXmQYy_KNj_-uI9sDwv4fWMgjLBxeMSjg_QsA8A0enODRwKMIiiukZq5Dh3tj1uReyeRBRuSw8I8KgAVpmZmBNko_vJVLPKKqcBiuM9vbHOsIub4vTda1FlFl1bZrDAodc7ST2Nx-Mkl2yEf7aY4j_FYeiygRoctvVKyCixaKNXj3HouUZ59cNAhFd8XsLkqe9W01l5oZHzlGa2o6nmVa8i4W2Z0cjbfyVNzbFU9EU4R3_ArXhZrFOrG7o1gxHdt3zm-mi033LNE6riQcuYWGc9wSZrMhQfOIM&x-client-SKU=ID_NET8_0&x-client-ver=8.16.0.0",
+   "final_url": "https://login.microsoftonline.com/common/oauth2/v2.0/authorize?client_id=4765445b-32c6-49b0-83e6-1d93765276ca&redirect_uri=https%3A%2F%2Fwww.office.com%2Flandingv2&response_type=code%20id_token&scope=openid%20profile%20https%3A%2F%2Fwww.office.com%2Fv2%2FOfficeHome.All&response_mode=form_post&nonce=639269906523639786.MDM3ZDMxMzctMDcxMy00YWY3LWJhZDYtNzY1MDliYjA1M2ZkNTNjZGNmYzYtYjc2Zi00ZGYzLTk3NDctYzhhMmNiYzM4NGU5&ui_locales=en-US&mkt=en-US&client-request-id=7f647e60-0abd-4b8c-9d14-5042fa2df651&siwa=1&siwg=1&state=6hPBsc4Z5TN2XXl84A7fmlbpe8Ta92xIhqxv9_W67w0mdnx3a3alItc7Tv9l1ceG9htOSIQIY_RqzSGYOFws_aHE9mfEojeSToXNnyPBPfJa8SXAQ-HO4xOy_Q_FqttUgWsymuhvusw55kpdDyyKTWsuKY73QgVqrHSL086fznx-wK-8KbtetR5zdEM8nl-G2RRTrxfO1lt7qXV56LEv77H27UQ_5UiPcfgWnl4fh-QSD_uAWvd2NDOJ-lXvyECxQ20tUrSaqYcat97RPac52XoSGomQX3lxJptPD4591Hbg5M15nQQTXhAdHLlYWfZKc_cmVmJ56xWUYDVt5GnsW2VYEOBNzwZmjjEwVibLu2Q0mkXcxSce5fafM9TodiLLyM4aFfGYH3_sVhHbNU6ZN4BTiGg1kxATsd1D9BkEGmWkXZK7_IToypm_RE_P3rSX&x-client-SKU=ID_NET8_0&x-client-ver=8.16.0.0",
    "status": 200,
    "reachable": true,
    "bundles": 5,
-   "load_requests": 2,
+   "load_requests": 1,
    "credential_input": false,
    "S1": [],
    "S2": []
@@ -141,18 +263,37 @@
    "status": 200,
    "reachable": true,
    "bundles": 18,
-   "load_requests": 37,
-   "credential_input": false,
+   "load_requests": 51,
+   "credential_input": true,
    "S1": [],
-   "S2": []
+   "S2": [
+    {
+     "kind": "credential_post_foreign_origin_js",
+     "match": "https://t.co/i/adsctp",
+     "where": "network: POST during page load",
+     "origin": "https://t.co"
+    },
+    {
+     "kind": "credential_post_foreign_origin_js",
+     "match": "https://analytics.twitter.com/i/adsctp",
+     "where": "network: POST during page load",
+     "origin": "https://analytics.twitter.com"
+    },
+    {
+     "kind": "credential_post_foreign_origin_js",
+     "match": "https://alb.reddit.com/rp?id=t2_2cfvuhxy&event=PageVisit",
+     "where": "network: POST during page load",
+     "origin": "https://alb.reddit.com"
+    }
+   ]
   },
   {
    "url": "https://www.netflix.com/login",
-   "final_url": "https://www.netflix.com/in/login?serverState=BgjUv%2BvcAxLgAX6FYEGPtuzKUn13cQMBZ71Kw3rmnvFT%2B%2BYzO8PrEBGvERS2o1F3n9wMzXm2BcScMRBuldARR99U7dQv0%2BKACt9LnvmicHiLvGiBALYNIZ7BXYiXSqiJFjsXuNRLTjeMjWtxAeMI564s4mrLVnA4kcX2ziR1HTbQrjILn1gDS%2B9IgJjUCqvAE5G%2FIJG%2BbblCmuhWbAU5HnGGi67PvxCvUa%2F4F189T1rmckaBODD94mlrgmGtuGIqiCW6UJVD39Wi2ds39IarWLrcYKxPI0ApkIbwyJ7UfC8Wrg5vFJqkTU5rGAYiDgoM3zrSjpouQ1Z9k1Pz",
+   "final_url": "https://www.netflix.com/in/login?serverState=BgjUv%2BvcAxLgAcGxRiuUFfCZ8ftvBOaeUI1WhhTj%2F07wcfFfKS9qh43l%2BSRgEZlTjiNfAu4FpU8EteJ3birp6F3IsWjulroY2EOBBpkO5%2Btr0Lk%2F05e1F6Qt8lIg2dFdMasd1rIiLrK0HIKr%2Br32V6II8aexwZrSFZp4aHC9HZdDyIuyKtUtKQafdRTkgjT5fm6YlDKEtKAyM6smkKYcfwFWlzpqaCRenjzhr4wvnFPB%2FwfxTjjC0injUdOAUG1pw3U3v2YcjMCMGTWRCZ2bglRFHx3mQlpT%2Bs6bJGSsJclf68wUuvTvmmqLGAYiDgoMq2DfQiPXnmhsdXw2",
    "status": 200,
    "reachable": true,
-   "bundles": 5,
-   "load_requests": 15,
+   "bundles": 6,
+   "load_requests": 16,
    "credential_input": false,
    "S1": [],
    "S2": []
@@ -174,10 +315,17 @@
    "status": 200,
    "reachable": true,
    "bundles": 15,
-   "load_requests": 15,
+   "load_requests": 13,
    "credential_input": true,
    "S1": [],
-   "S2": []
+   "S2": [
+    {
+     "kind": "credential_post_foreign_origin_js",
+     "match": "https://unagi-eu.amazon.com/1/events/com.amazon.eel.katal.metrics.core.nexus",
+     "where": "network: POST during page load",
+     "origin": "https://unagi-eu.amazon.com"
+    }
+   ]
   },
   {
    "url": "https://wordpress.com/log-in",
@@ -196,10 +344,17 @@
    "status": 200,
    "reachable": true,
    "bundles": 19,
-   "load_requests": 11,
+   "load_requests": 10,
    "credential_input": true,
    "S1": [],
-   "S2": []
+   "S2": [
+    {
+     "kind": "credential_post_foreign_origin_js",
+     "match": "https://blackbox-api.wp.com/v1/collect",
+     "where": "network: POST during page load",
+     "origin": "https://blackbox-api.wp.com"
+    }
+   ]
   },
   {
    "url": "https://stackoverflow.com/users/login",
@@ -207,7 +362,7 @@
    "status": 403,
    "reachable": true,
    "bundles": 2,
-   "load_requests": 1,
+   "load_requests": 2,
    "credential_input": false,
    "S1": [],
    "S2": []
@@ -267,7 +422,7 @@
    "status": 200,
    "reachable": true,
    "bundles": 19,
-   "load_requests": 22,
+   "load_requests": 17,
    "credential_input": false,
    "S1": [],
    "S2": []
@@ -296,8 +451,14 @@
   },
   {
    "url": "https://id.atlassian.com/login",
-   "reachable": false,
-   "why": "Error: Page.content: Unable to retrieve content because the page is navigating and changing the content."
+   "final_url": "https://id.atlassian.com/login",
+   "status": 202,
+   "reachable": true,
+   "bundles": 1,
+   "load_requests": 5,
+   "credential_input": false,
+   "S1": [],
+   "S2": []
   },
   {
    "url": "https://www.notion.so/login",
@@ -310,26 +471,26 @@
    "status": 200,
    "reachable": true,
    "bundles": 8,
-   "load_requests": 23,
-   "credential_input": false,
+   "load_requests": 14,
+   "credential_input": true,
    "S1": [],
    "S2": []
   },
   {
    "url": "https://wise.com/login",
-   "reachable": false,
-   "why": "playwright: Page.goto: Timeout 30000ms exceeded."
+   "final_url": "https://wise.com/login",
+   "status": 200,
+   "reachable": true,
+   "bundles": 18,
+   "load_requests": 34,
+   "credential_input": true,
+   "S1": [],
+   "S2": []
   },
   {
    "url": "https://accounts.binance.com/en/login",
-   "final_url": "https://accounts.binance.com/en/login",
-   "status": 202,
-   "reachable": true,
-   "bundles": 0,
-   "load_requests": 7,
-   "credential_input": false,
-   "S1": [],
-   "S2": []
+   "reachable": false,
+   "why": "Error: Page.content: Unable to retrieve content because the page is navigating and changing the content."
   },
   {
    "url": "https://login.coinbase.com/signin",
@@ -337,15 +498,21 @@
    "status": 200,
    "reachable": true,
    "bundles": 6,
-   "load_requests": 23,
+   "load_requests": 20,
    "credential_input": false,
    "S1": [],
    "S2": []
   },
   {
    "url": "https://meta.discourse.org/login",
-   "reachable": false,
-   "why": "playwright: Page.goto: Timeout 30000ms exceeded."
+   "final_url": "https://meta.discourse.org/login",
+   "status": 200,
+   "reachable": true,
+   "bundles": 1,
+   "load_requests": 0,
+   "credential_input": false,
+   "S1": [],
+   "S2": []
   },
   {
    "url": "https://www.npmjs.com/login",
@@ -371,24 +538,30 @@
   },
   {
    "url": "https://app.netlify.com/login",
-   "reachable": false,
-   "why": "TimeoutError: Page.screenshot: Timeout 30000ms exceeded.\nCall log:\n  - taking page screenshot\n  -   - waiting for fonts to load...\n  -   - fonts loaded\n"
-  },
-  {
-   "url": "https://vercel.com/login",
-   "reachable": false,
-   "why": "TimeoutError: Page.screenshot: Timeout 30000ms exceeded.\nCall log:\n  - taking page screenshot\n  -   - waiting for fonts to load...\n"
-  },
-  {
-   "url": "https://dash.cloudflare.com/login",
-   "final_url": "https://dash.cloudflare.com/login",
+   "final_url": "https://app.netlify.com/login",
    "status": 200,
    "reachable": true,
-   "bundles": 19,
-   "load_requests": 29,
+   "bundles": 20,
+   "load_requests": 51,
    "credential_input": false,
    "S1": [],
    "S2": []
+  },
+  {
+   "url": "https://vercel.com/login",
+   "final_url": "https://vercel.com/login",
+   "status": 200,
+   "reachable": true,
+   "bundles": 20,
+   "load_requests": 7,
+   "credential_input": false,
+   "S1": [],
+   "S2": []
+  },
+  {
+   "url": "https://dash.cloudflare.com/login",
+   "reachable": false,
+   "why": "TimeoutError: Page.screenshot: Timeout 30000ms exceeded.\nCall log:\n  - taking page screenshot\n  -   - waiting for fonts to load...\n  -   - fonts loaded\n"
   },
   {
    "url": "https://signin.aws.amazon.com/signin",
@@ -407,7 +580,7 @@
    "status": 200,
    "reachable": true,
    "bundles": 20,
-   "load_requests": 40,
+   "load_requests": 23,
    "credential_input": false,
    "S1": [],
    "S2": []
@@ -418,7 +591,7 @@
    "status": 200,
    "reachable": true,
    "bundles": 20,
-   "load_requests": 88,
+   "load_requests": 74,
    "credential_input": false,
    "S1": [],
    "S2": []
@@ -429,7 +602,7 @@
    "status": 200,
    "reachable": true,
    "bundles": 20,
-   "load_requests": 19,
+   "load_requests": 18,
    "credential_input": false,
    "S1": [],
    "S2": []
@@ -439,8 +612,8 @@
    "final_url": "https://now.hdfc.bank.in/retail-app/",
    "status": 200,
    "reachable": true,
-   "bundles": 4,
-   "load_requests": 17,
+   "bundles": 0,
+   "load_requests": 31,
    "credential_input": false,
    "S1": [],
    "S2": []
@@ -451,10 +624,41 @@
    "status": 200,
    "reachable": true,
    "bundles": 16,
-   "load_requests": 41,
-   "credential_input": false,
+   "load_requests": 31,
+   "credential_input": true,
    "S1": [],
-   "S2": []
+   "S2": [
+    {
+     "kind": "credential_post_foreign_origin_js",
+     "match": "https://arcotw.icicibank.com/client/v3/web/wup?cid=ironheart",
+     "where": "network: POST during page load",
+     "origin": "https://arcotw.icicibank.com"
+    },
+    {
+     "kind": "credential_post_foreign_origin_js",
+     "match": "https://arcotl.icicibank.com/api/v1/sendLogs?cid=ironheart&cdsnum=fictional_sid&csid=null&ds=js&sdkVer=2.35.0.1699.27c90a3",
+     "where": "network: POST during page load",
+     "origin": "https://arcotl.icicibank.com"
+    },
+    {
+     "kind": "credential_post_foreign_origin_js",
+     "match": "https://dynatrace.icicibank.com/bf/925c9130-f84f-4f21-9717-953b1a3ba1db?type=js3&sn=v_4_srv_24_sn_504EC885E78FA2B3063491B42F87D3EF_perc_100000_ol_0_mul_1_app-3A3bd4932b3a7f7741_1_rcs-3Acss_0&svrid=24&flavor=cors&vi=HBEKPWPCBBVQRTUKEVEMOCLFNILEBQKP-0&modifiedSince=1791204482232&bp=3&app=3bd4932b3a7f7741&crc=3683916861&en=ltf9474i&end=1",
+     "where": "network: POST during page load",
+     "origin": "https://dynatrace.icicibank.com"
+    },
+    {
+     "kind": "credential_post_foreign_origin_js",
+     "match": "https://dvrv-in-1-api.devrev.ai/internal/rev-users.identify",
+     "where": "network: POST during page load",
+     "origin": "https://dvrv-in-1-api.devrev.ai"
+    },
+    {
+     "kind": "credential_post_foreign_origin_js",
+     "match": "https://ingestion-apsouth1.devrev.ai/web/api/ingest/startSession/",
+     "where": "network: POST during page load",
+     "origin": "https://ingestion-apsouth1.devrev.ai"
+    }
+   ]
   },
   {
    "url": "https://omni.axisbank.co.in/axisretailbanking/",
@@ -467,7 +671,7 @@
    "status": 200,
    "reachable": true,
    "bundles": 20,
-   "load_requests": 20,
+   "load_requests": 19,
    "credential_input": false,
    "S1": [],
    "S2": []
@@ -505,7 +709,7 @@
    "status": 200,
    "reachable": true,
    "bundles": 20,
-   "load_requests": 17,
+   "load_requests": 13,
    "credential_input": false,
    "S1": [],
    "S2": []
@@ -532,7 +736,7 @@
    "status": 200,
    "reachable": true,
    "bundles": 13,
-   "load_requests": 8,
+   "load_requests": 9,
    "credential_input": false,
    "S1": [],
    "S2": []
@@ -575,7 +779,7 @@
    "status": 200,
    "reachable": true,
    "bundles": 20,
-   "load_requests": 32,
+   "load_requests": 34,
    "credential_input": false,
    "S1": [],
    "S2": []
@@ -597,10 +801,35 @@
    "status": 404,
    "reachable": true,
    "bundles": 20,
-   "load_requests": 31,
+   "load_requests": 28,
    "credential_input": true,
    "S1": [],
-   "S2": []
+   "S2": [
+    {
+     "kind": "credential_post_foreign_origin_js",
+     "match": "https://wa.appsflyersdk.com/events?site-id=6355c3d5-6eb2-4ef5-81e7-62e3865e8382",
+     "where": "network: POST during page load",
+     "origin": "https://wa.appsflyersdk.com"
+    },
+    {
+     "kind": "credential_post_foreign_origin_js",
+     "match": "https://edge.adobedc.net/ee/ind1/v1/interact?configId=7a72c885-48e8-4a4e-851f-71aca9562a35&requestId=98480c8f-f116-4668-9af8-b44c09ee2c0b",
+     "where": "network: POST during page load",
+     "origin": "https://edge.adobedc.net"
+    },
+    {
+     "kind": "credential_post_foreign_origin_js",
+     "match": "https://m6-211026f8a25b42c08fc190458268b30e.ecs.us-east-2.on.aws/events?cee=no",
+     "where": "network: POST during page load",
+     "origin": "https://m6-211026f8a25b42c08fc190458268b30e.ecs.us-east-2.on.aws"
+    },
+    {
+     "kind": "credential_post_foreign_origin_js",
+     "match": "https://mpc-prod-25-s6uit34pua-wl.a.run.app/events?cee=no",
+     "where": "network: POST during page load",
+     "origin": "https://mpc-prod-25-s6uit34pua-wl.a.run.app"
+    }
+   ]
   },
   {
    "url": "https://www.airtel.in/signin",
@@ -635,7 +864,7 @@
    "status": 200,
    "reachable": true,
    "bundles": 20,
-   "load_requests": 5,
+   "load_requests": 4,
    "credential_input": false,
    "S1": [],
    "S2": []

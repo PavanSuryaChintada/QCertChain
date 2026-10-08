@@ -172,6 +172,206 @@ def render_lead(lt: dict, old: dict | None) -> list[str]:
     return L
 
 
+def _causes(u: dict, top: int = 6) -> str:
+    return ", ".join(f"{k} {_n(n)}" for k, n in list(u.get("by_cause", {}).items())[:top])
+
+
+# C2: the live-confirmation counts are defined ONCE (top of Results) and used with exactly these words everywhere.
+TERMS = (
+    ("live domains in the capture window", "public-feed candidates of the pipeline operator (org 1; never the seeded "
+     "demo data) whose verdict was written between capture start and the snapshot"),
+    ("assessed", "a page was fetched and analysed: the verdict is confirmed or dismissed, or a candidate with recorded "
+     "evidence"),
+    ("unreachable", "no assessable page: the name did not resolve, an error or parked page, a TLS or protocol error, a "
+     "timeout, or the SSRF guard"),
+    ("with a favicon", "the domain's page served a favicon that we fetched and hashed, at any check"),
+    ("with their own brand's icon", "that favicon's hash equals a reference hash of the brand the domain was triaged "
+     "as impersonating"),
+    ("with any strong signal", "at least one strong detector fired on the page"),
+)
+
+
+def render_definitions(lc: dict) -> list[str]:
+    b = lc["before"]
+    fc, ub = b["favicon_census"], b["unreachable"]
+    top = ub["excluding_top_site"]
+    counts = {"live domains in the capture window": _n(b["n_domains"]), "assessed": _n(b["pages_assessed"]),
+              "unreachable": f"{_n(ub['n'])} ({_n(ub['n'] - top['n'])} from {top['site']})",
+              "with a favicon": _n(fc["pages_with_favicon"]),
+              "with their own brand's icon": _n(fc["own_brand_match"]),
+              "with any strong signal": _n(b["with_at_least_one_strong_signal"])}
+    out = [f"**Counts used in this report** for live confirmation (capture window {b['since']} to {b['measured_at']}, "
+           "before the S4 re-check). Each term is defined once, here, and used with exactly this meaning below.", "",
+           "| Term | Count | Meaning |", "|---|---|---|"]
+    out += [f"| {t} | {counts[t]} | {d} |" for t, d in TERMS]
+    out.append("")
+    a = lc.get("after") or {}
+    confirmed = (a or b).get("verdicts", {}).get("confirmed", 0)
+    in_campaign = a.get("in_a_campaign")
+    if confirmed == 0:
+        out.append(
+            "**Where the live pipeline stops.** Clustering, takedown planning, evidence bundles and ledger anchoring "
+            "all take confirmed domains as their input, and no live domain has been confirmed. So the live pipeline "
+            "currently ends at the confirmation gate: live candidates are triaged and assessed, and none goes further. "
+            "The known-kit list grows only from confirmations too, so it has not learned a live kit. Everything "
+            "downstream of confirmation in this report is demonstrated on the seeded campaign (synthetic data, "
+            "labelled as such).")
+        if in_campaign is not None:
+            out += ["", f"| Measured after the S4 re-check ({a['measured_at']}) | Count | Meaning |", "|---|---|---|",
+                    f"| live domains confirmed | {_n(confirmed)} | live domains in the capture window with a confirmed "
+                    "verdict |",
+                    f"| live domains in a campaign | {_n(in_campaign)} | live domains in the capture window whose "
+                    "verdict carries a campaign |"]
+    else:
+        out.append(
+            f"**Where the live pipeline stops.** {_n(confirmed)} live domains were confirmed and continue to "
+            "clustering, takedown planning and the ledger; every other live candidate ends at the confirmation gate.")
+    out.append("")
+    return out
+
+
+def _causes(u: dict, top: int = 6) -> str:
+    return ", ".join(f"{k} {_n(n)}" for k, n in list(u.get("by_cause", {}).items())[:top])
+
+
+def render_live_confirmation(lc: dict, m: dict | None = None) -> list[str]:
+    """S5: the measured zero on live data, its cause, the response (S1/S2 + the S3 gate) and the S4 re-check."""
+    m = m or {}
+    out = []
+    b = lc["before"]
+    fc, ub = b["favicon_census"], b["unreachable"]
+    top = ub["excluding_top_site"]
+    out.append(
+        f"Of the {_n(b['n_domains'])} live domains in the capture window, {_n(b['pages_assessed'])} were assessed and "
+        f"{_n(ub['n'])} were unreachable. Of the {_n(b['pages_assessed'])} assessed, "
+        f"**{b['with_at_least_one_strong_signal']}** came back with any strong signal, so none could be confirmed "
+        "under the original three strong signals (a credential form posting to a foreign origin, a known-kit DOM hash, "
+        "the brand's real favicon). The cause, measured:")
+    out.append("")
+    for line in [
+        "**Modern kits are JavaScript applications.** The login form is built in the browser and credentials leave by "
+        "fetch/XHR, so a check that reads `<form action>` cannot fire. Worked example: `meesho-all.cfd` (titled "
+        "\"Meesho\", password field rendered) has no `<form>` element in its raw HTML at all.",
+        f"**Favicons:** of the {_n(fc['pages_with_favicon'])} live domains with a favicon, {fc['own_brand_match']} "
+        f"appeared with their own brand's icon ({fc['any_brand_match']} with another brand's). References: "
+        f"{fc['reference_hashes']} icon hashes for {fc['reference_brands']} of {lc.get('brands_total', '?')} brands; "
+        "the rest block our crawler.",
+        "**Known kits:** the kit-signature check only knows the seeded kits, so it cannot match a novel live kit.",
+        f"**Unreachable:** {_n(ub['n'])} live domains in the capture window were unreachable: {_causes(ub)}. "
+        f"`{top['site']}` alone accounts for {_n(ub['n'] - top['n'])} of them (auto-generated subdomains that answer "
+        "404): subdomain-wildcard noise, reported here rather than carried silently.",
+    ]:
+        out.append(f"- {line}")
+    out.append("")
+    g = lc.get("gates", {})
+    r1, r2, rt, ho = g.get("run1"), g.get("run2"), g.get("run2_retest"), g.get("holdout")
+    out.append(
+        "**What was added.** Two signals that read what a JS-era kit ships, by static inspection only (nothing is ever "
+        "typed, clicked or submitted), both firing only on a page whose rendered DOM asks for a password or OTP: "
+        "**S1** a hardcoded exfiltration endpoint (a Telegram bot API URL with its token, a Discord webhook, a mail or "
+        "form-relay API; a bare `t.me` link never fires) and **S2** a credential POST written in the page's code to a "
+        "site that is neither the page's own, the brand's, nor a listed analytics/captcha service. And one shared "
+        "independence rule (S3b), in code and in the database: two strong signals count together only if they come "
+        "from different detectors and rest on different artifacts (destination site, DOM hash, favicon hash), so one "
+        "POST to `api.telegram.org` seen by S1 and S2 is one piece of evidence, not two.")
+    out.append("")
+    if r1 and r2:
+        rows = [("1: as first built (development pages)", r1), ("2: after the one refinement (same pages)", r2)]
+        if rt:
+            rows.append(("2b: re-test of development pages that did not render in run 2", rt))
+        if ho:
+            rows.append(("held-out set, run once", ho))
+        out.append("| False-positive gate run | Legitimate login pages that rendered a credential field | "
+                   "S1 false positives | S2 false positives |")
+        out.append("|---|---|---|---|")
+        for label, x in rows:
+            out.append(f"| {label} | {x['dataset'].get('reachable_with_credential_input', '?')} | "
+                       f"{x['S1']['false_positives']} | {x['S2']['false_positives']} |")
+        out.append("")
+        hs = r1.get("S2_hits_by_source", {})
+        dev = r1["dataset"].get("reachable_with_credential_input")
+        out.append(
+            f"Run 1's S2 false positives were legitimate pages' own telemetry: "
+            f"{hs.get('request fired during page load', 0)} of its hits were requests fired while the page loaded and "
+            f"{hs.get('page code', 0)} was the string `https://www.`, not a URL. The one approved refinement dropped "
+            "load-time requests and required a real hostname.")
+        out.append("")
+        if ho:
+            hd = ho["dataset"]
+            fps = (ho.get("false_positive_detail") or {}).get("S2", [])
+            fp_txt = "; ".join(f"`{x['page'].split('/')[2]}`, whose own code (`{x['where'].split('/')[2]}`) POSTs to "
+                               f"`{x['destination'].split('/')[2]}`" for x in fps) or "none"
+            lab_legit = ho["S2"]["legit_pages_tested"] - hd.get("reachable_with_credential_input", 0)
+            conf_after = (lc.get("after") or {}).get("verdicts", {}).get("confirmed")
+            out.append(
+                "**Method, stated because the result depends on it.** S2 was refined against the "
+                f"{dev} development pages (the legitimate login pages that rendered a credential field in run 1). A "
+                "clean re-run on those same pages proves nothing, because the refinement was designed against them. "
+                f"So S2 was then evaluated once on {hd.get('legit_login_pages')} held-out legitimate login pages that "
+                f"played no part in development ({hd.get('reachable_with_credential_input')} of them rendered a "
+                f"credential field when loaded, the only ones that can exercise S1 or S2, alongside {lab_legit} "
+                f"labelled legitimate pages). It produced **{ho['S2']['false_positives']} false positive"
+                f"{'' if ho['S2']['false_positives'] == 1 else 's'}**: {fp_txt}. S2 was **not** re-tuned against the "
+                "held-out set: tuning on it would turn it into a training set and its result into one more "
+                "development number. Therefore S2 ships as moderate (it can support a verdict, never count as one "
+                f"of the two strong signals), S1 ships as strong ({ho['S1']['false_positives']} false positives in "
+                "every run)"
+                + (", and live confirmations remain zero." if conf_after in (0, None) else
+                   f"; live confirmations after the re-check: {_n(conf_after)}."))
+            out.append("")
+        out.append(
+            f"**The zero is evidence, not proof:** it rests on {dev} development pages, "
+            f"{ho['dataset'].get('reachable_with_credential_input') if ho else 0} held-out pages that rendered a "
+            "credential field and the labelled legitimate pages. A runtime kill switch (`POST /admin/signals`, admin "
+            "key) lowers S1 or S2 without a redeploy if a false positive appears during evaluation; it can only lower "
+            "a strength, never raise it.")
+        out.append("")
+    st = lc.get("signal_strengths", {})
+    out.append(f"Shipped strengths: S1 `{st.get('exfil')}`, S2 `{st.get('js_post')}`.")
+    out.append("")
+    a = lc.get("after")
+    if not a:
+        out.append("S4 re-check: not yet measured.")
+        out.append("")
+        return out
+    conf = a["verdicts"].get("confirmed", 0)
+    au = a["unreachable"]
+    out.append(
+        f"**S4 re-check.** The same {_n(a['n_domains'])} live domains in the capture window were re-checked through "
+        f"the real enrichment worker with the shipped logic (measured {a['measured_at']}): **{_n(conf)} confirmed**; "
+        f"verdicts `{json.dumps(a['verdicts'])}`; {_n(a.get('pages_assessed', 0))} assessed; "
+        f"{_n(a['with_at_least_one_strong_signal'])} with any strong signal (by detector: "
+        + (", ".join(f"{k} {v}" for k, v in a["strong_signals_by_detector"].items()) or "none")
+        + f"); {_n(au['n'])} unreachable: {_causes(au)}.")
+    cen = a.get("s1_s2_census")
+    if cen:
+        s1n, s2n = sum(cen["S1_domains"].values()), sum(cen["S2_domains"].values())
+        dests = ", ".join(f"{k} {v}" for k, v in cen["S2_destination_sites"].items()) or "none"
+        out.append("")
+        out.append(
+            f"Which signals fired: S1 fired on {_n(s1n)} live domains; S2 fired on {_n(s2n)} live domains "
+            f"({', '.join(cen['S2_domains']) or 'none'}), destination sites: {dests}. Where those destinations are "
+            "hosting platforms' own services, these are the false positives the held-out gate predicted, now seen "
+            "on live traffic, which is why S2 is not a strong signal.")
+    out.append("")
+    cc, it, rt_ = m.get("ct_capture") or {}, m.get("interdiction") or {}, m.get("response_time") or {}
+    ca = cc.get("candidates_at_threshold") if isinstance(cc, dict) else None
+    detect = (f"{_n(ca['unique_names'])} unique candidate names at the 0.35 threshold in the CT capture"
+              if ca else f"{_n(b['n_domains'])} live domains in the capture window reached a verdict")
+    api = (rt_.get("interdiction_cpsat_solve_ms_api") or {}).get("p50")
+    plan = (f"the seeded {_n(it['domains'])}-domain campaign (synthetic data, labelled as such) is clustered and its "
+            f"takedown plan solved by CP-SAT in {api} ms (median, through the API)" if it.get("domains") and api
+            else "clustering and takedown planning are demonstrated on the seeded campaign (synthetic data)")
+    out.append(
+        f"**What the zero means, and what it does not.** Triage works on live traffic at scale: {detect}. "
+        f"Clustering and takedown planning are demonstrated on seeded data: {plan}. The page-content confirmation "
+        "layer does not fire on modern JS kits, and because clustering takes confirmed domains as its input, no live "
+        "domain has reached the campaign layer. The system detects at live scale and clusters and plans on seeded "
+        "data; it does not currently confirm by page content on live traffic.")
+    out.append("")
+    return out
+
+
 def v(x, nd=None):
     if x is None:
         return "—"
@@ -238,6 +438,11 @@ def render(m: dict) -> str:
     add("")
 
     add("## Results")
+    _lc = m.get("live_confirmation")
+    if _lc and not na(_lc) and _lc.get("before"):
+        add("")
+        for line in render_definitions(_lc):
+            add(line)
     add("")
     add("### Detection: triage (deployed rules)")
     add("")
@@ -331,9 +536,32 @@ def render(m: dict) -> str:
     else:
         add(f"Precision **{cf['precision']['value']}**, recall **{cf['recall']['value']}** on {cf['n']} labelled pages "
             f"({cf['dataset']}). Verdicts by truth: `{json.dumps(cf['verdicts_by_truth'])}`. False confirmations of "
-            f"legitimate pages: **{cf['false_confirmations_of_legit_pages']}**. Every missed phishing page is an "
-            "unknown kit with a single strong signal: it stays a visible candidate rather than being accused on one fact.")
+            f"legitimate pages: **{cf['false_confirmations_of_legit_pages']}**. A missed phishing page has at most one "
+            "independent strong signal: it stays a visible candidate rather than being accused on one fact.")
+        if cf.get("by_family"):
+            add("")
+            add("| Family | Truth | Pages | Confirmed |")
+            add("|---|---|---|---|")
+            for fam, x in cf["by_family"].items():
+                add(f"| {fam.replace('_', ' ')} | {x['truth']} | {x['n']} | {x['confirmed']} |")
+            add("")
+            mk = cf["by_family"].get("modern_js_kit")
+            add("The first 20 phishing pages are static-era kits (HTML form posts). On live data that era is over (see "
+                "below), so the set could not see its own blind spot: neither new signal fired on any of them. The "
+                "modern JS-kit cases were added so the evaluation tests the code that ships."
+                + (f" With the shipped strengths, {mk['confirmed']} of the {mk['n']} modern JS-kit cases are confirmed: "
+                   "S1 alone is one strong signal and S2 is moderate. The same-origin relay case would stay unconfirmed "
+                   "even with both signals strong; it is counted as a miss, not removed." if mk else ""))
     add("")
+    lc = m.get("live_confirmation")
+    add("### Live confirmation: a measured zero, its cause, and what changed")
+    add("")
+    if not lc or na(lc):
+        add(na(lc) if lc else "not measured")
+        add("")
+    else:
+        for line in render_live_confirmation(lc, m):
+            add(line)
     add("### Email headers")
     add("")
     if na(em):
@@ -501,6 +729,16 @@ def render(m: dict) -> str:
         "produces no new certificate: the site's existing certificate covers it. It is out of CT scope entirely; only "
         "the email module, if a message linking to it is analysed, can surface it.",
         "Wildcard certificates hide the phishing subdomain; the parent is caught.",
+        "**A kit that relays credentials through its own server is invisible to any browser-side check.** Worked "
+        "example, `meesho-all.cfd`: a Vue application (RuoYi-Vue admin template) whose login code POSTs to its own "
+        "origin, `/dev-api/mobileUser`, and the server forwards the data on. The exfiltration happens after the data "
+        "leaves the browser, so neither the form-action check, S1 (no hardcoded exfiltration endpoint) nor S2 (no "
+        "foreign POST) can see it, and no client-side heuristic could. Confirming such a page needs evidence from "
+        "elsewhere: server-side infrastructure correlation, hosting reputation, or kit-fingerprint matching on the "
+        "bundled JavaScript rather than on its behaviour. The campaign graph is where that evidence belongs, since "
+        "such a domain sits on the shared infrastructure (hosting IP, nameserver) of the rest of its campaign. As built, though, clustering takes confirmed domains as its input, so an unconfirmed relay-kit "
+        "domain does not enter a campaign today; admitting candidates that sit on the shared infrastructure of a "
+        "confirmed campaign is the path to reaching it through its infrastructure rather than its page.",
         "The email module analyses pasted or uploaded messages only; it never connects to a mailbox.",
         "QAOA runs on a reduced problem of at most 24 qubits on a simulator.",
         "Demonstration campaign data is synthetic, labelled `source: seed` everywhere, and uses only reserved "
@@ -509,6 +747,18 @@ def render(m: dict) -> str:
         "calls registrar APIs; the database rejects a report marked sent.",
     ]:
         add(f"- {s}")
+    add("")
+    add("## Future work")
+    add("")
+    add("**Infrastructure co-location as an entry path into a campaign.** A domain that cannot be confirmed by its page "
+        "content (a same-origin relay kit, a page behind a host's phishing interstitial, a kit not yet deployed) can "
+        "still be placed by its infrastructure. Proposed rule: a candidate whose hosting IP or nameserver is already "
+        "a node of a confirmed campaign joins that campaign as an infrastructure-linked candidate. Its verdict does "
+        "not change: it stays a candidate, is never shown or reported as confirmed and is never accused on the link "
+        "alone, but the takedown planner counts it as covered by that node, so the plan that takes down the confirmed "
+        "campaign also covers it. The link must be attacker infrastructure: shared hosting, CDN anycast addresses and "
+        "registrars (each serving millions of unrelated domains) are excluded, as they already are as clustering "
+        "edges. Not built.")
     add("")
     add("## Corrections made to the original specification")
     add("")

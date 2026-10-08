@@ -1,0 +1,51 @@
+# S3 HELD-OUT false-positive set: legitimate login pages NEVER used while developing or refining S1/S2.
+# Hand-curated 2026-10-08 (IST); run ONCE after the S2 refinement (gate run 2). Not to be used for tuning: a signal
+# changed after seeing this set's result needs a new held-out set. Every row is a public login page of the
+# organisation that owns the domain.
+# --- global services
+https://www.twitch.tv/login
+https://www.pinterest.com/login/
+https://accounts.spotify.com/en/login
+https://www.goodreads.com/user/sign_in
+https://www.etsy.com/signin
+https://account.booking.com/sign-in
+https://mail.proton.me/login
+https://app.hubspot.com/login
+https://login.salesforce.com/
+https://login.mailchimp.com/
+https://accounts.shopify.com/lookup
+https://secure.indeed.com/auth
+https://account.box.com/login
+https://app.asana.com/-/login
+https://trello.com/login
+https://app.clickup.com/login
+https://www.evernote.com/Login.action
+https://www.kaggle.com/account/login
+https://leetcode.com/accounts/login/
+https://www.hackerrank.com/auth/login
+https://codeforces.com/enter
+https://www.codechef.com/login
+https://login.wordpress.org/
+https://www.drupal.org/user/login
+https://www.tradingview.com/accounts/signin/
+https://www.glassdoor.co.in/profile/login_input.htm
+https://www.quora.com/
+https://archive.org/account/login
+https://www.mediawiki.org/wiki/Special:UserLogin
+https://en.wikipedia.org/wiki/Special:UserLogin
+# --- India
+https://www.naukri.com/nlogin/login
+https://www.practo.com/login
+https://accounts.digilocker.gov.in/signin
+https://www.passportindia.gov.in/AppOnlineProject/user/userLogin
+https://www.sbicard.com/creditcards/app/user/login
+https://netbanking.canarabank.in/
+https://www.indianbank.net.in/jsp/startIB.jsp
+https://www.fednetbank.com/
+https://online.rblbank.com/
+https://netbanking.yesbank.co.in/
+https://netbanking.aubank.in/
+https://ib.bandhanbank.com/
+https://www.angelone.in/login/
+https://www.icicidirect.com/
+https://www.nseindia.com/

@@ -1,4 +1,5 @@
 import pytest
+import json
 import sqlalchemy as sa
 
 from scripts.apply_schema import apply
@@ -79,3 +80,38 @@ def test_takedown_route_restricted(db):
 
 def test_schema_is_idempotent(db_engine):
     apply(TEST_URL)
+
+
+# ---- S3b in the database: the same independence rule as confirm.independent_strong ------------------------------
+def _confirm(db, name, signals):
+    d = _domain(db, name)
+    db.execute(sa.text("insert into domain_verdicts(domain_id, status, confirm_reasons) "
+                       "values (:d, 'confirmed', cast(:r as jsonb))"), {"d": d, "r": json.dumps({"signals": signals})})
+
+
+def _s(name, *arts):
+    return {"name": name, "strength": "strong", "detail": "x", "artifacts": list(arts)}
+
+
+def test_db_rejects_two_strong_signals_on_one_artifact(db):
+    """One POST to api.telegram.org seen by S1 and S2 is one piece of evidence: the database refuses to confirm."""
+    with pytest.raises(sa.exc.IntegrityError):
+        _confirm(db, "tg.top", [_s("credential_exfil_endpoint", "endpoint:telegram.org"),
+                                _s("credential_post_foreign_origin_js", "endpoint:telegram.org")])
+
+
+def test_db_rejects_two_instances_of_one_detector(db):
+    with pytest.raises(sa.exc.IntegrityError):
+        _confirm(db, "two.top", [_s("credential_exfil_endpoint", "endpoint:telegram.org"),
+                                 _s("credential_exfil_endpoint", "endpoint:discord.com")])
+
+
+def test_db_accepts_independent_strong_signals(db):
+    _confirm(db, "ok.top", [_s("credential_exfil_endpoint", "endpoint:telegram.org"),
+                            _s("credential_post_foreign_origin_js", "endpoint:telegram.org"),
+                            _s("credential_post_foreign_origin_js", "endpoint:evil.top")])
+
+
+def test_db_tolerates_a_non_array_artifacts_value(db):
+    _confirm(db, "legacy.top", [{"name": "a", "strength": "strong", "artifacts": None},
+                                {"name": "b", "strength": "strong"}])

@@ -23,6 +23,7 @@ from services.api.pipeline import persist_result
 from services.config import SETTINGS
 from functools import lru_cache
 
+from services.enrich import signal_switch
 from services.enrich.confirm import confirm
 from services.ml.brand_refs import load_brand_favicons
 
@@ -81,7 +82,8 @@ async def handle_one(domain_id: int, *, conn: sa.Connection, redis, evidence_dir
     brand = next((b for b in _brands().brands if b.name == row.brand_matched), None)  # cached index
     t0 = time.perf_counter()
     result, page, e = await confirm(row.name, brand, known_kits=repo.known_kits(conn), brand_favicons=_favicons(),
-                                    issuer=issuer, limiter=_limiter(redis))
+                                    issuer=issuer, limiter=_limiter(redis),
+                                    signal_strengths=await signal_switch.current(redis))  # S3c kill switch
     if result.signals and result.signals[0].name == "rate_limited":
         await redis.zadd(RETRY_ZSET, {item(domain_id, org_id, force): time.time() + RETRY_DELAY_S})
         return "requeued"

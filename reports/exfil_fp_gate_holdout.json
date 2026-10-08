@@ -1,0 +1,981 @@
+{
+ "measured_at": "2026-10-07T18:40:42Z",
+ "dataset": {
+  "legit_login_pages": 45,
+  "reachable": 40,
+  "reachable_with_credential_input": 13,
+  "labelled_pages": 54
+ },
+ "gate": {
+  "S1": {
+   "false_positives": 0,
+   "false_positive_detail": [],
+   "legit_pages_tested": 40,
+   "fires_on_labelled_phishing": "5/27",
+   "precision_on_labelled": 1.0,
+   "ships_as": "strong"
+  },
+  "S2": {
+   "false_positives": 1,
+   "false_positive_detail": [
+    {
+     "url": "https://www.twitch.tv/login",
+     "hits": [
+      {
+       "kind": "credential_post_foreign_origin_js",
+       "match": "https://eppo.cloud/api/flag-overrides/v1/validate-key",
+       "where": "https://assets.twitch.tv/assets/flags-2074a624a1c9eb27d801.js",
+       "origin": "https://eppo.cloud"
+      }
+     ]
+    }
+   ],
+   "legit_pages_tested": 40,
+   "fires_on_labelled_phishing": "5/27",
+   "precision_on_labelled": 0.8333,
+   "ships_as": "MODERATE (false positive on a legitimate page)"
+  }
+ },
+ "legit_rows": [
+  {
+   "url": "https://www.twitch.tv/login",
+   "final_url": "https://www.twitch.tv/login",
+   "status": 200,
+   "reachable": true,
+   "bundles": 20,
+   "load_requests": 8,
+   "credential_input": true,
+   "S1": [],
+   "S2": [
+    {
+     "kind": "credential_post_foreign_origin_js",
+     "match": "https://eppo.cloud/api/flag-overrides/v1/validate-key",
+     "where": "https://assets.twitch.tv/assets/flags-2074a624a1c9eb27d801.js",
+     "origin": "https://eppo.cloud"
+    }
+   ]
+  },
+  {
+   "url": "https://www.pinterest.com/login/",
+   "final_url": "https://www.pinterest.com/login/",
+   "status": 200,
+   "reachable": true,
+   "bundles": 20,
+   "load_requests": 19,
+   "credential_input": true,
+   "S1": [],
+   "S2": []
+  },
+  {
+   "url": "https://accounts.spotify.com/en/login",
+   "final_url": "https://accounts.spotify.com/en/login",
+   "status": 200,
+   "reachable": true,
+   "bundles": 16,
+   "load_requests": 6,
+   "credential_input": false,
+   "S1": [],
+   "S2": []
+  },
+  {
+   "url": "https://www.goodreads.com/user/sign_in",
+   "final_url": "https://www.goodreads.com/user/sign_in",
+   "status": 200,
+   "reachable": true,
+   "bundles": 10,
+   "load_requests": 3,
+   "credential_input": false,
+   "S1": [],
+   "S2": []
+  },
+  {
+   "url": "https://www.etsy.com/signin",
+   "final_url": "https://www.etsy.com/signin",
+   "status": 403,
+   "reachable": true,
+   "bundles": 1,
+   "load_requests": 0,
+   "credential_input": false,
+   "S1": [],
+   "S2": []
+  },
+  {
+   "url": "https://account.booking.com/sign-in",
+   "final_url": "https://account.booking.com/sign-in",
+   "status": 200,
+   "reachable": true,
+   "bundles": 20,
+   "load_requests": 17,
+   "credential_input": true,
+   "S1": [],
+   "S2": []
+  },
+  {
+   "url": "https://mail.proton.me/login",
+   "final_url": "https://account.proton.me/mail",
+   "status": 200,
+   "reachable": true,
+   "bundles": 7,
+   "load_requests": 18,
+   "credential_input": false,
+   "S1": [],
+   "S2": []
+  },
+  {
+   "url": "https://app.hubspot.com/login",
+   "final_url": "https://app.hubspot.com/login",
+   "status": 200,
+   "reachable": true,
+   "bundles": 19,
+   "load_requests": 10,
+   "credential_input": false,
+   "S1": [],
+   "S2": []
+  },
+  {
+   "url": "https://login.salesforce.com/",
+   "final_url": "https://login.salesforce.com/",
+   "status": 200,
+   "reachable": true,
+   "bundles": 5,
+   "load_requests": 0,
+   "credential_input": false,
+   "S1": [],
+   "S2": []
+  },
+  {
+   "url": "https://login.mailchimp.com/",
+   "final_url": "https://login.mailchimp.com/",
+   "status": 200,
+   "reachable": true,
+   "bundles": 19,
+   "load_requests": 35,
+   "credential_input": false,
+   "S1": [],
+   "S2": []
+  },
+  {
+   "url": "https://accounts.shopify.com/lookup",
+   "final_url": "https://accounts.shopify.com/lookup",
+   "status": 200,
+   "reachable": true,
+   "bundles": 8,
+   "load_requests": 14,
+   "credential_input": true,
+   "S1": [],
+   "S2": []
+  },
+  {
+   "url": "https://secure.indeed.com/auth",
+   "final_url": "https://secure.indeed.com/auth",
+   "status": 200,
+   "reachable": true,
+   "bundles": 19,
+   "load_requests": 11,
+   "credential_input": true,
+   "S1": [],
+   "S2": []
+  },
+  {
+   "url": "https://account.box.com/login",
+   "final_url": "https://account.box.com/login",
+   "status": 200,
+   "reachable": true,
+   "bundles": 9,
+   "load_requests": 15,
+   "credential_input": true,
+   "S1": [],
+   "S2": []
+  },
+  {
+   "url": "https://app.asana.com/-/login",
+   "final_url": "https://app.asana.com/-/login",
+   "status": 403,
+   "reachable": true,
+   "bundles": 1,
+   "load_requests": 0,
+   "credential_input": false,
+   "S1": [],
+   "S2": []
+  },
+  {
+   "url": "https://trello.com/login",
+   "final_url": "https://id.atlassian.com/login?application=trello&continue=https%3A%2F%2Ftrello.com%2Fauth%2Fatlassian%2Fcallback%3FreturnUrl%3D%26aaOnboarding%3D%26updateEmail%3D%26traceId%3D%26ssoVerified%3D%26createMember%3D%26jiraInviteLink%3D",
+   "status": 202,
+   "reachable": true,
+   "bundles": 1,
+   "load_requests": 6,
+   "credential_input": false,
+   "S1": [],
+   "S2": []
+  },
+  {
+   "url": "https://app.clickup.com/login",
+   "final_url": "https://app.clickup.com/login",
+   "status": 200,
+   "reachable": true,
+   "bundles": 18,
+   "load_requests": 33,
+   "credential_input": false,
+   "S1": [],
+   "S2": []
+  },
+  {
+   "url": "https://www.evernote.com/Login.action",
+   "final_url": "https://accounts.evernote.com/login",
+   "status": 200,
+   "reachable": true,
+   "bundles": 20,
+   "load_requests": 4,
+   "credential_input": false,
+   "S1": [],
+   "S2": []
+  },
+  {
+   "url": "https://www.kaggle.com/account/login",
+   "final_url": "https://www.kaggle.com/account/login",
+   "status": 200,
+   "reachable": true,
+   "bundles": 12,
+   "load_requests": 9,
+   "credential_input": false,
+   "S1": [],
+   "S2": []
+  },
+  {
+   "url": "https://leetcode.com/accounts/login/",
+   "final_url": "https://leetcode.com/accounts/login/",
+   "status": 200,
+   "reachable": true,
+   "bundles": 20,
+   "load_requests": 21,
+   "credential_input": true,
+   "S1": [],
+   "S2": []
+  },
+  {
+   "url": "https://www.hackerrank.com/auth/login",
+   "final_url": "https://www.hackerrank.com/auth/login",
+   "status": 200,
+   "reachable": true,
+   "bundles": 20,
+   "load_requests": 40,
+   "credential_input": true,
+   "S1": [],
+   "S2": []
+  },
+  {
+   "url": "https://codeforces.com/enter",
+   "final_url": "https://codeforces.com/enter",
+   "status": 403,
+   "reachable": true,
+   "bundles": 2,
+   "load_requests": 1,
+   "credential_input": false,
+   "S1": [],
+   "S2": []
+  },
+  {
+   "url": "https://www.codechef.com/login",
+   "final_url": "https://www.codechef.com/login",
+   "status": 200,
+   "reachable": true,
+   "bundles": 20,
+   "load_requests": 13,
+   "credential_input": true,
+   "S1": [],
+   "S2": []
+  },
+  {
+   "url": "https://login.wordpress.org/",
+   "final_url": "https://login.wordpress.org/",
+   "status": 200,
+   "reachable": true,
+   "bundles": 6,
+   "load_requests": 4,
+   "credential_input": true,
+   "S1": [],
+   "S2": []
+  },
+  {
+   "url": "https://www.drupal.org/user/login",
+   "reachable": false,
+   "why": "Error: Page.content: Unable to retrieve content because the page is navigating and changing the content."
+  },
+  {
+   "url": "https://www.tradingview.com/accounts/signin/",
+   "final_url": "https://www.tradingview.com/accounts/signin/",
+   "status": 200,
+   "reachable": true,
+   "bundles": 0,
+   "load_requests": 0,
+   "credential_input": false,
+   "S1": [],
+   "S2": []
+  },
+  {
+   "url": "https://www.glassdoor.co.in/profile/login_input.htm",
+   "final_url": "https://www.glassdoor.co.in/member/profile/login",
+   "status": 200,
+   "reachable": true,
+   "bundles": 20,
+   "load_requests": 10,
+   "credential_input": false,
+   "S1": [],
+   "S2": []
+  },
+  {
+   "url": "https://www.quora.com/",
+   "final_url": "https://www.quora.com/",
+   "status": 200,
+   "reachable": true,
+   "bundles": 15,
+   "load_requests": 5,
+   "credential_input": true,
+   "S1": [],
+   "S2": []
+  },
+  {
+   "url": "https://archive.org/account/login",
+   "final_url": "https://archive.org/login",
+   "status": 200,
+   "reachable": true,
+   "bundles": 20,
+   "load_requests": 0,
+   "credential_input": false,
+   "S1": [],
+   "S2": []
+  },
+  {
+   "url": "https://www.mediawiki.org/wiki/Special:UserLogin",
+   "final_url": "https://auth.wikimedia.org/mediawikiwiki/wiki/Special:UserLogin?useformat=desktop&usesul3=1&returntoquery=%3F&centralauthLoginToken=8fb52fd9910191da40104c5c7ca054f3",
+   "status": 200,
+   "reachable": true,
+   "bundles": 3,
+   "load_requests": 0,
+   "credential_input": true,
+   "S1": [],
+   "S2": []
+  },
+  {
+   "url": "https://en.wikipedia.org/wiki/Special:UserLogin",
+   "final_url": "https://auth.wikimedia.org/enwiki/wiki/Special:UserLogin?useformat=desktop&usesul3=1&returntoquery=%3F&centralauthLoginToken=eb34ddd2ddd352eaab06ef0a2c78b000",
+   "status": 200,
+   "reachable": true,
+   "bundles": 3,
+   "load_requests": 1,
+   "credential_input": true,
+   "S1": [],
+   "S2": []
+  },
+  {
+   "url": "https://www.naukri.com/nlogin/login",
+   "final_url": "https://www.naukri.com/nlogin/login",
+   "status": 403,
+   "reachable": true,
+   "bundles": 0,
+   "load_requests": 0,
+   "credential_input": false,
+   "S1": [],
+   "S2": []
+  },
+  {
+   "url": "https://www.practo.com/login",
+   "final_url": "https://www.practo.com/login",
+   "status": 200,
+   "reachable": true,
+   "bundles": 4,
+   "load_requests": 3,
+   "credential_input": false,
+   "S1": [],
+   "S2": []
+  },
+  {
+   "url": "https://accounts.digilocker.gov.in/signin",
+   "final_url": "https://www.digilocker.gov.in/",
+   "status": 200,
+   "reachable": true,
+   "bundles": 8,
+   "load_requests": 4,
+   "credential_input": false,
+   "S1": [],
+   "S2": []
+  },
+  {
+   "url": "https://www.passportindia.gov.in/AppOnlineProject/user/userLogin",
+   "final_url": "https://www.passportindia.gov.in/AppOnlineProject/user/userLogin",
+   "status": 404,
+   "reachable": true,
+   "bundles": 0,
+   "load_requests": 0,
+   "credential_input": false,
+   "S1": [],
+   "S2": []
+  },
+  {
+   "url": "https://www.sbicard.com/creditcards/app/user/login",
+   "final_url": "https://www.sbicard.com/creditcards/app/user/login",
+   "status": 200,
+   "reachable": true,
+   "bundles": 17,
+   "load_requests": 1,
+   "credential_input": false,
+   "S1": [],
+   "S2": []
+  },
+  {
+   "url": "https://netbanking.canarabank.in/",
+   "final_url": "https://netbanking.canarabank.in/",
+   "status": 200,
+   "reachable": true,
+   "bundles": 0,
+   "load_requests": 0,
+   "credential_input": false,
+   "S1": [],
+   "S2": []
+  },
+  {
+   "url": "https://www.indianbank.net.in/jsp/startIB.jsp",
+   "reachable": false,
+   "why": "dns: www.indianbank.net.in does not resolve (gaierror)"
+  },
+  {
+   "url": "https://www.fednetbank.com/",
+   "final_url": "https://fednet.federal.bank.in/",
+   "status": 200,
+   "reachable": true,
+   "bundles": 4,
+   "load_requests": 10,
+   "credential_input": false,
+   "S1": [],
+   "S2": []
+  },
+  {
+   "url": "https://online.rblbank.com/",
+   "final_url": "https://online.rbl.bank.in/",
+   "status": 403,
+   "reachable": true,
+   "bundles": 1,
+   "load_requests": 2,
+   "credential_input": false,
+   "S1": [],
+   "S2": []
+  },
+  {
+   "url": "https://netbanking.yesbank.co.in/",
+   "reachable": false,
+   "why": "dns: netbanking.yesbank.co.in does not resolve (gaierror)"
+  },
+  {
+   "url": "https://netbanking.aubank.in/",
+   "final_url": "https://netbanking.aubank.in/",
+   "status": 404,
+   "reachable": true,
+   "bundles": 0,
+   "load_requests": 1,
+   "credential_input": false,
+   "S1": [],
+   "S2": []
+  },
+  {
+   "url": "https://ib.bandhanbank.com/",
+   "reachable": false,
+   "why": "dns: ib.bandhanbank.com does not resolve (gaierror)"
+  },
+  {
+   "url": "https://www.angelone.in/login/",
+   "final_url": "https://www.angelone.in/login/",
+   "status": 200,
+   "reachable": true,
+   "bundles": 20,
+   "load_requests": 37,
+   "credential_input": false,
+   "S1": [],
+   "S2": []
+  },
+  {
+   "url": "https://www.icicidirect.com/",
+   "final_url": "https://www.icicidirect.com/",
+   "status": 200,
+   "reachable": true,
+   "bundles": 14,
+   "load_requests": 3,
+   "credential_input": false,
+   "S1": [],
+   "S2": []
+  },
+  {
+   "url": "https://www.nseindia.com/",
+   "reachable": false,
+   "why": "playwright: Page.goto: net::ERR_HTTP2_PROTOCOL_ERROR at https://www.nseindia.com/"
+  }
+ ],
+ "labelled_rows": [
+  {
+   "page": "pA0",
+   "truth": "phishing",
+   "credential_input": true,
+   "S1": [],
+   "S2": []
+  },
+  {
+   "page": "pA1",
+   "truth": "phishing",
+   "credential_input": true,
+   "S1": [],
+   "S2": []
+  },
+  {
+   "page": "pA2",
+   "truth": "phishing",
+   "credential_input": true,
+   "S1": [],
+   "S2": []
+  },
+  {
+   "page": "pA3",
+   "truth": "phishing",
+   "credential_input": true,
+   "S1": [],
+   "S2": []
+  },
+  {
+   "page": "pA4",
+   "truth": "phishing",
+   "credential_input": true,
+   "S1": [],
+   "S2": []
+  },
+  {
+   "page": "pA5",
+   "truth": "phishing",
+   "credential_input": true,
+   "S1": [],
+   "S2": []
+  },
+  {
+   "page": "pA6",
+   "truth": "phishing",
+   "credential_input": true,
+   "S1": [],
+   "S2": []
+  },
+  {
+   "page": "pA7",
+   "truth": "phishing",
+   "credential_input": true,
+   "S1": [],
+   "S2": []
+  },
+  {
+   "page": "pA8",
+   "truth": "phishing",
+   "credential_input": true,
+   "S1": [],
+   "S2": []
+  },
+  {
+   "page": "pA9",
+   "truth": "phishing",
+   "credential_input": true,
+   "S1": [],
+   "S2": []
+  },
+  {
+   "page": "pB0",
+   "truth": "phishing",
+   "credential_input": true,
+   "S1": [],
+   "S2": []
+  },
+  {
+   "page": "pB1",
+   "truth": "phishing",
+   "credential_input": true,
+   "S1": [],
+   "S2": []
+  },
+  {
+   "page": "pB2",
+   "truth": "phishing",
+   "credential_input": true,
+   "S1": [],
+   "S2": []
+  },
+  {
+   "page": "pB3",
+   "truth": "phishing",
+   "credential_input": true,
+   "S1": [],
+   "S2": []
+  },
+  {
+   "page": "pB4",
+   "truth": "phishing",
+   "credential_input": true,
+   "S1": [],
+   "S2": []
+  },
+  {
+   "page": "pB5",
+   "truth": "phishing",
+   "credential_input": true,
+   "S1": [],
+   "S2": []
+  },
+  {
+   "page": "pB6",
+   "truth": "phishing",
+   "credential_input": true,
+   "S1": [],
+   "S2": []
+  },
+  {
+   "page": "pB7",
+   "truth": "phishing",
+   "credential_input": true,
+   "S1": [],
+   "S2": []
+  },
+  {
+   "page": "pB8",
+   "truth": "phishing",
+   "credential_input": true,
+   "S1": [],
+   "S2": []
+  },
+  {
+   "page": "pB9",
+   "truth": "phishing",
+   "credential_input": true,
+   "S1": [],
+   "S2": []
+  },
+  {
+   "page": "lB0",
+   "truth": "legit",
+   "credential_input": true,
+   "S1": [],
+   "S2": []
+  },
+  {
+   "page": "lB1",
+   "truth": "legit",
+   "credential_input": true,
+   "S1": [],
+   "S2": []
+  },
+  {
+   "page": "lB2",
+   "truth": "legit",
+   "credential_input": true,
+   "S1": [],
+   "S2": []
+  },
+  {
+   "page": "lB3",
+   "truth": "legit",
+   "credential_input": true,
+   "S1": [],
+   "S2": []
+  },
+  {
+   "page": "lB4",
+   "truth": "legit",
+   "credential_input": true,
+   "S1": [],
+   "S2": []
+  },
+  {
+   "page": "lB5",
+   "truth": "legit",
+   "credential_input": true,
+   "S1": [],
+   "S2": []
+  },
+  {
+   "page": "lB6",
+   "truth": "legit",
+   "credential_input": true,
+   "S1": [],
+   "S2": []
+  },
+  {
+   "page": "lB7",
+   "truth": "legit",
+   "credential_input": true,
+   "S1": [],
+   "S2": []
+  },
+  {
+   "page": "lB8",
+   "truth": "legit",
+   "credential_input": true,
+   "S1": [],
+   "S2": []
+  },
+  {
+   "page": "lB9",
+   "truth": "legit",
+   "credential_input": true,
+   "S1": [],
+   "S2": []
+  },
+  {
+   "page": "lG0",
+   "truth": "legit",
+   "credential_input": false,
+   "S1": [],
+   "S2": []
+  },
+  {
+   "page": "lG1",
+   "truth": "legit",
+   "credential_input": false,
+   "S1": [],
+   "S2": []
+  },
+  {
+   "page": "lG2",
+   "truth": "legit",
+   "credential_input": false,
+   "S1": [],
+   "S2": []
+  },
+  {
+   "page": "lG3",
+   "truth": "legit",
+   "credential_input": false,
+   "S1": [],
+   "S2": []
+  },
+  {
+   "page": "lG4",
+   "truth": "legit",
+   "credential_input": false,
+   "S1": [],
+   "S2": []
+  },
+  {
+   "page": "lG5",
+   "truth": "legit",
+   "credential_input": false,
+   "S1": [],
+   "S2": []
+  },
+  {
+   "page": "lG6",
+   "truth": "legit",
+   "credential_input": false,
+   "S1": [],
+   "S2": []
+  },
+  {
+   "page": "lG7",
+   "truth": "legit",
+   "credential_input": false,
+   "S1": [],
+   "S2": []
+  },
+  {
+   "page": "lG8",
+   "truth": "legit",
+   "credential_input": false,
+   "S1": [],
+   "S2": []
+  },
+  {
+   "page": "lG9",
+   "truth": "legit",
+   "credential_input": false,
+   "S1": [],
+   "S2": []
+  },
+  {
+   "page": "lP0",
+   "truth": "legit",
+   "credential_input": false,
+   "S1": [],
+   "S2": []
+  },
+  {
+   "page": "lP1",
+   "truth": "legit",
+   "credential_input": false,
+   "S1": [],
+   "S2": []
+  },
+  {
+   "page": "lP2",
+   "truth": "legit",
+   "credential_input": false,
+   "S1": [],
+   "S2": []
+  },
+  {
+   "page": "lP3",
+   "truth": "legit",
+   "credential_input": false,
+   "S1": [],
+   "S2": []
+  },
+  {
+   "page": "lP4",
+   "truth": "legit",
+   "credential_input": false,
+   "S1": [],
+   "S2": []
+  },
+  {
+   "page": "pJ0",
+   "truth": "phishing",
+   "credential_input": true,
+   "S1": [
+    {
+     "kind": "telegram_bot",
+     "match": "api.telegram.org/bot6123456789:AAFqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqq/sendMessage",
+     "where": "rendered DOM",
+     "origin": ""
+    }
+   ],
+   "S2": [
+    {
+     "kind": "credential_post_foreign_origin_js",
+     "match": "https://api.telegram.org/bot6123456789:AAFqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqq/sendMessage",
+     "where": "rendered DOM",
+     "origin": "https://api.telegram.org"
+    },
+    {
+     "kind": "credential_post_foreign_origin_js",
+     "match": "https://panel.kitcollect.top/save",
+     "where": "rendered DOM",
+     "origin": "https://panel.kitcollect.top"
+    }
+   ]
+  },
+  {
+   "page": "pJ1",
+   "truth": "phishing",
+   "credential_input": true,
+   "S1": [
+    {
+     "kind": "discord_webhook",
+     "match": "discord.com/api/webhooks/112233445566778899/AbCdEfGhIjKl",
+     "where": "rendered DOM",
+     "origin": ""
+    }
+   ],
+   "S2": [
+    {
+     "kind": "credential_post_foreign_origin_js",
+     "match": "https://discord.com/api/webhooks/112233445566778899/AbCdEfGhIjKl",
+     "where": "rendered DOM",
+     "origin": "https://discord.com"
+    },
+    {
+     "kind": "credential_post_foreign_origin_js",
+     "match": "https://c2.kitcollect.top/r",
+     "where": "rendered DOM",
+     "origin": "https://c2.kitcollect.top"
+    }
+   ]
+  },
+  {
+   "page": "pJ2",
+   "truth": "phishing",
+   "credential_input": true,
+   "S1": [
+    {
+     "kind": "form_relay",
+     "match": "formspree.io/f/xkitform",
+     "where": "rendered DOM",
+     "origin": ""
+    }
+   ],
+   "S2": [
+    {
+     "kind": "credential_post_foreign_origin_js",
+     "match": "https://formspree.io/f/xkitform",
+     "where": "rendered DOM",
+     "origin": "https://formspree.io"
+    },
+    {
+     "kind": "credential_post_foreign_origin_js",
+     "match": "https://drop.kitcollect.top/a",
+     "where": "rendered DOM",
+     "origin": "https://drop.kitcollect.top"
+    }
+   ]
+  },
+  {
+   "page": "pJ3",
+   "truth": "phishing",
+   "credential_input": true,
+   "S1": [
+    {
+     "kind": "telegram_bot",
+     "match": "api.telegram.org/bot6123456789:AAFqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqq/sendMessage",
+     "where": "rendered DOM",
+     "origin": ""
+    }
+   ],
+   "S2": []
+  },
+  {
+   "page": "pJ4",
+   "truth": "phishing",
+   "credential_input": true,
+   "S1": [],
+   "S2": [
+    {
+     "kind": "credential_post_foreign_origin_js",
+     "match": "https://panel.kitcollect.top/save",
+     "where": "rendered DOM",
+     "origin": "https://panel.kitcollect.top"
+    }
+   ]
+  },
+  {
+   "page": "pJ5",
+   "truth": "phishing",
+   "credential_input": true,
+   "S1": [],
+   "S2": []
+  },
+  {
+   "page": "pJ6",
+   "truth": "phishing",
+   "credential_input": true,
+   "S1": [
+    {
+     "kind": "telegram_bot",
+     "match": "api.telegram.org/bot6123456789:AAFqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqq/sendMessage",
+     "where": "rendered DOM",
+     "origin": ""
+    }
+   ],
+   "S2": [
+    {
+     "kind": "credential_post_foreign_origin_js",
+     "match": "https://api.telegram.org/bot6123456789:AAFqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqq/sendMessage",
+     "where": "rendered DOM",
+     "origin": "https://api.telegram.org"
+    }
+   ]
+  },
+  {
+   "page": "lJ0",
+   "truth": "legit",
+   "credential_input": true,
+   "S1": [],
+   "S2": []
+  },
+  {
+   "page": "lJ1",
+   "truth": "legit",
+   "credential_input": true,
+   "S1": [],
+   "S2": []
+  }
+ ]
+}

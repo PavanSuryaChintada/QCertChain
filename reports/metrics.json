@@ -140,25 +140,133 @@
    "confirmed": 10
   },
   "recall": {
-   "value": 0.5,
-   "n_phishing": 20
+   "value": 0.3704,
+   "n_phishing": 27
   },
   "false_confirmations_of_legit_pages": 0,
   "verdicts_by_truth": {
    "phishing": {
     "confirmed": 10,
-    "candidate": 10
+    "candidate": 17
    },
    "legit": {
-    "candidate": 10,
+    "candidate": 12,
     "dismissed": 10,
     "unreachable": 5
    }
   },
-  "n": 45,
-  "dataset": "45 labelled pages served over real HTTP from 127.0.0.1: 10 known-kit phishing, 10 unknown-kit phishing, 10 legit brand-like logins posting to the brand, 10 blogs, 5 parked; kit knowledge from a disjoint sample",
+  "n": 54,
+  "by_family": {
+   "static_known_kit": {
+    "truth": "phishing",
+    "n": 10,
+    "confirmed": 10
+   },
+   "static_unknown_kit": {
+    "truth": "phishing",
+    "n": 10,
+    "confirmed": 0
+   },
+   "legit_brand_like_login": {
+    "truth": "legit",
+    "n": 10,
+    "confirmed": 0
+   },
+   "legit_blog": {
+    "truth": "legit",
+    "n": 10,
+    "confirmed": 0
+   },
+   "legit_parked": {
+    "truth": "legit",
+    "n": 5,
+    "confirmed": 0
+   },
+   "modern_js_kit": {
+    "truth": "phishing",
+    "n": 7,
+    "confirmed": 0
+   },
+   "modern_js_legit": {
+    "truth": "legit",
+    "n": 2,
+    "confirmed": 0
+   }
+  },
+  "per_page": {
+   "pA0": "confirmed",
+   "pA1": "confirmed",
+   "pA2": "confirmed",
+   "pA3": "confirmed",
+   "pA4": "confirmed",
+   "pA5": "confirmed",
+   "pA6": "confirmed",
+   "pA7": "confirmed",
+   "pA8": "confirmed",
+   "pA9": "confirmed",
+   "pB0": "candidate",
+   "pB1": "candidate",
+   "pB2": "candidate",
+   "pB3": "candidate",
+   "pB4": "candidate",
+   "pB5": "candidate",
+   "pB6": "candidate",
+   "pB7": "candidate",
+   "pB8": "candidate",
+   "pB9": "candidate",
+   "lB0": "candidate",
+   "lB1": "candidate",
+   "lB2": "candidate",
+   "lB3": "candidate",
+   "lB4": "candidate",
+   "lB5": "candidate",
+   "lB6": "candidate",
+   "lB7": "candidate",
+   "lB8": "candidate",
+   "lB9": "candidate",
+   "lG0": "dismissed",
+   "lG1": "dismissed",
+   "lG2": "dismissed",
+   "lG3": "dismissed",
+   "lG4": "dismissed",
+   "lG5": "dismissed",
+   "lG6": "dismissed",
+   "lG7": "dismissed",
+   "lG8": "dismissed",
+   "lG9": "dismissed",
+   "lP0": "unreachable",
+   "lP1": "unreachable",
+   "lP2": "unreachable",
+   "lP3": "unreachable",
+   "lP4": "unreachable",
+   "pJ0": "candidate",
+   "pJ1": "candidate",
+   "pJ2": "candidate",
+   "pJ3": "candidate",
+   "pJ4": "candidate",
+   "pJ5": "candidate",
+   "pJ6": "candidate",
+   "lJ0": "candidate",
+   "lJ1": "candidate"
+  },
+  "modern_cases": {
+   "pJ0": "Telegram exfil + POST to a second site",
+   "pJ1": "Discord webhook + XHR POST",
+   "pJ2": "form relay + jQuery POST",
+   "pJ3": "Telegram exfil only: one strong signal",
+   "pJ4": "foreign POST only: one strong signal",
+   "pJ5": "same-origin relay (meesho-all.cfd pattern): invisible client-side",
+   "pJ6": "one Telegram endpoint seen by S1 and S2: one strong signal (S3b)",
+   "lJ0": "legit SPA: own API + analytics + captcha",
+   "lJ1": "legit login with a t.me channel link and share button"
+  },
+  "signal_strengths": {
+   "exfil": "strong",
+   "js_post": "moderate"
+  },
+  "dataset": "54 labelled pages served over real HTTP from 127.0.0.1: 10 known-kit and 10 unknown-kit static-era phishing (HTML form posts), 7 modern JS-kit phishing (S3d: Telegram/Discord/form-relay exfil, foreign POSTs, a same-origin relay), 10 legit brand-like logins posting to the brand, 10 blogs, 5 parked, 2 legit modern logins; kit knowledge from a disjoint sample",
   "method": "real HTTP fetch + the production analyze_page gate (>= 2 strong signals)",
-  "measured_at": "2026-10-06T18:35:40.090399+00:00"
+  "measured_at": "2026-10-08T02:10:33.190158+00:00"
  },
  "email": {
   "cold": {
@@ -193,7 +301,7 @@
   "caveat": "a 30-minute window: only phishing certificates issued in that window can match; lead time is bounded by when PhishTank was downloaded",
   "measured_at": "2026-10-06T18:44:00.339709+00:00"
  },
- "generated_at": "2026-10-07T06:23:39.211103+00:00",
+ "generated_at": "2026-10-08T02:10:33.976160+00:00",
  "triage_threshold_options": {
   "options": [
    {
@@ -595,5 +703,359 @@
   "dataset": "Supabase evidence bundles (seeded campaign) and the local permissioned chain",
   "method": "verify_bundle on the stored files; tamper = flip one byte of dom.html in a copy",
   "measured_at": "2026-10-06T19:18:24.150444+00:00"
+ },
+ "lead_time_phishtank_30min": {
+  "matched_domains": 11,
+  "ct_first": 0,
+  "lead_hours": {
+   "p50": null,
+   "p95": null,
+   "max": null
+  },
+  "listed_before_ct_seen": 11,
+  "dataset": "our 30-min CT capture (2026-10-06 13:28-13:58 UTC) x PhishTank verified-online submission times, matched on the EXACT hostname named in the certificate",
+  "caveat": "a 30-minute window: only phishing certificates issued in that window can match; lead time is bounded by when PhishTank was downloaded",
+  "measured_at": "2026-10-06T18:44:00.339709+00:00"
+ },
+ "live_confirmation": {
+  "before": {
+   "dataset": "domain_verdicts (live, source <> 'seed')",
+   "org_id": 1,
+   "since": "2026-10-07T06:30:36Z",
+   "domain_set": "verdict_at >= since",
+   "n_domains": 1435,
+   "measured_at": "2026-10-07T18:33:46Z",
+   "verdicts": {
+    "candidate": 445,
+    "unreachable": 776,
+    "dismissed": 214
+   },
+   "pages_assessed": 659,
+   "with_at_least_one_strong_signal": 0,
+   "strong_signals_by_detector": {},
+   "favicon_census": {
+    "pages_with_favicon": 432,
+    "own_brand_match": 0,
+    "any_brand_match": 3,
+    "reference_brands": 34,
+    "reference_hashes": 73
+   },
+   "unreachable": {
+    "n": 776,
+    "by_cause": {
+     "HTTP 404 error page": 391,
+     "dns: name does not resolve": 142,
+     "tls / http protocol error": 70,
+     "timeout": 47,
+     "parked page (HTTP 2xx/3xx)": 42,
+     "HTTP 401 error page": 23,
+     "HTTP 403 error page": 22,
+     "HTTP 4xx error page (400)": 9,
+     "connection refused / reset": 6,
+     "HTTP 5xx error page (503)": 6,
+     "ssrf guard: non-public address": 4,
+     "HTTP 5xx error page (502)": 3,
+     "redirect loop": 2,
+     "resolves publicly now (was not, or DNS changed)": 2,
+     "other: could not fetch: playwright: Page.goto: net::ERR_INVALID_RES": 2,
+     "HTTP 4xx error page (418)": 2,
+     "HTTP 4xx error page (406)": 1,
+     "other: could not fetch: playwright: Page.goto: net::ERR_SOCKET_NOT_": 1,
+     "hosting provider phishing interstitial": 1
+    },
+    "relabelled_at_diagnosis": {
+     "dns: name does not resolve": 115,
+     "ssrf guard: non-public address": 4,
+     "resolves publicly now (was not, or DNS changed)": 2
+    },
+    "distinct_sites": 326,
+    "top_sites": [
+     [
+      "kennelstudio.com",
+      318
+     ],
+     [
+      "amazonlightsailgamma.com",
+      15
+     ],
+     [
+      "icicicardservices.online",
+      10
+     ],
+     [
+      "amazonlightsailbeta.com",
+      9
+     ],
+     [
+      "helioscope.fr",
+      9
+     ]
+    ],
+    "excluding_top_site": {
+     "site": "kennelstudio.com",
+     "n": 458
+    }
+   }
+  },
+  "after": {
+   "dataset": "domain_verdicts (live, source <> 'seed')",
+   "org_id": 1,
+   "since": "2026-10-07T06:30:36Z",
+   "domain_set": "fixed id list",
+   "n_domains": 1435,
+   "measured_at": "2026-10-08T02:09:52Z",
+   "verdicts": {
+    "unreachable": 788,
+    "candidate": 435,
+    "dismissed": 212
+   },
+   "pages_assessed": 647,
+   "with_at_least_one_strong_signal": 0,
+   "in_a_campaign": 0,
+   "strong_signals_by_detector": {},
+   "s1_s2_census": {
+    "S1_domains": {},
+    "S2_domains": {
+     "moderate": 6
+    },
+    "S2_destination_sites": {
+     "contaboserver.net": 3,
+     "shopifysvc.com": 2,
+     "mydukaan.io": 1
+    }
+   },
+   "favicon_census": {
+    "pages_with_favicon": 429,
+    "own_brand_match": 0,
+    "any_brand_match": 3,
+    "reference_brands": 34,
+    "reference_hashes": 73
+   },
+   "unreachable": {
+    "n": 788,
+    "by_cause": {
+     "HTTP 404 error page": 391,
+     "dns: name does not resolve": 144,
+     "tls / http protocol error": 77,
+     "timeout": 46,
+     "parked page (HTTP 2xx/3xx)": 40,
+     "HTTP 401 error page": 24,
+     "HTTP 403 error page": 23,
+     "HTTP 4xx error page (400)": 9,
+     "hosting provider phishing interstitial": 7,
+     "HTTP 5xx error page (503)": 7,
+     "connection refused / reset": 6,
+     "ssrf guard: non-public address": 4,
+     "HTTP 5xx error page (502)": 3,
+     "redirect loop": 2,
+     "other: could not fetch: playwright: Page.goto: net::ERR_INVALID_RES": 2,
+     "HTTP 4xx error page (418)": 2,
+     "resolves publicly now (was not, or DNS changed)": 1
+    },
+    "relabelled_at_diagnosis": {
+     "ssrf guard: non-public address": 4,
+     "resolves publicly now (was not, or DNS changed)": 1
+    },
+    "distinct_sites": 332,
+    "top_sites": [
+     [
+      "kennelstudio.com",
+      318
+     ],
+     [
+      "amazonlightsailgamma.com",
+      15
+     ],
+     [
+      "icicicardservices.online",
+      10
+     ],
+     [
+      "amazonlightsailbeta.com",
+      9
+     ],
+     [
+      "helioscope.fr",
+      9
+     ]
+    ],
+    "excluding_top_site": {
+     "site": "kennelstudio.com",
+     "n": 470
+    }
+   }
+  },
+  "brands_total": 40,
+  "gates": {
+   "run1": {
+    "measured_at": "2026-10-07T17:35:19Z",
+    "dataset": {
+     "legit_login_pages": 65,
+     "reachable": 53,
+     "reachable_with_credential_input": 18,
+     "labelled_pages": 45
+    },
+    "S1": {
+     "false_positives": 0,
+     "legit_pages_tested": 43,
+     "ships_as": "strong",
+     "false_positive_pages": []
+    },
+    "S2": {
+     "false_positives": 6,
+     "legit_pages_tested": 43,
+     "ships_as": "MODERATE (false positive on a legitimate page)",
+     "false_positive_pages": [
+      "https://www.linkedin.com/login",
+      "https://www.dropbox.com/login",
+      "https://www.amazon.in/gp/sign-in.html",
+      "https://www.tumblr.com/login",
+      "https://infinity.icicibank.com/corp/AuthenticationController?FORMSGROUP_ID__=AuthenticationFG&__START_TRAN_FLAG__=Y&FG_BUTTONS__=LOAD&ACTION.LOAD=Y&AuthenticationFG.LOGIN_FLAG=1&BANK_ID=ICI",
+      "https://www.myvi.in/login"
+     ]
+    },
+    "false_positive_detail": {
+     "S1": [],
+     "S2": [
+      {
+       "page": "https://www.linkedin.com/login",
+       "destination": "https://www.",
+       "where": "https://static.licdn.com/aero-v1/sc/h/assets/CIroO5sW.js"
+      },
+      {
+       "page": "https://www.dropbox.com/login",
+       "destination": "https://t.co",
+       "where": "network: POST during page load"
+      },
+      {
+       "page": "https://www.amazon.in/gp/sign-in.html",
+       "destination": "https://unagi-eu.amazon.com",
+       "where": "network: POST during page load"
+      },
+      {
+       "page": "https://www.tumblr.com/login",
+       "destination": "https://blackbox-api.wp.com",
+       "where": "network: POST during page load"
+      },
+      {
+       "page": "https://infinity.icicibank.com/corp/AuthenticationController?FORMSGROUP_ID__=AuthenticationFG&__START_TRAN_FLAG__=Y&FG_BUTTONS__=LOAD&ACTION.LOAD=Y&AuthenticationFG.LOGIN_FLAG=1&BANK_ID=ICI",
+       "destination": "https://arcotw.icicibank.com",
+       "where": "network: POST during page load"
+      },
+      {
+       "page": "https://www.myvi.in/login",
+       "destination": "https://wa.appsflyersdk.com",
+       "where": "network: POST during page load"
+      }
+     ]
+    },
+    "S2_hits_by_source": {
+     "request fired during page load": 14,
+     "page code": 1
+    }
+   },
+   "run2": {
+    "measured_at": "2026-10-07T18:17:48Z",
+    "dataset": {
+     "legit_login_pages": 65,
+     "reachable": 51,
+     "reachable_with_credential_input": 14,
+     "labelled_pages": 45
+    },
+    "S1": {
+     "false_positives": 0,
+     "legit_pages_tested": 39,
+     "ships_as": "strong",
+     "false_positive_pages": []
+    },
+    "S2": {
+     "false_positives": 0,
+     "legit_pages_tested": 39,
+     "ships_as": "strong",
+     "false_positive_pages": []
+    },
+    "false_positive_detail": {
+     "S1": [],
+     "S2": []
+    },
+    "S2_hits_by_source": {
+     "request fired during page load": 0,
+     "page code": 0
+    }
+   },
+   "run2_retest": {
+    "measured_at": "2026-10-07T18:22:31Z",
+    "dataset": {
+     "legit_login_pages": 4,
+     "reachable": 4,
+     "reachable_with_credential_input": 2,
+     "labelled_pages": 45
+    },
+    "S1": {
+     "false_positives": 0,
+     "legit_pages_tested": 27,
+     "ships_as": "strong",
+     "false_positive_pages": []
+    },
+    "S2": {
+     "false_positives": 0,
+     "legit_pages_tested": 27,
+     "ships_as": "strong",
+     "false_positive_pages": []
+    },
+    "false_positive_detail": {
+     "S1": [],
+     "S2": []
+    },
+    "S2_hits_by_source": {
+     "request fired during page load": 0,
+     "page code": 0
+    }
+   },
+   "holdout": {
+    "measured_at": "2026-10-07T18:40:42Z",
+    "dataset": {
+     "legit_login_pages": 45,
+     "reachable": 40,
+     "reachable_with_credential_input": 13,
+     "labelled_pages": 54
+    },
+    "S1": {
+     "false_positives": 0,
+     "legit_pages_tested": 40,
+     "ships_as": "strong",
+     "false_positive_pages": []
+    },
+    "S2": {
+     "false_positives": 1,
+     "legit_pages_tested": 40,
+     "ships_as": "MODERATE (false positive on a legitimate page)",
+     "false_positive_pages": [
+      "https://www.twitch.tv/login"
+     ]
+    },
+    "false_positive_detail": {
+     "S1": [],
+     "S2": [
+      {
+       "page": "https://www.twitch.tv/login",
+       "destination": "https://eppo.cloud",
+       "where": "https://assets.twitch.tv/assets/flags-2074a624a1c9eb27d801.js"
+      }
+     ]
+    },
+    "S2_hits_by_source": {
+     "request fired during page load": 0,
+     "page code": 1
+    }
+   }
+  },
+  "signal_strengths": {
+   "exfil": "strong",
+   "js_post": "moderate"
+  },
+  "dataset": "live public-feed candidates of the pipeline operator (org 1), capture window; the same fixed domain set before and after the S4 re-check",
+  "method": "scripts/diagnose_confirm.py (verdict reasons, favicon census, unreachable causes); S4 = every domain re-checked through the real enrichment worker with the shipped logic",
+  "measured_at": "2026-10-08T02:10:33.975165+00:00"
  }
 }
