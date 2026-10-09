@@ -59,9 +59,8 @@ def main() -> int:
         url = None if published else parse_url(line)
         if not url:
             continue
-        if not healthy(url):
-            print(f"tunnel: {url} never answered /health; waiting for cloudflared", flush=True)
-            continue
+        while not healthy(url):  # the API may be restarting: keep trying this URL rather than give up on it
+            print(f"tunnel: {url} not answering /health yet; retrying", flush=True)
         for attempt in range(1, 6):
             try:
                 with engine().begin() as c:
