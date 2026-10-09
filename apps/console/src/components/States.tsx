@@ -1,5 +1,5 @@
 import { useEffect, useState, type ReactNode } from "react";
-import { API_URL, ApiError } from "../lib/api";
+import { ApiError, apiUrl } from "../lib/api";
 import { fmtAgo } from "../lib/format";
 import { type ViewState, useNow } from "../lib/viewState";
 import { Button } from "./Button";
@@ -7,7 +7,7 @@ import { Button } from "./Button";
 /** What failed and what to do, in grey. Red means a confirmed threat and nothing else. */
 export function errorCopy(e: ApiError, what: string): string {
   switch (e.status) {
-    case 0: return `Could not reach the API at ${API_URL} while loading ${what}. Check that the API is running and reachable, then retry.`;
+    case 0: return `Could not reach the API at ${apiUrl()} while loading ${what}. Check that the API is running and reachable, then retry.`;
     case 401: return "Your API key was rejected. Sign in again with a valid key.";
     case 403: case 405: return "The demo key is read-only. Sign in with an organisation key to do this.";
     case 404: return `${what[0].toUpperCase()}${what.slice(1)} was not found for your organisation. Check the link, or open it from its list.`;

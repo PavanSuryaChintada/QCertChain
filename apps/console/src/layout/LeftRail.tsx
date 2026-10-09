@@ -17,7 +17,7 @@ export const NAV = [
   { to: "/ops", label: "Ops log" },
 ];
 
-const KEY_KIND = { org: "Organisation key", demo: "Demo key (read-only)", admin: "Admin key" } as const;
+const KEY_KIND = { org: "Organisation key", demo: "Demo key (read-only)", admin: "Admin key", superadmin: "Super admin session" } as const;
 
 /** The organisation is pinned at the top and always visible: tenant isolation is a core claim of the product. */
 export function OrgIndicator() {

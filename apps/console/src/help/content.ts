@@ -165,15 +165,29 @@ const HELP_ENTRIES = {
     data: "Your organisation's campaigns, evidence and ledger, read with your key when the tour starts.",
     notClaimed: "Figures in the tour are read live when it starts; they are not fixed claims.",
   },
+  superadmin: {
+    title: "Platform administration",
+    what: "The super admin's panel: every organisation on the platform, by category, and their keys. It shows no organisation's data.",
+    read: [
+      { label: "New organisation", text: "A name and a category. The organisation gets a full key, shared privately, and a read-only key, shown on the sign-in page." },
+      { label: "Open console", text: "Signs in as that organisation with its full key, to see exactly what it sees." },
+      { label: "Rotate", text: "Revokes a key and issues a new one at once; the old key stops working within half a minute." },
+      { label: "Deactivate", text: "Its keys stop working and it leaves the sign-in page. The pipeline organisation stays active." },
+    ],
+    data: "The platform's own records: organisations, categories and keys. Keys are stored as hashes plus an encrypted copy.",
+    notClaimed: "A new organisation sees the shared certificate feed now; its own sector feed and seeded campaign come with the next update.",
+  },
   signin: {
     title: "Sign in",
     what: "Several organisations share QCertChain. Your key decides which organisation you are and which data exists for you.",
     read: [
-      { label: "API key", text: "Paste your organisation's key. The read-only demo key shows everything and changes nothing." },
+      { label: "Organisations", text: "Every organisation by category, each with a read-only key: one click signs in to look, never to change anything." },
+      { label: "Super admin", text: "The platform operator's email and password: creates organisations and manages their keys." },
+      { label: "API key", text: "Paste a full key to sign in with every right your organisation has." },
       { label: "Technical approach", text: "Open without a key: how the system works and why it is built this way." },
       { label: "How it works", text: "A guided tour of the live console. Sign in first; the tour starts on its own." },
     ],
-    data: "The API checks each key; only a hash of each key is stored.",
+    data: "The API checks each key against its hash; an encrypted copy lets the platform show read-only keys here.",
     notClaimed: "Signing in with the demo key never changes any data.",
   },
 } satisfies Record<string, HelpEntry>;

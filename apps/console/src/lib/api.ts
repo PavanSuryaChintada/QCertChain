@@ -1,14 +1,35 @@
 // Typed client for the QCertChain API. The console talks only to this API, always with the X-API-Key header.
 import { KEY_HEADER, authHeaders, getKey, setKey } from "./auth";
+import { DISCOVERY, discoverApiUrl, type Discovery } from "./apiUrl";
 
-export const API_URL: string = (import.meta.env.VITE_API_URL as string | undefined) ?? "http://127.0.0.1:8000"; // not localhost: on Windows each new connection to localhost first tries IPv6 (~200 ms)
+/** The API base: VITE_API_URL at build time, replaced at run time by the published tunnel URL (lib/apiUrl.ts). */
+// not localhost: on Windows each new connection to localhost first tries IPv6 (~200 ms)
+let API_BASE: string = (import.meta.env.VITE_API_URL as string | undefined) ?? "http://127.0.0.1:8000";
+export const apiUrl = (): string => API_BASE;
+export function setApiUrl(u: string): void { API_BASE = u; }
 
 export type DomainStatus = "candidate" | "confirmed" | "dismissed" | "unreachable";
 export type EmailVerdict = "malicious" | "suspicious" | "clean";
 export type Backend = "cpsat" | "qaoa" | "annealing" | "greedy" | "bruteforce";
 export type Source = "certstream" | "replay" | "seed" | "email" | "sample";
 export type ComponentStatus = "ok" | "degraded" | "failed";
-export type KeyKind = "org" | "demo" | "admin";
+export type KeyKind = "org" | "demo" | "admin" | "superadmin";
+
+// ---------- platform (spec 2026-10-09): organisations by category, the super admin panel ----------
+export type Category = "banking" | "fintech" | "ecommerce" | "government" | "telecom" | "brokerage" | "insurance" | "consumer" | "other";
+export const CATEGORIES: { value: Category; label: string }[] = [
+  { value: "banking", label: "Banking" }, { value: "fintech", label: "Fintech" }, { value: "ecommerce", label: "E-commerce" },
+  { value: "government", label: "Government" }, { value: "telecom", label: "Telecom" }, { value: "brokerage", label: "Brokerage" },
+  { value: "insurance", label: "Insurance" }, { value: "consumer", label: "Consumer" }, { value: "other", label: "Other" },
+];
+export const categoryLabel = (c: string): string => CATEGORIES.find((x) => x.value === c)?.label ?? c;
+export interface PublicOrg { slug: string; name: string; category: Category; demo_key: string | null }
+export interface SuperOrg { slug: string; name: string; category: Category; active: boolean; created_at: string | null; live_keys: number }
+export interface OrgKeys { org_key: string | null; demo_key: string | null }
+export interface NewOrg { slug: string; name: string; category: Category; org_key: string; demo_key: string }
+export interface Session { token: string; expires_at: string }
+/** Super admin sessions are keys too (`qcc_superadmin_…`): they open the platform panel, never an organisation. */
+export const isSuperadminKey = (k: string | null): boolean => !!k && k.startsWith("qcc_superadmin_");
 export type NodeKind = "ip" | "asn" | "nameserver" | "cert_issuer" | "kit_hash" | "favicon_hash" | "registrar";
 export type Route = "hosting" | "dns" | "registrar";
 
@@ -235,10 +256,20 @@ export class ApiError extends Error {
 /** Every request carries the key. A 401 means the key is missing, revoked or wrong: drop it so the key gate shows.
  *  A 401 is re-checked once before signing out: while the database was dropping connections (2026-10-09) a valid
  *  key was seen rejected, and signing an analyst out mid-demo for it costs more than one extra request. */
-export async function apiFetch(path: string, init?: RequestInit): Promise<Response> {
+export async function apiFetch(path: string, init?: RequestInit, discovery: Discovery = DISCOVERY): Promise<Response> {
   const key = getKey();
-  const send = () => fetch(API_URL + path, { ...init, headers: { ...authHeaders(), ...(init?.headers ?? {}) } });
-  const r = await send();
+  const send = () => fetch(apiUrl() + path, { ...init, headers: { ...authHeaders(), ...(init?.headers ?? {}) } });
+  let r: Response;
+  try {
+    r = await send();
+  } catch (e) {
+    // The quick tunnel may have restarted under a new URL: re-read the published one once, then retry there.
+    if ((e as Error)?.name === "AbortError") throw e;
+    const fresh = await discoverApiUrl(discovery);
+    if (!fresh || fresh === apiUrl()) throw e;
+    setApiUrl(fresh);
+    r = await send();
+  }
   if (r.status !== 401 || !key) return r;
   const verdict = await recheckKey(key);
   if (verdict === "rejected") {
@@ -258,7 +289,7 @@ export async function apiFetch(path: string, init?: RequestInit): Promise<Respon
 type Verdict = "rejected" | "valid" | "unknown";
 let recheck: Promise<Verdict> | null = null; // parallel 401s share one re-check
 function recheckKey(key: string): Promise<Verdict> {
-  recheck ??= fetch(API_URL + "/status", { headers: { [KEY_HEADER]: key } })
+  recheck ??= fetch(apiUrl() + "/status", { headers: { [KEY_HEADER]: key } })
     .then((again): Verdict => (again.status === 401 ? "rejected" : again.ok ? "valid" : "unknown"))
     .catch((): Verdict => "unknown") // unreachable is an outage, not a bad key
     .finally(() => { recheck = null; });
@@ -293,7 +324,7 @@ export async function call<T>(path: string, init?: RequestInit): Promise<T> {
     r = await apiFetch(path, { ...init, headers: { accept: "application/json", ...json, ...((init?.headers ?? {}) as Record<string, string>) } });
   } catch (e) {
     if ((e as Error)?.name === "AbortError") throw e;
-    throw new ApiError({ type: "about:blank", title: "Network error", status: 0, detail: `Could not reach the API at ${API_URL}.` });
+    throw new ApiError({ type: "about:blank", title: "Network error", status: 0, detail: `Could not reach the API at ${apiUrl()}.` });
   }
   if (!r.ok) throw await readProblem(r);
   if (r.status === 204) return undefined as T;
@@ -313,6 +344,14 @@ export function qs(params: Record<string, string | number | boolean | null | und
 }
 
 export const api = {
+  publicOrgs: (signal?: AbortSignal) => get<PublicOrg[]>("/orgs/public", signal),
+  superLogin: (email: string, password: string) => post<Session>("/auth/superadmin/login", { email, password }),
+  logout: () => post<void>("/auth/logout"),
+  superOrgs: (signal?: AbortSignal) => get<SuperOrg[]>("/superadmin/orgs", signal),
+  createOrg: (name: string, category: Category) => post<NewOrg>("/superadmin/orgs", { name, category }),
+  orgKeys: (slug: string) => get<OrgKeys>(`/superadmin/orgs/${encodeURIComponent(slug)}/keys`),
+  rotateKey: (slug: string, kind: "org" | "demo") => post<{ kind: string; key: string }>(`/superadmin/orgs/${encodeURIComponent(slug)}/rotate`, { kind }),
+  deactivateOrg: (slug: string) => post<{ slug: string; active: boolean }>(`/superadmin/orgs/${encodeURIComponent(slug)}/deactivate`),
   status: (signal?: AbortSignal) => get<SystemStatus>("/status", signal),
   health: (signal?: AbortSignal) => get<Health>("/health", signal),
   streamState: (signal?: AbortSignal) => get<StreamState>("/stream/state", signal),

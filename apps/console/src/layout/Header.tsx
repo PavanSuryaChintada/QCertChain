@@ -43,7 +43,7 @@ function Stat({ label, children, title }: { label: string; children: React.React
   );
 }
 
-const KEY_KIND = { org: "org", demo: "demo", admin: "admin" } as const;
+const KEY_KIND = { org: "org", demo: "demo", admin: "admin", superadmin: "superadmin" } as const;
 
 export function Header() {
   const { data, state } = useStatus();
