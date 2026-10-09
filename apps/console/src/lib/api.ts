@@ -1,6 +1,6 @@
 // Typed client for the QCertChain API. The console talks only to this API, always with the X-API-Key header.
 import { KEY_HEADER, authHeaders, getKey, setKey } from "./auth";
-import { DISCOVERY, discoverApiUrl, type Discovery } from "./apiUrl";
+import { DISCOVERY, discoverApiUrl, shouldDiscover, type Discovery } from "./apiUrl";
 
 /** The API base: VITE_API_URL at build time, replaced at run time by the published tunnel URL (lib/apiUrl.ts). */
 // not localhost: on Windows each new connection to localhost first tries IPv6 (~200 ms)
@@ -260,16 +260,18 @@ export class ApiError extends Error {
 /** Every request carries the key. A 401 means the key is missing, revoked or wrong: drop it so the key gate shows.
  *  A 401 is re-checked once before signing out: while the database was dropping connections (2026-10-09) a valid
  *  key was seen rejected, and signing an analyst out mid-demo for it costs more than one extra request. */
-export async function apiFetch(path: string, init?: RequestInit, discovery: Discovery = DISCOVERY): Promise<Response> {
+export async function apiFetch(path: string, init?: RequestInit, discovery?: Discovery | null): Promise<Response> {
   const key = getKey();
+  // on this machine (dev server, local demo, offline e2e) the API is local: never look it up on the internet
+  const lookup = discovery !== undefined ? discovery : shouldDiscover(window.location.hostname) ? DISCOVERY : null;
   const send = () => fetch(apiUrl() + path, { ...init, headers: { ...authHeaders(), ...(init?.headers ?? {}) } });
   let r: Response;
   try {
     r = await send();
   } catch (e) {
     // The quick tunnel may have restarted under a new URL: re-read the published one once, then retry there.
-    if ((e as Error)?.name === "AbortError") throw e;
-    const fresh = await discoverApiUrl(discovery);
+    if ((e as Error)?.name === "AbortError" || !lookup) throw e;
+    const fresh = await discoverApiUrl(lookup);
     if (!fresh || fresh === apiUrl()) throw e;
     setApiUrl(fresh);
     r = await send();

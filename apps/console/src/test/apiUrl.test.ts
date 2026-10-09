@@ -57,3 +57,10 @@ it("the hosted site knows where to look without any build settings (public value
   expect(DISCOVERY.url).toMatch(/^https:\/\/[a-z0-9]+\.supabase\.co$/);
   expect(DISCOVERY.key).toMatch(/^sb_publishable_/);
 });
+
+it("on this machine a request that fails is not looked up on Supabase (the offline demo needs no internet)", async () => {
+  // jsdom serves from localhost, like the local demo and the offline e2e
+  const f = vi.spyOn(globalThis, "fetch").mockRejectedValue(new TypeError("Failed to fetch"));
+  await expect(apiFetch("/campaigns")).rejects.toThrow("Failed to fetch");
+  expect(f).toHaveBeenCalledTimes(1);
+});
