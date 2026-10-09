@@ -17,6 +17,8 @@ QCertChain stops being a two-bank demo and becomes a platform any sector can joi
 - The **login page** offers both doors: pick an organisation (read-only, one click) or sign in as super admin.
 - Anyone opening the public site on their own laptop sees it working, served from the owner's laptop through a free
   Cloudflare quick tunnel (`trycloudflare.com`) whose changing URL the site discovers by itself.
+- A viewer **understands what they are looking at** without the presenter: a **Technical approach** page, a guided
+  **How it works** tour through the real pages (Next step, Next step), and a **?** on every page explaining it.
 
 **Success looks like:** on the public site, the super admin creates "ShopSafe SOC" in E-commerce; it appears on the
 login page with its read-only key; signing in as it shows a seeded Flipkart-themed campaign, its graph and plan, a
@@ -33,6 +35,8 @@ signed and anchored evidence bundle, and the Ledger lookup returns its campaign;
 | New organisation gets **its sector's live feed + a seeded demo campaign** | "Entertainment" is not added now (no brands for it; adding brands changes triage) |
 | Public site works **while the laptop runs**, through the free `trycloudflare.com` tunnel; the site finds the current URL in Supabase | |
 | Super admin: `super@gmail.com` / `test1234` | |
+| A Technical approach section, a step-by-step How it works section, a ? on every page | Both sections are open before sign-in (owner choice) |
+| How it works is a **guided tour of the real pages** (owner choice) | English only |
 
 ## 2. Approach
 
@@ -43,7 +47,7 @@ UI over `scripts/create_api_key` (new organisations could not use the ledger and
 
 No new Python or npm dependency: PyNaCl (argon2id, SecretBox), `eth_account` and `web3` are already installed.
 `cloudflared` is run through `npx` as a tool, not a project dependency (§10). The console reads one Supabase row with
-plain `fetch` (no Supabase client library).
+plain `fetch` (no Supabase client library). The guided tour is built in the console (no tour library).
 
 ## 3. Data (`services/api/schema.sql`, idempotent, applied after a backup per `MIGRATION_RUNBOOK.md`)
 
@@ -147,6 +151,52 @@ it. Row-level security: no `qcc_app` policy, so no organisation-scoped connectio
 - The left rail shows the organisation's category under its name. Generic copy says "organisation", not "bank".
 - The API URL comes from the runtime lookup in §10, with `VITE_API_URL` as the fallback.
 
+## 8b. Explaining the system: Technical approach, How it works, and a ? on every page
+
+Three pieces, all open without a key, all following `docs/DESIGN.md`, all bound by the content rules below.
+
+**Content rules (every explainer, every step, every help panel).**
+- No measured number is typed into explainer text. A figure is either read live from the API at display time (the
+  tour shows the current coverage from the sweep endpoint) or the text points to the Metrics page, where measured
+  values already live. Same rule as `docs/REPORT.md`.
+- A candidate is "suspicious, not verified"; only confirmed means two independent strong signals (CLAUDE.md §2.2).
+- The takedown-selection framing is used verbatim: *"Takedown-set selection is formulated as a QUBO. It runs on
+  OR-Tools CP-SAT in production; the same formulation runs on QAOA. Quantum is not in the critical path."* The word
+  "quantum" never appears in a heading, a nav item or a step title (CLAUDE.md §2.3).
+- Stated limits are stated: HTTP-only phishing has no certificate; wildcard certificates hide the subdomain; the
+  live pipeline currently ends at the confirmation gate (0 live confirmations, with the measured cause).
+
+**Technical approach (`/technical`, public, static).** One page, sections in this order: the problem (why blocking
+URLs is too late; the base-rate argument: a classifier alone cannot work at this volume); the five stages (ingest
+from Certificate Transparency, triage, confirmation by evidence, campaign clustering, interdiction) with the method
+of each; evidence and chain of custody (artifacts hashed into a Merkle root, Ed25519 signature, root anchored);
+the ledger (what goes on chain and what never does; the four reasons it exists); takedown selection (maximum
+coverage, the verbatim framing above); the platform (organisations, categories, row-level security, sector routing);
+how it is served (laptop, tunnel, Supabase, Vercel); stated limits. Reuses the Architecture diagram in a static
+mode (no status squares without a key). Linked from the login page and the left rail.
+
+**How it works (`/tour`, a guided tour of the real pages).**
+- Started from the login page ("How it works") or the left rail. Started signed out, it first signs in read-only
+  as Bank One with its published demo key (`GET /orgs/public`), then runs on live data.
+- About 11 steps, each `{route, target, title, text}`: Architecture (the pipeline) → Live queue (certificates
+  arriving) → a candidate's score (triage nominates, never red) → the Confirmed filter (two strong signals) →
+  campaign graph (shared infrastructure) → budget slider and coverage (maximum coverage) → solver table (CP-SAT in
+  production, the framing) → abuse report (generated, never sent) → evidence (Merkle root, signature, Verify) →
+  Ledger (a kit hash finds another organisation's campaign, nothing else shared) → Metrics (everything measured).
+- Each step navigates to its route, highlights the target element (marked in the page with `data-tour="…"`) and
+  shows a card: "Step 5 of 11", title, text, **Back**, **Next step**, **Exit**. Keys: ← → Esc. Focus moves to the
+  card; the step is announced to screen readers.
+- Items the steps need (a campaign, a bundle, a kit hash) are looked up through the API at run time, never hard-coded
+  IDs. If a target is missing (no data yet), the card still shows and says what would be there.
+- The tour only highlights; it clicks nothing and changes nothing (it runs fine on a read-only key).
+
+**? on every page.**
+- A **?** button at the same place in every page header (and on the login page and the super admin panel) opens a
+  side panel: *What this page is* · *How to read it* (each element on the page) · *Where the data comes from* ·
+  *What it does not claim*. Esc or ✕ closes it.
+- All help text lives in one file (`apps/console/src/help/content.ts`, keyed by route) so wording is reviewed in one
+  place; a test fails if any route lacks an entry.
+
 ## 9. Changes to earlier decisions (owner-approved 2026-10-09)
 
 1. **Keys are retrievable** (sealed) instead of shown once; read-only keys are **published** on the login page for
@@ -204,13 +254,17 @@ their next failed call; a reload always picks it up.
 | `test_tunnel.py` | the URL is parsed from cloudflared's output; published only after `/health` answers; a restart republishes; `anon` can read the row and cannot write it |
 | `test_evaluate.py` (extended) | response time counts every organisation's live verdicts once |
 | console: `login.test.tsx`, `superadmin.test.tsx` | both tabs; one-click read-only sign-in; panel actions; superadmin session renders the panel, not the console |
+| console: `help.test.tsx` | every route in `App.tsx` has a help entry; ? opens and Esc closes the panel |
+| console: `tour.test.tsx` | Next/Back move through routes and targets; a missing target still shows its card; Exit returns; started signed out, it signs in read-only first; it never issues a non-GET request |
+| console: `explainers.test.tsx` | `/technical` renders without a key; no heading, nav item or step title contains "quantum"; the framing appears verbatim; no explainer string contains a digit-bearing measured claim outside the allow-list (step numbers, k) |
 | console: `apiUrl.test.ts` | the looked-up URL is used; a non-trycloudflare URL, a timeout or no Supabase settings fall back to `VITE_API_URL`; a network failure re-reads once |
 | e2e: `e2e/test_platform_path.py` | super admin logs in → creates an E-commerce organisation → signs in as it read-only → its campaign, plan, evidence verify, ledger lookup; Bank One's bundle is 404 |
+| e2e: `e2e/test_tour.py` | signed out → How it works → all steps to the end with every target found on the seeded demo; the ? panel opens on each page visited |
 
 `test_triage.py`, `test_interdict.py`, `test_fallback.py`, `test_evidence.py` (the release gates) must stay green.
 
 **Docs updated in the same change:** `API_CONTRACT.md` (new routes), `DEPLOY.md` (new variables, the publishable key,
-the quick tunnel), `DEMO.md` (a platform segment: create an organisation, sign in as it), `.env.example`
+the quick tunnel), `DEMO.md` (a platform segment: create an organisation, sign in as it; the tour as an optional walk-through), `.env.example`
 (`KEY_SEAL_SECRET`, `SUPERADMIN_EMAIL`, `SUPERADMIN_PASSWORD` as placeholders, `CHAIN_ADMIN_PRIVATE_KEY`),
 `BUILD_DECISIONS.md` (the §9 changes), `AI_USAGE_LOG.md`.
 
