@@ -3,6 +3,7 @@
     PYTHONPATH=. python -m scripts.superadmin set        # upsert the super admin from SUPERADMIN_EMAIL/_PASSWORD in .env
     PYTHONPATH=. python -m scripts.superadmin backfill   # seal the keys already in .env; give org2 a read-only key
     PYTHONPATH=. python -m scripts.superadmin chain      # register every organisation's account on this chain
+    PYTHONPATH=. python -m scripts.superadmin provision <slug>  # re-run a new organisation's setup if it was lost
 
 The password is read from .env, never from the command line (shell history). Only its argon2id hash is stored.
 `backfill` seals a token only when it matches a stored, unrevoked key hash; it never creates or prints a full key.
@@ -72,6 +73,13 @@ def main(argv: list[str]) -> int:
             if not ledger.available():
                 raise SystemExit(f"the chain at {SETTINGS.chain_rpc} is not reachable")
             print(f"registered {platform.register_all(c, ledger)} organisation account(s) on {SETTINGS.chain_rpc}")
+        elif cmd == "provision" and len(argv) > 2:
+            from services.api import platform
+            from services.api.deps import get_ledger
+            out = platform.provision(c, get_ledger(), argv[2], evidence_dir=SETTINGS.evidence_dir,
+                                     signing_key_hex=SETTINGS.collector_private_key)
+            seeded = "a demo campaign" if out["seeded"] else "nothing (no brand for its sector)"
+            print(f"{argv[2]}: chain {out['chain']}; seeded {seeded}")
         else:
             print(__doc__)
             return 2

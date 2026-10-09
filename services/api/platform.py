@@ -70,7 +70,7 @@ def provision_in_background(slug: str) -> None:
         except Exception as e:  # noqa: BLE001
             try:
                 with engine().begin() as c:
-                    core.log(c, "platform", f"provisioning {slug} failed: {type(e).__name__}: {e}"[:500], severity=3)
+                    core.log(c, "system", f"provisioning {slug} failed: {type(e).__name__}: {e}"[:500], severity=3)
             except Exception:  # noqa: BLE001 - the database itself is unreachable: nothing more to do here
                 pass
     threading.Thread(target=run, name=f"provision-{slug}", daemon=True).start()
