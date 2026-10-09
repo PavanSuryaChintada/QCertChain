@@ -11,6 +11,7 @@ import { LedgerPage } from "./views/Ledger";
 import { MetricsPage } from "./views/Metrics";
 import { HealthPage } from "./views/Health";
 import { OpsLogPage } from "./views/OpsLog";
+import { TechnicalPage } from "./views/Technical";
 import { DomainDrawer } from "./views/DomainDetail";
 import { PageHeader } from "./components/Page";
 import { Link } from "react-router-dom";
@@ -33,6 +34,7 @@ export default function App() {
         <div className="content">
           <Routes>
             <Route path="/" element={<ArchitecturePage />} />
+            <Route path="/technical" element={<TechnicalPage />} />
             <Route path="/queue" element={<LiveQueuePage />} />
             <Route path="/campaigns" element={<CampaignsPage />} />
             <Route path="/campaigns/:id" element={<CampaignDetailPage />} />

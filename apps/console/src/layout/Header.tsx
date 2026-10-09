@@ -7,7 +7,7 @@ import { HelpButton } from "../help/HelpPanel";
 
 const SECTION: Record<string, string> = {
   queue: "Live queue", campaigns: "Campaigns", evidence: "Evidence", email: "Email analyzer", ledger: "Ledger",
-  metrics: "Metrics", health: "System health", ops: "Ops log",
+  metrics: "Metrics", health: "System health", ops: "Ops log", technical: "Technical approach", tour: "How it works",
 };
 
 export function Breadcrumb() {

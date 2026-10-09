@@ -4,6 +4,7 @@ import { apiFetch } from "../lib/api";
 import { KEY_HEADER, getKey, setKey } from "../lib/auth";
 import { parseSse } from "../lib/sse";
 import { KeyGate } from "../layout/KeyGate";
+import { MemoryRouter } from "react-router-dom";
 
 afterEach(() => {
   setKey(null);
@@ -29,7 +30,7 @@ it("renders nothing of the console without a key, then the console once signed i
   const qc = new QueryClient();
   render(
     <QueryClientProvider client={qc}>
-      <KeyGate><p>console body</p></KeyGate>
+      <MemoryRouter><KeyGate><p>console body</p></KeyGate></MemoryRouter>
     </QueryClientProvider>,
   );
   expect(screen.queryByText("console body")).toBeNull();

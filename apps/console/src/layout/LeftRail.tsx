@@ -5,6 +5,7 @@ import { Button } from "../components/Button";
 
 export const NAV = [
   { to: "/", label: "Architecture", end: true },
+  { to: "/technical", label: "Technical approach" },
   { to: "/queue", label: "Live queue" },
   { to: "/campaigns", label: "Campaigns" },
   { to: "/evidence", label: "Evidence" },

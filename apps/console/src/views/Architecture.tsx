@@ -110,7 +110,7 @@ export function ArchitectureDiagram({ status }: { status: SystemStatus | undefin
   );
 }
 
-function Legend() {
+export function Legend() {
   const item = (svg: React.ReactNode, text: string) => (
     <li style={{ display: "inline-flex", alignItems: "center", gap: 8 }}>
       <svg width="24" height="16" aria-hidden="true">{svg}</svg>
