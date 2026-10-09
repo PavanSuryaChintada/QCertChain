@@ -85,3 +85,13 @@ export const ROADMAP: Item[] = [
 
 export const POSITIONING =
   "Certificate Transparency monitoring itself is established practice. What QCertChain adds is campaign-level takedown planning and a shared evidence ledger, offered to many organisations on one platform.";
+
+/** The hero's certificate-log illustration: what the system does with each new certificate. Fictitious names on the
+ *  reserved .example domain; the panel is labelled as an illustration. */
+export const LOG_ILLUSTRATION: { name: string; verdict: "passed" | "candidate" | "confirmed"; why: string }[] = [
+  { name: "cdn.northwind-traders.example", verdict: "passed", why: "no brand imitated" },
+  { name: "mail.fabrikam.example", verdict: "passed", why: "no brand imitated" },
+  { name: "sbi-kyc-verify.example", verdict: "candidate", why: "brand token and a phishing keyword" },
+  { name: "status.contoso.example", verdict: "passed", why: "no brand imitated" },
+  { name: "icici-netbanking-login.example", verdict: "confirmed", why: "cloned login form, passwords sent to a foreign site" },
+];

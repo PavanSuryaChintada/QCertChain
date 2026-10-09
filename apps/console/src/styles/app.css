@@ -250,3 +250,75 @@ textarea.input { height: auto; padding: 8px; font-family: var(--font-mono); font
   .flow-arrow { display: none; }
   .landing-nav { display: none; } /* the hero links to both explainers */
 }
+
+/* ---- home page, second pass: the hero band, the certificate log, icons, the evidence chain -------------------- */
+.hero-band { background: var(--ink); color: var(--paper); padding: 48px 0 32px; }
+.hero-inner { display: grid; grid-template-columns: minmax(0, 1.15fr) minmax(0, 1fr); gap: 48px; align-items: center; max-width: 1200px; margin: 0 auto; padding: 0 24px; }
+.hero-inner + .hero-inner { display: block; margin-top: 32px; }
+.hero-band .landing-title { color: var(--paper); font-size: 44px; }
+.hero-band .landing-lead { color: var(--hairline); }
+.hero-link { color: var(--action-weak); text-decoration: underline; text-underline-offset: 3px; }
+.hero-link:hover { color: var(--paper); }
+.hero-note { border-left: 3px solid var(--focus); padding: 8px 12px; margin-bottom: 16px; color: var(--paper); }
+.hero-band .lifeline { border-top-color: var(--ink-2); margin-top: 0; }
+.hero-band .lifeline li::before { background: var(--ink); border-color: var(--ink-3); }
+.hero-band .lifeline li.ours::before { background: var(--focus); border-color: var(--focus); }
+.hero-band .lifeline-step { color: var(--paper); }
+.hero-band .lifeline-note { color: var(--hairline-firm); }
+.hero-band .lifeline-note.ours-note { color: var(--action-weak); }
+
+.ct-log { margin: 0; border: 1px solid var(--ink-2); background: var(--ink); font-family: var(--font-mono); }
+.ct-log-head { padding: 8px 12px; border-bottom: 1px solid var(--ink-2); color: var(--hairline-firm); font-size: 12px; }
+.ct-log-rows { list-style: none; margin: 0; padding: 4px 0; }
+.ct-row { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 4px 12px; padding: 8px 12px; border-bottom: 1px solid var(--ink-2);
+          opacity: 0; animation: ct-in 420ms ease-out forwards; animation-delay: calc(var(--i) * 520ms); }
+.ct-row:last-child { border-bottom: none; }
+.ct-name { color: var(--paper); font-size: 13px; overflow-wrap: anywhere; }
+.ct-why { grid-column: 1 / -1; color: var(--ink-3); font-family: var(--font-sans); font-size: 12px; }
+.ct-candidate .ct-why, .ct-confirmed .ct-why { color: var(--hairline); }
+.ct-chip { align-self: start; font-size: 11px; padding: 0 8px; border: 1px solid var(--ink-3); color: var(--hairline-firm); }
+.ct-chip-candidate { background: var(--candidate-bg); border-color: var(--candidate-bg); color: var(--candidate); }
+.ct-chip-confirmed { background: var(--confirmed-bg); border-color: var(--confirmed-bg); color: var(--confirmed); }
+.ct-log-caption { padding: 8px 12px; border-top: 1px solid var(--ink-2); color: var(--ink-3); font-family: var(--font-sans); font-size: 12px; }
+@keyframes ct-in { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: none; } }
+@media (prefers-reduced-motion: reduce) { .ct-row { animation: none; opacity: 1; } }
+
+.landing-item { position: relative; }
+.landing-icon-box { display: inline-flex; align-items: center; justify-content: center; width: 40px; height: 40px; margin-bottom: 12px;
+                    background: var(--action-weak); color: var(--action); }
+.landing-icon { display: block; }
+.landing-items-later .landing-item { border: 1px dashed var(--hairline-firm); padding: 16px; }
+.landing-tag { margin-left: 8px; font-size: 11px; font-weight: 500; padding: 0 8px; border: 1px solid var(--hairline-firm); color: var(--ink-3); }
+
+/* the evidence steps as a chain: numbered blocks, each linked to the next */
+.landing-chain { list-style: none; counter-reset: link; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 24px; margin-top: 16px; padding: 0; }
+.landing-chain li { counter-increment: link; position: relative; background: var(--paper); border: 1px solid var(--hairline-firm); border-top: 3px solid var(--action); padding: 16px; }
+.landing-chain li::before { content: counter(link); display: inline-flex; align-items: center; justify-content: center; width: 24px; height: 24px;
+                            margin-bottom: 8px; background: var(--ink); color: var(--paper); font-weight: 600; font-size: 13px; }
+.landing-chain li::after { content: ""; position: absolute; top: 50%; right: -25px; width: 24px; border-top: 2px solid var(--action); }
+.landing-chain li:nth-child(3n)::after, .landing-chain li:last-child::after { display: none; }
+
+.flow-lane-name { display: inline-block; padding: 0 8px; background: var(--ink); color: var(--paper); }
+.flow-step { border-top: 3px solid var(--action); }
+
+.landing-side .t-section { padding-bottom: 8px; border-bottom: 3px solid var(--action); }
+.landing-footer { background: var(--ink); color: var(--hairline); margin-top: 48px; padding: 32px 0; }
+.landing-footer-inner { max-width: 1200px; margin: 0 auto; padding: 0 24px; display: grid; gap: 12px; }
+.landing-footer-brand { color: var(--paper); font-weight: 600; }
+.landing-footer-text { max-width: 72ch; }
+
+@media (max-width: 960px) {
+  .hero-inner { grid-template-columns: 1fr; gap: 32px; padding: 0 16px; }
+  .hero-band .landing-title { font-size: 34px; }
+  .landing-chain { grid-template-columns: 1fr; }
+  .landing-chain li::after { display: none; }
+}
+
+/* "after a domain is confirmed" as a vertical timeline: one rail, a square marker per step */
+.landing-steps { list-style: none; counter-reset: after; padding-left: 0; border-left: 2px solid var(--hairline-firm); margin-left: 12px; }
+.landing-steps li { counter-increment: after; position: relative; padding-left: 32px; margin-top: 24px; }
+.landing-steps li:first-child { margin-top: 16px; }
+.landing-steps li::before { content: counter(after); position: absolute; left: -13px; top: 0; width: 24px; height: 24px;
+                            display: inline-flex; align-items: center; justify-content: center;
+                            background: var(--paper); border: 2px solid var(--action); color: var(--action); font-weight: 600; font-size: 12px; }
+.landing-steps li:last-child::before { background: var(--action); color: var(--paper); }

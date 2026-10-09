@@ -99,3 +99,13 @@ it("the pipeline diagram explains why Redis, the workers and the chain are there
   const diagram = screen.getByRole("figure", { name: "How the pipeline works" });
   for (const t of [/Redis/, /workers/i, /Merkle root/, /row-level security/i]) expect(within(diagram).getAllByText(t).length).toBeGreaterThan(0);
 });
+
+it("the hero's certificate log is labelled an illustration, and a candidate is never shown as confirmed", () => {
+  mockApi();
+  home();
+  const log = screen.getByRole("figure", { name: /^Illustration:/ });
+  expect(within(log).getByText(/fictitious names/i)).toBeInTheDocument();
+  const candidate = within(log).getByText("sbi-kyc-verify.example").closest("li")!;
+  expect(within(candidate).getByText("candidate")).toHaveClass("ct-chip-candidate");
+  expect(within(candidate).queryByText("confirmed")).toBeNull();
+});

@@ -1,11 +1,35 @@
-import { useRef, useState, type FormEvent, type ReactNode } from "react";
+import { useRef, useState, type CSSProperties, type FormEvent, type ReactNode } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Link } from "react-router-dom";
 import { Button } from "../components/Button";
 import { Drawer } from "../components/Drawer";
 import { HashDisplay } from "../components/HashDisplay";
+import { LandingIcon } from "../components/LandingIcons";
 import { PipelineDiagram } from "../components/PipelineDiagram";
-import { AFTER, EVIDENCE, HERO, LIFELINE, OFFER, POSITIONING, ROADMAP, SECURITY, type Item } from "../explain/landing";
+import { AFTER, EVIDENCE, HERO, LIFELINE, LOG_ILLUSTRATION, OFFER, POSITIONING, ROADMAP, SECURITY, type Item } from "../explain/landing";
+
+const OFFER_ICONS = ["watch", "confirm", "campaign", "target", "seal", "network"];
+const SECURITY_ICONS = ["lock", "key", "chain", "hold", "gate"];
+const VERDICT_LABEL = { passed: "passed", candidate: "candidate", confirmed: "confirmed" } as const;
+
+/** The most characteristic thing in this world: the certificate log, with the system's decision on each line. */
+function CertificateLog() {
+  return (
+    <figure className="ct-log" aria-label="Illustration: certificates arriving and the decision on each">
+      <p className="ct-log-head">Certificate Transparency log</p>
+      <ol className="ct-log-rows">
+        {LOG_ILLUSTRATION.map((r, i) => (
+          <li key={r.name} className={"ct-row ct-" + r.verdict} style={{ "--i": i } as CSSProperties}>
+            <span className="ct-name">{r.name}</span>
+            <span className={"ct-chip ct-chip-" + r.verdict}>{VERDICT_LABEL[r.verdict]}</span>
+            <span className="ct-why">{r.why}</span>
+          </li>
+        ))}
+      </ol>
+      <figcaption className="ct-log-caption">Illustration with fictitious names. A candidate is suspicious, not verified; only evidence confirms.</figcaption>
+    </figure>
+  );
+}
 import { HelpButton } from "../help/HelpPanel";
 import { api, CATEGORIES, toApiError, type PublicOrg } from "../lib/api";
 import { setKey } from "../lib/auth";
@@ -21,12 +45,13 @@ function Block({ id, title, intro, children }: { id: string; title: string; intr
 }
 
 /** Unordered capabilities: no numbers, because they are not a sequence. */
-function Items({ items }: { items: Item[] }) {
+function Items({ items, icons, tag }: { items: Item[]; icons?: string[]; tag?: string }) {
   return (
-    <dl className="landing-items">
-      {items.map((i) => (
-        <div key={i.title}>
-          <dt>{i.title}</dt>
+    <dl className={"landing-items" + (tag ? " landing-items-later" : "")}>
+      {items.map((i, n) => (
+        <div key={i.title} className="landing-item">
+          {icons && <span className="landing-icon-box"><LandingIcon name={icons[n]} /></span>}
+          <dt>{i.title}{tag && <span className="landing-tag">{tag}</span>}</dt>
           <dd className="ink-2">{i.text}</dd>
         </div>
       ))}
@@ -34,10 +59,10 @@ function Items({ items }: { items: Item[] }) {
   );
 }
 
-/** A real sequence: numbered. */
-function Steps({ items }: { items: Item[] }) {
+/** A real sequence: numbered. The evidence steps read as a chain, each block linked to the next. */
+function Steps({ items, chain = false }: { items: Item[]; chain?: boolean }) {
   return (
-    <ol className="landing-steps">
+    <ol className={chain ? "landing-chain" : "landing-steps"}>
       {items.map((i) => (
         <li key={i.title}>
           <p className="landing-step-title">{i.title}</p>
@@ -156,15 +181,25 @@ export function LandingPage({ tourNote = false }: { tourNote?: boolean }) {
         </div>
       </header>
       <main className="main" style={{ marginLeft: 0 }}>
-        <div className="landing">
-          <div className="landing-main">
-            {tourNote && (
-              <p className="stale-bar" data-testid="tour-note">
-                The guided tour runs on live data: open an organisation under Try the console and the tour starts.
-              </p>
-            )}
-            <h1 className="landing-title">{HERO.title}</h1>
-            <p className="landing-lead">{HERO.lead}</p>
+        <section className="hero-band" aria-labelledby="hero-title">
+          <div className="hero-inner">
+            <div className="hero-text">
+              {tourNote && (
+                <p className="hero-note" data-testid="tour-note">
+                  The guided tour runs on live data: open an organisation under Try the console and the tour starts.
+                </p>
+              )}
+              <h1 id="hero-title" className="landing-title">{HERO.title}</h1>
+              <p className="landing-lead">{HERO.lead}</p>
+              <div style={{ display: "flex", gap: 16, marginTop: 24, flexWrap: "wrap", alignItems: "center" }}>
+                <Button variant="primary" onClick={() => side.current?.querySelector("button")?.focus()}>Open a sample console</Button>
+                <Link to="/technical" className="hero-link">Read the technical approach</Link>
+                <Link to="/tour" className="hero-link">Take the guided tour</Link>
+              </div>
+            </div>
+            <CertificateLog />
+          </div>
+          <div className="hero-inner">
             <ol className="lifeline" aria-label="The life of a phishing domain">
               {LIFELINE.map((s) => (
                 <li key={s.step} className={s.ours ? "ours" : undefined}>
@@ -173,25 +208,28 @@ export function LandingPage({ tourNote = false }: { tourNote?: boolean }) {
                 </li>
               ))}
             </ol>
-            <div style={{ display: "flex", gap: 12, marginTop: 24, flexWrap: "wrap", alignItems: "center" }}>
-              <Button variant="primary" onClick={() => side.current?.querySelector("button")?.focus()}>Open a sample console</Button>
-              <Link to="/technical" className="link">Read the technical approach</Link>
-              <Link to="/tour" className="link">Take the guided tour</Link>
-            </div>
-
-            <Block id="offer" title="What your security team gets"><Items items={OFFER} /></Block>
+          </div>
+        </section>
+        <div className="landing">
+          <div className="landing-main">
+            <Block id="offer" title="What your security team gets"><Items items={OFFER} icons={OFFER_ICONS} /></Block>
             <Block id="evidence" title="How we collect evidence"
-                   intro="Every confirmed domain comes with a bundle anyone can check, in six steps."><Steps items={EVIDENCE} /></Block>
+                   intro="Every confirmed domain comes with a bundle anyone can check, in six steps."><Steps items={EVIDENCE} chain /></Block>
             <section className="landing-block" aria-label="Pipeline"><PipelineDiagram /></section>
             <Block id="after" title="After a phishing domain is confirmed"><Steps items={AFTER} /></Block>
-            <Block id="security" title="Security and isolation"><Items items={SECURITY} /></Block>
+            <Block id="security" title="Security and isolation"><Items items={SECURITY} icons={SECURITY_ICONS} /></Block>
             <Block id="roadmap" title="On the roadmap" intro="Not built yet. Listed so you can see where the product is going.">
-              <Items items={ROADMAP} />
+              <Items items={ROADMAP} tag="Not built yet" />
             </Block>
-            <p className="prose ink-2 landing-intro" style={{ marginTop: 48 }}>{POSITIONING}</p>
           </div>
           <div ref={side}><TryTheConsole /></div>
         </div>
+        <footer className="landing-footer">
+          <div className="landing-footer-inner">
+            <p className="landing-footer-brand">QCertChain</p>
+            <p className="landing-footer-text">{POSITIONING}</p>
+          </div>
+        </footer>
       </main>
       <Drawer open={open === "signin"} title="Super admin sign-in" onClose={() => setOpen(null)}><SuperAdminSignIn /></Drawer>
       <Drawer open={open === "access"} title="Request access" onClose={() => setOpen(null)}><RequestAccess /></Drawer>
