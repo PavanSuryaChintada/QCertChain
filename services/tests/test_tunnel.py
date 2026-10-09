@@ -42,3 +42,17 @@ def test_the_publishable_key_reads_the_url_and_nothing_else(db):
         with pytest.raises(sa.exc.ProgrammingError):
             with db.begin_nested():
                 db.execute(sa.text(stmt))
+
+
+def test_a_tunnel_cloudflare_has_dropped_is_recognised():
+    """Seen 2026-10-09: a quick tunnel can be deleted on Cloudflare's side while cloudflared keeps retrying forever.
+    After a few "Tunnel not found" errors the tunnel is replaced (new URL, published again)."""
+    lost = 'ERR Register tunnel error from server side error="Unauthorized: Tunnel not found" connIndex=0'
+    ok = "INF Registered tunnel connection connIndex=0 location=bom06 protocol=quic"
+    assert tunnel.tunnel_lost(lost) and not tunnel.tunnel_lost(ok)
+    w = tunnel.LossWatch()
+    assert [w.saw(lost) for _ in range(tunnel.RESTART_AFTER)] == [False] * (tunnel.RESTART_AFTER - 1) + [True]
+    w2 = tunnel.LossWatch()
+    w2.saw(lost)
+    w2.saw(ok)  # a healthy connection in between resets the count
+    assert [w2.saw(lost) for _ in range(tunnel.RESTART_AFTER - 1)] == [False] * (tunnel.RESTART_AFTER - 1)
