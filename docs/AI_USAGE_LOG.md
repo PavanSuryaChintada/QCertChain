@@ -748,3 +748,8 @@ Format: **AI did** · **Owner decided** · **Verified by** · **Rulings** (AI ju
   18/18; CI green on 377fe56; live: deployed home page shows the new hero, super admin sign-in on the Vercel site
   reaches the panel and lists all three organisations; through the tunnel amazon now shows one campaign and chain
   registered. Screenshots at desktop and phone width.
+- **CI, later the same night:** the next runs failed before any test, because Docker Hub refused the runner's
+  postgres pull (anonymous rate limit, then timeouts). CI now pulls the same official images from the AWS public
+  mirror. Green on 398f97f: console 133/133, Python 1078 passed (1 skipped), e2e and contracts green. Docs updated:
+  API contract (platform routes, sector filter), DEPLOY (what runs today, tunnel, new variables), DEMO (platform
+  segment), BUILD_DECISIONS (platform rulings).
