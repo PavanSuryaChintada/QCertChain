@@ -53,8 +53,9 @@ def test_only_admin_routes_touch_the_privileged_connection():
 
     org_routes = 0
     for r in app.routes:
-        # keyless by design (spec 2026-10-09 §4): the throttled password login and the read-only-key sign-in list
-        if not isinstance(r, APIRoute) or r.path in ("/health", "/auth/superadmin/login", "/orgs/public"):
+        # keyless by design (spec 2026-10-09 §4): the throttled password login, the read-only-key sign-in list and
+        # the home page's live certificate panel (Redis only, no connection)
+        if not isinstance(r, APIRoute) or r.path in ("/health", "/auth/superadmin/login", "/orgs/public", "/certs/public"):
             continue
         direct = [d.call for d in r.dependant.dependencies]
         calls = set(flat(r.dependant))

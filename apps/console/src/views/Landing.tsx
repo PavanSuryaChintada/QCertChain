@@ -7,13 +7,62 @@ import { HashDisplay } from "../components/HashDisplay";
 import { LandingIcon } from "../components/LandingIcons";
 import { PipelineDiagram } from "../components/PipelineDiagram";
 import { AFTER, EVIDENCE, HERO, LIFELINE, LOG_ILLUSTRATION, OFFER, POSITIONING, ROADMAP, SECURITY, type Item } from "../explain/landing";
+import { HelpButton } from "../help/HelpPanel";
+import { api, CATEGORIES, toApiError, type PublicFeed, type PublicOrg } from "../lib/api";
+import { setKey } from "../lib/auth";
 
 const OFFER_ICONS = ["watch", "confirm", "campaign", "target", "seal", "network"];
 const SECURITY_ICONS = ["lock", "key", "chain", "hold", "gate"];
 const VERDICT_LABEL = { passed: "passed", candidate: "candidate", confirmed: "confirmed" } as const;
 
-/** The most characteristic thing in this world: the certificate log, with the system's decision on each line. */
+/** The most characteristic thing in this world: the certificate log, with the system's decision on each line. Real
+ *  certificates while the stream is up (owner decision 2026-10-10: candidate names arrive masked by the server);
+ *  otherwise the labelled illustration, so the hosted page never looks broken when the laptop is off. */
 function CertificateLog() {
+  const feed = useQuery({ queryKey: ["public-certs"], queryFn: ({ signal }) => api.publicCerts(signal),
+                          refetchInterval: 4000, retry: false });
+  const f = feed.data;
+  const up = f && Array.isArray(f.recent) && Array.isArray(f.candidates) && f.connection !== "down"
+    && f.recent.length + f.candidates.length > 0;
+  return up ? <LiveLog feed={f} /> : <IllustratedLog />;
+}
+
+function LiveLog({ feed }: { feed: PublicFeed }) {
+  const mode = feed.mode === "replay" ? "Replay" : "Live";
+  return (
+    <figure className="ct-log ct-live" aria-label={`${mode}: certificates as they are logged, and the decision on each`}>
+      <p className="ct-log-head"><span className="ct-mode">{mode}</span> Certificate Transparency log</p>
+      <ol className="ct-log-rows">
+        {feed.recent.map((r, i) => (
+          <li key={r.name + r.ts} className="ct-row ct-passed" style={{ "--i": i } as CSSProperties}>
+            <span className="ct-name">{r.name}</span>
+            <span className="ct-chip ct-chip-passed">passed</span>
+          </li>
+        ))}
+      </ol>
+      {feed.candidates.length > 0 && (
+        <>
+          <p className="ct-log-sub">Latest candidates</p>
+          <ol className="ct-log-rows">
+            {feed.candidates.map((r, i) => (
+              <li key={r.name + r.ts} className="ct-row ct-candidate" style={{ "--i": i } as CSSProperties}>
+                <span className="ct-name">{r.name}</span>
+                <span className="ct-chip ct-chip-candidate">candidate</span>
+                <span className="ct-why">suspicious, not verified</span>
+              </li>
+            ))}
+          </ol>
+        </>
+      )}
+      <figcaption className="ct-log-caption">
+        {mode === "Replay" ? "A captured stream played back." : "Real certificates, as they are logged."} Candidate
+        names are partly hidden: a candidate is suspicious, not verified, and only evidence confirms.
+      </figcaption>
+    </figure>
+  );
+}
+
+function IllustratedLog() {
   return (
     <figure className="ct-log" aria-label="Illustration: certificates arriving and the decision on each">
       <p className="ct-log-head">Certificate Transparency log</p>
@@ -30,9 +79,6 @@ function CertificateLog() {
     </figure>
   );
 }
-import { HelpButton } from "../help/HelpPanel";
-import { api, CATEGORIES, toApiError, type PublicOrg } from "../lib/api";
-import { setKey } from "../lib/auth";
 
 function Block({ id, title, intro, children }: { id: string; title: string; intro?: string; children: ReactNode }) {
   return (

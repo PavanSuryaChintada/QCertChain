@@ -24,6 +24,11 @@ export const CATEGORIES: { value: Category; label: string }[] = [
 ];
 export const categoryLabel = (c: string): string => CATEGORIES.find((x) => x.value === c)?.label ?? c;
 export interface PublicOrg { slug: string; name: string; category: Category; demo_key: string | null }
+/** The home page's live panel (GET /certs/public, no key). Candidate names arrive masked by the server. */
+export interface PublicCert { name: string; ts: string }
+export interface PublicFeed {
+  mode: "live" | "replay"; connection: string; certs_per_sec: number; recent: PublicCert[]; candidates: PublicCert[];
+}
 export interface SuperOrg {
   slug: string; name: string; category: Category; active: boolean; created_at: string | null; live_keys: number;
   /** its campaigns; 0 while its seeded demo campaign is still being made */ campaigns: number;
@@ -351,6 +356,7 @@ export function qs(params: Record<string, string | number | boolean | null | und
 
 export const api = {
   publicOrgs: (signal?: AbortSignal) => get<PublicOrg[]>("/orgs/public", signal),
+  publicCerts: (signal?: AbortSignal) => get<PublicFeed>("/certs/public", signal),
   superLogin: (email: string, password: string) => post<Session>("/auth/superadmin/login", { email, password }),
   logout: () => post<void>("/auth/logout"),
   superOrgs: (signal?: AbortSignal) => get<SuperOrg[]>("/superadmin/orgs", signal),

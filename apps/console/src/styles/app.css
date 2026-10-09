@@ -279,6 +279,8 @@ textarea.input { height: auto; padding: 8px; font-family: var(--font-mono); font
 .ct-chip { align-self: start; font-size: 11px; padding: 0 8px; border: 1px solid var(--ink-3); color: var(--hairline-firm); }
 .ct-chip-candidate { background: var(--candidate-bg); border-color: var(--candidate-bg); color: var(--candidate); }
 .ct-chip-confirmed { background: var(--confirmed-bg); border-color: var(--confirmed-bg); color: var(--confirmed); }
+.ct-mode { display: inline-block; margin-right: 8px; padding: 0 8px; background: var(--focus); color: var(--paper); font-family: var(--font-sans); font-weight: 600; }
+.ct-log-sub { padding: 8px 12px 0; border-top: 1px solid var(--ink-2); color: var(--hairline-firm); font-family: var(--font-sans); font-size: 12px; }
 .ct-log-caption { padding: 8px 12px; border-top: 1px solid var(--ink-2); color: var(--ink-3); font-family: var(--font-sans); font-size: 12px; }
 @keyframes ct-in { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: none; } }
 @media (prefers-reduced-motion: reduce) { .ct-row { animation: none; opacity: 1; } }
@@ -322,3 +324,7 @@ textarea.input { height: auto; padding: 8px; font-family: var(--font-mono); font
                             display: inline-flex; align-items: center; justify-content: center;
                             background: var(--paper); border: 2px solid var(--action); color: var(--action); font-weight: 600; font-size: 12px; }
 .landing-steps li:last-child::before { background: var(--action); color: var(--paper); }
+
+/* live rows: new names every few seconds are motion enough, so no fade; one line each, so the hero never jumps */
+.ct-live .ct-row { animation: none; opacity: 1; }
+.ct-live .ct-name { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; overflow-wrap: normal; }

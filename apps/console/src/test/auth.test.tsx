@@ -71,8 +71,11 @@ it("a write that met a stray 401 is not sent twice: it comes back as a transient
 });
 
 it("renders nothing of the console without a key, then the console once signed in", async () => {
-  vi.spyOn(globalThis, "fetch").mockResolvedValue(new Response(JSON.stringify([
-    { slug: "org1", name: "Bank One SOC", category: "banking", demo_key: "qcc_demo_abc" }]), { status: 200 }));
+  // a fresh Response per request: the home page also asks for the live certificate panel (unreachable here)
+  vi.spyOn(globalThis, "fetch").mockImplementation(async (u) => String(u).endsWith("/certs/public")
+    ? new Response("{}", { status: 503 })
+    : new Response(JSON.stringify([
+      { slug: "org1", name: "Bank One SOC", category: "banking", demo_key: "qcc_demo_abc" }]), { status: 200 }));
   const qc = new QueryClient();
   render(
     <QueryClientProvider client={qc}>

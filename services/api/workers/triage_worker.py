@@ -11,6 +11,7 @@ import json
 import os
 import socket
 import time
+from collections import deque
 from dataclasses import dataclass, field
 
 import redis.asyncio as aioredis
@@ -27,6 +28,11 @@ LIVE_CHANNEL = "certs:live"
 DEAD_LETTER = "certs:dead"
 BATCH = 500
 FEED_SOURCE = {"certstream": "live", "replay": "replay", "seed": "seed", "email": "email", "sample": "sample"}
+# The public home page's live panel (routes/public.py): the newest names, and the newest candidates kept apart
+# because they are rare. Certificate logs only: the email analyzer's and seeded names belong to organisations.
+RECENT, RECENT_CANDIDATES = "certs:recent", "certs:recent_candidates"
+RECENT_N, RECENT_CANDIDATES_N = 6, 3
+PUBLIC_SOURCES = {"live", "replay"}
 
 
 SECTOR_TTL_S = 60.0
@@ -68,6 +74,14 @@ class Batch:
     new_ids: list[int] = field(default_factory=list)
     queue: list[str] = field(default_factory=list)  # enrich queue items: "<org_id>:<domain_id>" or "<domain_id>"
     dead: list[str] = field(default_factory=list)
+    recent: deque = field(default_factory=lambda: deque(maxlen=RECENT_N))
+    recent_candidates: deque = field(default_factory=lambda: deque(maxlen=RECENT_CANDIDATES_N))
+
+    def add_feed(self, item: dict) -> None:
+        f = json.dumps(item, ensure_ascii=False)
+        self.feed.append(f)
+        if item["source"] in PUBLIC_SOURCES:
+            (self.recent_candidates if item["is_candidate"] else self.recent).append(f)
 
 
 async def process_batch(raw_certs: list[str], *, redis, conn: sa.Connection) -> Batch:
@@ -99,10 +113,9 @@ async def process_batch(raw_certs: list[str], *, redis, conn: sa.Connection) -> 
                     stats["new_candidates"] += 1
                     b.new_ids.append(domain_id)
                     b.queue.append(queue_item(conn, domain_id, t.brand))
-            b.feed.append(json.dumps({"ts": rec.seen_at.isoformat(), "name": name, "etld1": t.etld1,
-                                      "score": t.score, "is_candidate": t.is_candidate, "domain_id": domain_id,
-                                      "issuer": rec.issuer, "source": FEED_SOURCE.get(rec.source, rec.source)},
-                                     ensure_ascii=False))
+            b.add_feed({"ts": rec.seen_at.isoformat(), "name": name, "etld1": t.etld1, "score": t.score,
+                        "is_candidate": t.is_candidate, "domain_id": domain_id, "issuer": rec.issuer,
+                        "source": FEED_SOURCE.get(rec.source, rec.source)})
     if stats["new_candidates"]:
         repo.log(conn, "triage", f"{stats['new_candidates']} new candidates from {stats['certs']} certificates",
                  context={"domain_ids": b.new_ids[:50]})
@@ -117,6 +130,10 @@ async def publish(redis, b: Batch) -> None:
             p.lpush(ENRICH_QUEUE, d)
         for raw in b.dead:
             p.lpush(DEAD_LETTER, raw[:10_000])
+        for key, items, n in ((RECENT, b.recent, RECENT_N), (RECENT_CANDIDATES, b.recent_candidates, RECENT_CANDIDATES_N)):
+            if items:
+                p.lpush(key, *items)  # the batch's last item ends up first: newest first
+                p.ltrim(key, 0, n - 1)
         await p.execute()
 
 

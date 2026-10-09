@@ -472,7 +472,7 @@ renders grey, exactly like a domain candidate. Email never confirms a domain; it
 
 ## 10. Platform: the super admin and the public home page (spec 2026-10-09)
 
-Two routes need no key; everything under `/superadmin` needs a super admin session and is a `404` for any other key.
+Three routes need no key; everything under `/superadmin` needs a super admin session and is a `404` for any other key.
 
 ### `POST /auth/superadmin/login` (no key)
 
@@ -491,6 +491,18 @@ checked before any password · `503` the throttle store is down (sign-in fails c
 [ { "slug": "org1", "name": "Bank One SOC", "category": "banking", "demo_key": "qcc_demo_..." } ]
 ```
 Active organisations only, with their read-only key (or `null`). Never an org, admin or session key.
+
+### `GET /certs/public` (no key; owner decision 2026-10-10)
+
+```json
+{ "mode": "live", "connection": "connected", "certs_per_sec": 284.1,
+  "recent": [ { "name": "git.zorgnotto.it", "ts": "2026-10-09T22:37:38.858+00:00" } ],
+  "candidates": [ { "name": "groww••••••.pages.dev", "ts": "2026-10-09T22:37:24.858+00:00" } ] }
+```
+The home page's live panel: the newest six certificate-log names and the newest three candidates. Certificate logs
+only (never the email analyzer's or seeded names). A candidate is masked by the server (registrable domain only, most
+of its first label hidden), so its full name never reaches a browser. No scores, ids or issuers. Cached for 2 s.
+`connection: "down"` or empty lists: the console shows the labelled illustration instead.
 
 ### `GET /superadmin/orgs`
 

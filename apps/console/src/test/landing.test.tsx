@@ -19,8 +19,18 @@ function home(route = "/") {
   );
 }
 
-function mockApi() {
+const FEED = {
+  mode: "live", connection: "connected", certs_per_sec: 3100,
+  recent: [{ name: "cdn.northwind.com", ts: "2026-10-10T00:00:00Z" }, { name: "mail.fabrikam.io", ts: "2026-10-10T00:00:00Z" }],
+  candidates: [{ name: "sbi-k••••••.top", ts: "2026-10-10T00:00:00Z" }],
+};
+
+/** `feed`: what /certs/public answers; null = the API is unreachable (the hosted site with the laptop off). */
+function mockApi(feed: object | null = null) {
   return vi.spyOn(globalThis, "fetch").mockImplementation(async (u, init) => {
+    if (String(u).endsWith("/certs/public")) {
+      return feed ? json(feed) : json({ type: "about:blank", title: "Service Unavailable", status: 503, detail: "down" }, 503);
+    }
     if (String(u).endsWith("/auth/superadmin/login")) {
       const body = JSON.parse(String((init as RequestInit).body));
       return body.password === "test1234" ? json({ token: "qcc_superadmin_abc", expires_at: "2026-10-10T00:00:00Z" })
@@ -108,4 +118,30 @@ it("the hero's certificate log is labelled an illustration, and a candidate is n
   const candidate = within(log).getByText("sbi-kyc-verify.example").closest("li")!;
   expect(within(candidate).getByText("candidate")).toHaveClass("ct-chip-candidate");
   expect(within(candidate).queryByText("confirmed")).toBeNull();
+});
+
+it("with the feed up, the hero shows real certificates labelled Live, candidates only as the server masked them", async () => {
+  mockApi(FEED);
+  home();
+  const log = await screen.findByRole("figure", { name: /^Live:/ });
+  expect(within(log).getByText("cdn.northwind.com")).toBeInTheDocument();
+  const cand = within(log).getByText("sbi-k••••••.top").closest("li")!;
+  expect(within(cand).getByText("candidate")).toHaveClass("ct-chip-candidate");
+  expect(within(cand).getByText("suspicious, not verified")).toBeInTheDocument();
+  expect(within(log).getByText(/partly hidden/i)).toBeInTheDocument();
+  expect(screen.queryByRole("figure", { name: /^Illustration:/ })).toBeNull();
+});
+
+it("a replayed stream is labelled Replay, never Live", async () => {
+  mockApi({ ...FEED, mode: "replay" });
+  home();
+  expect(await screen.findByRole("figure", { name: /^Replay:/ })).toBeInTheDocument();
+  expect(screen.queryByRole("figure", { name: /^Live:/ })).toBeNull();
+});
+
+it("a dead stream falls back to the labelled illustration", async () => {
+  const spy = mockApi({ ...FEED, connection: "down" });
+  home();
+  await waitFor(() => expect(spy.mock.calls.some(([u]) => String(u).endsWith("/certs/public"))).toBe(true));
+  expect(screen.getByRole("figure", { name: /^Illustration:/ })).toBeInTheDocument();
 });

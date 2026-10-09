@@ -11,8 +11,8 @@ from fastapi.responses import JSONResponse
 
 from services.api.deps import get_principal, rate_limit, require_key_header
 from services.api.timing import TimingMiddleware
-from services.api.routes import (accounts, admin, campaigns, domains, email, evidence, ledger, ops, plans, stream,
-                                 superadmin)
+from services.api.routes import (accounts, admin, campaigns, domains, email, evidence, ledger, ops, plans, public,
+                                 stream, superadmin)
 from services.config import SETTINGS
 from services.ingest.triage import warm
 
@@ -98,5 +98,6 @@ for r in (stream.router, domains.router, campaigns.router, plans.router, evidenc
           email.router, ops.router, admin.router, superadmin.router, superadmin.sessions):
     app.include_router(r, dependencies=[Depends(require_key_header), Depends(get_principal), Depends(rate_limit)])
 # Keyless by design (spec 2026-10-09 §4): the super admin password login (throttled) and the public organisation
-# list, which shows read-only keys only.
+# list, which shows read-only keys only; and the home page's live certificate panel (masked candidates, cached).
 app.include_router(accounts.router)
+app.include_router(public.router)
