@@ -52,3 +52,9 @@ def test_console_origins_come_from_the_env_file(tmp_path, monkeypatch):
     f = tmp_path / ".env"
     f.write_text("CONSOLE_ORIGINS=https://q-cert-chain.vercel.app\n", encoding="utf-8")
     assert load_settings(f).console_origins == "https://q-cert-chain.vercel.app"
+
+
+def test_the_hosted_console_is_allowed_by_default():
+    """The public site must not depend on one line of a local .env (it was lost once, 2026-10-10)."""
+    from services.config import Settings
+    assert "https://q-cert-chain.vercel.app" in Settings().console_origins.split(",")
