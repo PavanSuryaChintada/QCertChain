@@ -24,7 +24,11 @@ export const CATEGORIES: { value: Category; label: string }[] = [
 ];
 export const categoryLabel = (c: string): string => CATEGORIES.find((x) => x.value === c)?.label ?? c;
 export interface PublicOrg { slug: string; name: string; category: Category; demo_key: string | null }
-export interface SuperOrg { slug: string; name: string; category: Category; active: boolean; created_at: string | null; live_keys: number }
+export interface SuperOrg {
+  slug: string; name: string; category: Category; active: boolean; created_at: string | null; live_keys: number;
+  /** its campaigns; 0 while its seeded demo campaign is still being made */ campaigns: number;
+  /** its account on the ledger */ chain: "registered" | "pending" | "none";
+}
 export interface OrgKeys { org_key: string | null; demo_key: string | null }
 export interface NewOrg { slug: string; name: string; category: Category; org_key: string; demo_key: string }
 export interface Session { token: string; expires_at: string }
@@ -65,7 +69,7 @@ export interface Metrics {
 export type ComponentKey = "ct" | "triage" | "confirm" | "enrich" | "graph" | "interdiction" | "evidence" | "ledger" | "email";
 export interface ComponentState { status: ComponentStatus; detail: string | null }
 export interface SystemStatus {
-  org: { slug: string; name: string };
+  org: { slug: string; name: string; category?: string };
   key_kind: KeyKind;
   stream: StreamState;
   metrics: Metrics & { candidates_last_hour: number; confirmations_last_hour: number };
@@ -348,7 +352,8 @@ export const api = {
   superLogin: (email: string, password: string) => post<Session>("/auth/superadmin/login", { email, password }),
   logout: () => post<void>("/auth/logout"),
   superOrgs: (signal?: AbortSignal) => get<SuperOrg[]>("/superadmin/orgs", signal),
-  createOrg: (name: string, category: Category) => post<NewOrg>("/superadmin/orgs", { name, category }),
+  createOrg: (name: string, category: Category, demoBrand?: string) =>
+    post<NewOrg>("/superadmin/orgs", { name, category, demo_brand: demoBrand || undefined }),
   orgKeys: (slug: string) => get<OrgKeys>(`/superadmin/orgs/${encodeURIComponent(slug)}/keys`),
   rotateKey: (slug: string, kind: "org" | "demo") => post<{ kind: string; key: string }>(`/superadmin/orgs/${encodeURIComponent(slug)}/rotate`, { kind }),
   deactivateOrg: (slug: string) => post<{ slug: string; active: boolean }>(`/superadmin/orgs/${encodeURIComponent(slug)}/deactivate`),
@@ -358,7 +363,7 @@ export const api = {
   metrics: (signal?: AbortSignal) => get<Metrics>("/metrics", signal),
   metricsReport: (signal?: AbortSignal) => get<MetricsReport>("/metrics/report", signal),
 
-  candidates: (p: { status?: string; min_score?: number; limit?: number; cursor?: string | null }, signal?: AbortSignal) =>
+  candidates: (p: { status?: string; min_score?: number; sector?: string; limit?: number; cursor?: string | null }, signal?: AbortSignal) =>
     get<Page<CandidateItem>>(`/candidates${qs(p)}`, signal),
   candidateCounts: (signal?: AbortSignal) => get<CandidateCounts>("/candidates/counts", signal),
   domain: (id: number, signal?: AbortSignal) => get<DomainDetail>(`/domains/${id}`, signal),

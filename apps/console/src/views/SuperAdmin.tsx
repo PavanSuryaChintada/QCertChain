@@ -35,6 +35,10 @@ function OrgRow({ o, keys, onKeys, onOpen, onRotate, onDeactivate }: {
             <span>{categoryLabel(o.category)}</span> · <span className="mono">{o.slug}</span> · {o.active ? "active" : "deactivated"}
             {o.created_at && <> · created {fmtDateTime(o.created_at)}</>} · {o.live_keys} live keys
           </p>
+          <p className="t-meta">
+            {o.campaigns > 0 ? `${o.campaigns} campaign${o.campaigns === 1 ? "" : "s"}` : "Setting up: seeding its demo campaign"}
+            {" · "}chain {o.chain}
+          </p>
         </div>
         {o.active && (
           <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
@@ -60,9 +64,13 @@ function OrgRow({ o, keys, onKeys, onOpen, onRotate, onDeactivate }: {
 /** The platform panel (spec 2026-10-09 §8): rendered instead of an organisation's console for a super admin session. */
 export function SuperAdminPage() {
   const qc = useQueryClient();
-  const orgs = useQuery({ queryKey: ["superadmin-orgs"], queryFn: ({ signal }) => api.superOrgs(signal), retry: 1 });
+  // while an organisation is still being set up, look again every ten seconds
+  const orgs = useQuery({ queryKey: ["superadmin-orgs"], queryFn: ({ signal }) => api.superOrgs(signal), retry: 1,
+                          refetchInterval: (q) => (q.state.data?.some((o) => o.active && o.campaigns === 0) ? 10_000 : false) });
   const [name, setName] = useState("");
   const [category, setCategory] = useState<Category>("banking");
+  const [brand, setBrand] = useState("");
+  const needsBrand = category === "other" && !brand.trim();
   const [made, setMade] = useState<NewOrg | null>(null);
   const [shown, setShown] = useState<Record<string, OrgKeys>>({});
   const [error, setError] = useState<string | null>(null);
@@ -70,8 +78,8 @@ export function SuperAdminPage() {
   const fail = (e: unknown) => setError(toApiError(e).problem.detail ?? toApiError(e).problem.title);
 
   const create = useMutation({
-    mutationFn: () => api.createOrg(name.trim(), category),
-    onSuccess: (o) => { setMade(o); setName(""); setError(null); void refresh(); },
+    mutationFn: () => api.createOrg(name.trim(), category, brand.trim()),
+    onSuccess: (o) => { setMade(o); setName(""); setBrand(""); setError(null); void refresh(); },
     onError: fail,
   });
   const showKeys = async (slug: string) => {
@@ -111,19 +119,25 @@ export function SuperAdminPage() {
           {error && <p className="stale-bar" role="alert">{error}</p>}
           <Section id="sec-new-org" title="New organisation">
             <form style={{ display: "flex", gap: 8, alignItems: "flex-end", flexWrap: "wrap" }}
-                  onSubmit={(e) => { e.preventDefault(); if (name.trim().length >= 2) create.mutate(); }}>
+                  onSubmit={(e) => { e.preventDefault(); if (name.trim().length >= 2 && !needsBrand) create.mutate(); }}>
               <div style={{ flex: 1, minWidth: 240 }}>
                 <label htmlFor="org-name" className="t-label">Organisation name</label>
                 <input id="org-name" className="input" style={{ width: "100%", marginTop: 4 }} value={name}
                        placeholder="ShopSafe SOC" onChange={(e) => setName(e.target.value)} />
               </div>
               <Dropdown<Category> label="Category" value={category} onChange={setCategory} options={CATEGORIES} />
-              <Button type="submit" variant="primary" disabled={name.trim().length < 2 || create.isPending}
-                      disabledReason="Type a name of at least two characters.">Create organisation</Button>
+              <div style={{ minWidth: 180 }}>
+                <label htmlFor="org-brand" className="t-label">Brand to imitate</label>
+                <input id="org-brand" className="input" style={{ width: "100%", marginTop: 4 }} value={brand}
+                       placeholder={category === "other" ? "Required, e.g. Swiggy" : "Optional"} onChange={(e) => setBrand(e.target.value)} />
+              </div>
+              <Button type="submit" variant="primary" disabled={name.trim().length < 2 || needsBrand || create.isPending}
+                      disabledReason={needsBrand ? "Category Other needs a brand for its demo campaign to imitate."
+                                                 : "Type a name of at least two characters."}>Create organisation</Button>
             </form>
             <p className="prose ink-2" style={{ marginTop: 12 }}>
-              A new organisation sees the shared certificate feed now. Its own sector feed and a seeded demo campaign
-              arrive with the next update.
+              A new organisation gets its own chain account and a seeded demo campaign imitating a brand of its sector
+              (the first in the brand list, or the one you name), and receives its sector's live candidates.
             </p>
             {made && (
               <div className="panel panel-body" style={{ marginTop: 12 }} data-testid="new-org-keys">

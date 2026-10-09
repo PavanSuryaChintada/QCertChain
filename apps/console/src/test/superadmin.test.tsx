@@ -6,8 +6,8 @@ import { getKey, setKey } from "../lib/auth";
 import { json } from "./fixtures";
 
 const ORGS = [
-  { slug: "org1", name: "Bank One SOC", category: "banking", active: true, created_at: null, live_keys: 3 },
-  { slug: "telco-watch", name: "Telco Watch", category: "telecom", active: true, created_at: "2026-10-09T12:00:00Z", live_keys: 2 },
+  { slug: "org1", name: "Bank One SOC", category: "banking", active: true, created_at: null, live_keys: 3, campaigns: 1, chain: "registered" },
+  { slug: "telco-watch", name: "Telco Watch", category: "telecom", active: true, created_at: "2026-10-09T12:00:00Z", live_keys: 2, campaigns: 0, chain: "pending" },
 ];
 
 function mockApi() {
@@ -71,4 +71,27 @@ it("Sign out ends the session on the server too", async () => {
   fireEvent.click(screen.getByRole("button", { name: "Sign out" }));
   await waitFor(() => expect(getKey()).toBeNull());
   expect(f.mock.calls.some(([u, i]) => String(u).endsWith("/auth/logout") && (i as RequestInit)?.method === "POST")).toBe(true);
+});
+
+it("an organisation still being set up says so, with its chain status", async () => {
+  mockApi();
+  gate();
+  expect(await screen.findByText(/Setting up: seeding its demo campaign/)).toBeInTheDocument();
+  expect(screen.getByText(/chain pending/)).toBeInTheDocument();
+  expect(screen.getByText(/1 campaign/)).toBeInTheDocument(); // Bank One
+});
+
+it("category Other needs a brand for its demo campaign to imitate", async () => {
+  const f = mockApi();
+  gate();
+  await screen.findByText("Telco Watch");
+  fireEvent.change(screen.getByLabelText("Organisation name"), { target: { value: "Misc SOC" } });
+  fireEvent.click(screen.getByRole("button", { name: /^Category/ }));
+  fireEvent.click(await screen.findByRole("option", { name: "Other" }));
+  expect(screen.getByRole("button", { name: "Create organisation" })).toBeDisabled();
+  fireEvent.change(screen.getByLabelText("Brand to imitate"), { target: { value: "Swiggy" } });
+  fireEvent.click(screen.getByRole("button", { name: "Create organisation" }));
+  await waitFor(() => expect(f.mock.calls.some(([u, i]) => String(u).endsWith("/superadmin/orgs") && (i as RequestInit)?.method === "POST")).toBe(true));
+  const post = f.mock.calls.find(([u, i]) => String(u).endsWith("/superadmin/orgs") && (i as RequestInit)?.method === "POST")!;
+  expect(JSON.parse(String((post[1] as RequestInit).body))).toEqual({ name: "Misc SOC", category: "other", demo_brand: "Swiggy" });
 });

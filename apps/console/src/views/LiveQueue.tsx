@@ -1,12 +1,13 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
-import { api, type CandidateItem, type CandidateCounts, type Page, type TriageReasons } from "../lib/api";
+import { api, CATEGORIES, type CandidateItem, type CandidateCounts, type Page, type TriageReasons } from "../lib/api";
 import { fmtNum, fmtTime, sentence } from "../lib/format";
 import { POLL_MS, useLiveQuery } from "../lib/viewState";
-import { domainSeverity } from "../lib/status";
+import { domainSeverity, useStatus } from "../lib/status";
 import { Table, type Column } from "../components/Table";
 import { SegmentedControl } from "../components/SegmentedControl";
+import { Dropdown } from "../components/Dropdown";
 import { StatusIndicator } from "../components/StatusIndicator";
 import { ScoreBreakdown, featureText } from "../components/ScoreBreakdown";
 import { SkeletonRows, ViewStateView } from "../components/States";
@@ -102,13 +103,22 @@ export function LiveQueuePage() {
   const toast = useToast();
   const raw = params.get("status");
   const filter: Filter = FILTERS.includes(raw as Filter) ? (raw as Filter) : DEFAULT_FILTER;
+  // spec 2026-10-09 §5: an organisation sees its own sector first ("other": every sector)
+  const { data: sys } = useStatus();
+  const own = sys?.org.category && sys.org.category !== "other" ? sys.org.category : "all";
+  const sector = params.get("sector") ?? own;
+  const setSector = (v: string) => {
+    const next = new URLSearchParams(params);
+    next.set("sector", v);
+    setParams(next, { replace: true });
+  };
   const domainId = params.get("domain");
   const [pointerIn, setPointerIn] = useState(false);
   const [older, setOlder] = useState<{ rows: CandidateItem[]; cursor: string | null; filter: Filter } | null>(null);
 
   const q = useLiveQuery<Page<CandidateItem>>({
-    queryKey: ["candidates", filter],
-    queryFn: (s) => api.candidates({ status: filter === "all" ? undefined : filter, limit: 200 }, s),
+    queryKey: ["candidates", filter, sector],
+    queryFn: (s) => api.candidates({ status: filter === "all" ? undefined : filter, sector: sector === "all" ? undefined : sector, limit: 200 }, s),
     poll: POLL_MS,
     keepPrevious: true,
   });
@@ -149,7 +159,10 @@ export function LiveQueuePage() {
       <PageHeader
         title="Live queue"
         meta="Nominated by triage from CT and email links. Refreshes every 5s."
-        actions={<div data-tour="status-filter">
+        actions={<div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
+          <Dropdown label="Sector" value={sector} onChange={setSector}
+                    options={[{ value: "all", label: "All sectors" }, ...CATEGORIES.filter((c) => c.value !== "other")]} />
+          <div data-tour="status-filter">
           <SegmentedControl<Filter>
             label="Filter by status"
             value={filter}
@@ -161,7 +174,7 @@ export function LiveQueuePage() {
               { value: "dismissed", label: "Dismissed", count: c ? c.dismissed : null },
             ]}
           /></div>
-        }
+        </div>}
       />
       {held.newCount > 0 && (
         <button type="button" className="btn btn-ghost" onClick={held.applyPending}

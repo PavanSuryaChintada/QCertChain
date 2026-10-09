@@ -45,3 +45,15 @@ it("a request that cannot reach the API re-reads the published URL once and retr
     "https://new-tunnel.trycloudflare.com/campaigns",
   ]);
 });
+
+it("on this machine the console talks to the local API; only the hosted site looks the tunnel up", async () => {
+  const { shouldDiscover } = await import("../lib/apiUrl");
+  for (const h of ["localhost", "127.0.0.1", "[::1]"]) expect(shouldDiscover(h)).toBe(false);
+  expect(shouldDiscover("q-cert-chain.vercel.app")).toBe(true);
+});
+
+it("the hosted site knows where to look without any build settings (public values only)", async () => {
+  const { DISCOVERY } = await import("../lib/apiUrl");
+  expect(DISCOVERY.url).toMatch(/^https:\/\/[a-z0-9]+\.supabase\.co$/);
+  expect(DISCOVERY.key).toMatch(/^sb_publishable_/);
+});

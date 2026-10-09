@@ -48,3 +48,20 @@ it("links into the live candidates ask for All, since the queue opens on Confirm
   expect(readFileSync(resolve(__dirname, "../views/EmailAnalyzer.tsx"), "utf8")).toContain("/queue?status=all&domain=");
   expect(HELP["/queue"].what).toMatch(/opens on confirmed/i);
 });
+
+it("the live queue shows the organisation's own sector first; All sectors is one choice away", async () => {
+  const f = vi.spyOn(globalThis, "fetch").mockImplementation(async (url) => {
+    const u = String(url);
+    if (u.includes("/status")) return json({ org: { slug: "shop", name: "ShopSafe SOC", category: "ecommerce" }, key_kind: "org" });
+    if (u.includes("/candidates/counts")) return json({ all: 10, candidate: 6, confirmed: 4, dismissed: 0, unreachable: 0 });
+    if (u.includes("/candidates")) return json({ items: [], limit: 200, next_cursor: null });
+    return json({}, 404);
+  });
+  renderWith(<LiveQueuePage />, { route: "/queue?status=all" });
+  await waitFor(() => expect(candidateCalls(f).some((u) => u.includes("sector=ecommerce"))).toBe(true));
+  fireEvent.click(screen.getByRole("button", { name: /^Sector/ }));
+  fireEvent.click(await screen.findByRole("option", { name: "All sectors" }));
+  // the all-sectors list was fetched before the organisation's sector was known: it is shown from cache
+  await waitFor(() => expect(screen.getByRole("button", { name: /^Sector/ })).toHaveTextContent("All sectors"));
+  expect(candidateCalls(f).some((u) => !u.includes("sector="))).toBe(true);
+});

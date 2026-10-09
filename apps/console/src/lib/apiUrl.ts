@@ -4,12 +4,19 @@
  * publishable key. Only https://<words>.trycloudflare.com is accepted, so an altered row cannot send visitors' keys
  * elsewhere. Not configured, refused, failed or slow means: keep VITE_API_URL.
  */
+import { PUBLIC_SUPABASE_PUBLISHABLE_KEY, PUBLIC_SUPABASE_URL } from "./publicConfig";
+
 export interface Discovery { url: string; key: string }
 
 export const DISCOVERY: Discovery = {
-  url: (import.meta.env.VITE_SUPABASE_URL as string | undefined) ?? "",
-  key: (import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY as string | undefined) ?? "",
+  url: (import.meta.env.VITE_SUPABASE_URL as string | undefined) || PUBLIC_SUPABASE_URL,
+  key: (import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY as string | undefined) || PUBLIC_SUPABASE_PUBLISHABLE_KEY,
 };
+
+/** On this machine (dev server, local demo, offline e2e) the console talks to the local API directly. */
+export function shouldDiscover(hostname: string): boolean {
+  return !["localhost", "127.0.0.1", "[::1]", "::1"].includes(hostname);
+}
 
 const ACCEPT = /^https:\/\/[a-z0-9-]+\.trycloudflare\.com$/;
 

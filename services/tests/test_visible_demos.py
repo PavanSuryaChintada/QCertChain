@@ -66,7 +66,7 @@ def test_metrics_report_is_the_measured_file(api):
 
 def test_status_is_one_batched_poll_with_component_states(api, seeded):
     s = api.get("/status", headers=api.as_("demo1")).json()
-    assert s["org"] == {"slug": "org1", "name": "Bank One SOC"} and s["key_kind"] == "demo"
+    assert s["org"] == {"slug": "org1", "name": "Bank One SOC", "category": "banking"} and s["key_kind"] == "demo"
     assert set(s["components"]) == {"ct", "triage", "confirm", "enrich", "graph", "interdiction", "evidence",
                                     "ledger", "email"}
     assert all(c["status"] in ("ok", "degraded", "failed") and c["detail"] for c in s["components"].values())
