@@ -753,3 +753,28 @@ Format: **AI did** · **Owner decided** · **Verified by** · **Rulings** (AI ju
   mirror. Green on 398f97f: console 133/133, Python 1078 passed (1 skipped), e2e and contracts green. Docs updated:
   API contract (platform routes, sector filter), DEPLOY (what runs today, tunnel, new variables), DEMO (platform
   segment), BUILD_DECISIONS (platform rulings).
+
+## Real certificates on the home page; review minors (2026-10-10)
+
+- **Owner asked:** item 4 (live certificates on the home page) and item 5 (the small clean-ups) of the suggestions.
+  Asked first: what the public page may show about real domains. **Owner chose:** ordinary certificates in full,
+  candidates with most of the name hidden, so no real business is publicly named as suspicious.
+- **AI did (tests first for each):**
+  - triage keeps two short Redis lists (newest six certificate-log names, newest three candidates); the email
+    analyzer's and seeded names never enter them;
+  - keyless `GET /certs/public` masks candidates on the server (registrable domain only, most of its first label
+    hidden), sends no scores, ids or issuers, and answers from a 2-second cache; the guards that list every keyless
+    route were extended to it;
+  - the hero panel is labelled Live or Replay, refreshes every few seconds without animation (first screenshots
+    showed staggered fades re-running on every refresh and long names making the hero jump), and falls back to the
+    labelled illustration when the stream is down or the API unreachable;
+  - review minors: browser Back from the tour's first step no longer restarts the tour; a saved tour position that no
+    longer exists starts idle; the highlight re-finds an element the page re-rendered; the Ledger follows a new
+    `?kit=` while open; `/technical/` is public; signed out, a console link says why the home page opened; a re-check
+    that rejects an old key never signs out a key chosen since, and each key is re-checked with itself.
+- **Left for the owner:** `.gitattributes` (would renormalise line endings repo-wide right before the demo); the
+  reused diagram's static "<5 ms" and "2 strong signals" (claim text); the test gaps for real table rows and resize.
+- **Verified:** Python test_public_feed 5 (each failed first), auth / tenancy guards and triage worker 23/23; console
+  145/145 (the review-fix tests failed first for the bug itself, e.g. Back landed on the tour again); live: the
+  running API and triage workers restarted on the new code, `/certs/public` answers locally and through the tunnel
+  with real names and masked candidates; hero screenshotted at desktop and phone width.
