@@ -19,7 +19,7 @@ jobs:
     timeout-minutes: 45
     services:
       postgres:
-        image: postgres:17-alpine
+        image: public.ecr.aws/docker/library/postgres:17-alpine  # official image via the AWS mirror: Docker Hub rate-limits CI pulls
         env:
           POSTGRES_USER: qcertchain
           POSTGRES_PASSWORD: qcertchain
@@ -76,7 +76,7 @@ jobs:
       CHAIN_RPC: http://127.0.0.1:8545
     services:
       postgres:
-        image: postgres:17-alpine
+        image: public.ecr.aws/docker/library/postgres:17-alpine  # official image via the AWS mirror: Docker Hub rate-limits CI pulls
         env:
           POSTGRES_USER: qcertchain
           POSTGRES_PASSWORD: qcertchain
@@ -85,7 +85,7 @@ jobs:
         options: >-
           --health-cmd "pg_isready -U qcertchain" --health-interval 5s --health-timeout 5s --health-retries 20
       redis:
-        image: redis:7-alpine
+        image: public.ecr.aws/docker/library/redis:7-alpine  # same image, AWS mirror (Docker Hub pull limit)
         ports: ["6379:6379"]
     steps:
       - uses: actions/checkout@v4
