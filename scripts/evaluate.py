@@ -311,22 +311,37 @@ def email():
 
 # ---- response time (live pipeline, Supabase) ---------------------------------------------------------------
 @section
-def response_time(since: str | None):
+def response_time(since: str | None, conn=None):
+    import contextlib
+
     import sqlalchemy as sa
 
     from services.api.db import engine, set_org_context
     from services.config import SETTINGS
-    with engine().connect() as c:
-        # verdicts are org-owned: measure the pipeline operator's (the org that confirms the live feed)
-        set_org_context(c, c.execute(sa.text("select id from organisations where slug = :s"),
-                                     {"s": SETTINGS.pipeline_org}).scalar())
-        rows = c.execute(sa.text("""
-            select status, extract(epoch from candidate_at - ct_seen_at) as to_candidate,
-                   extract(epoch from received_at - ct_seen_at) as upstream,
-                   extract(epoch from candidate_at - received_at) as ours,
-                   extract(epoch from verdict_at - candidate_at) as to_verdict
-            from org_domains where source in ('certstream','replay') and candidate_at >= coalesce(cast(:s as timestamptz), now() - interval '1 day')"""),
-            {"s": since}).mappings().all()
+    live = sa.text("""
+        select id, status, extract(epoch from candidate_at - ct_seen_at) as to_candidate,
+               extract(epoch from received_at - ct_seen_at) as upstream,
+               extract(epoch from candidate_at - received_at) as ours,
+               extract(epoch from verdict_at - candidate_at) as to_verdict
+        from org_domains where source in ('certstream','replay') and candidate_at >= coalesce(cast(:s as timestamptz), now() - interval '1 day')""")
+    with (contextlib.nullcontext(conn) if conn is not None else engine().connect()) as c:
+        pipeline = c.execute(sa.text("select id from organisations where slug = :s"), {"s": SETTINGS.pipeline_org}).scalar()
+        try:
+            # Every live candidate once, from the pipeline organisation's view of the shared feed...
+            set_org_context(c, pipeline)
+            rows = [dict(r) for r in c.execute(live, {"s": since}).mappings()]
+            # ...with the verdict of whichever organisation checked it: since 2026-10-09 a candidate is checked by
+            # the organisation that owns its brand's sector (spec §5), so the verdict may not be the pipeline's.
+            verdicts = {}
+            for (oid,) in c.execute(sa.text("select id from organisations where id <> :p order by id"), {"p": pipeline}).all():
+                set_org_context(c, oid)
+                for r in c.execute(live, {"s": since}).mappings():
+                    if r["status"] != "candidate":
+                        verdicts[r["id"]] = r
+        finally:
+            set_org_context(c, pipeline)
+        rows = [{**r, "status": verdicts[r["id"]]["status"], "to_verdict": verdicts[r["id"]]["to_verdict"]}
+                if r["id"] in verdicts and r["status"] == "candidate" else r for r in rows]
         anchors = [r[0] for r in c.execute(sa.text(
             "select extract(epoch from anchored_at - created_at) from evidence_bundles where anchored_at is not null"))]
         plans = [r[0] for r in c.execute(sa.text("select solve_ms from interdiction_plans where backend = 'cpsat'"))]
