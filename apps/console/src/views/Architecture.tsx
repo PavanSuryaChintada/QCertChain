@@ -144,7 +144,7 @@ export function ArchitecturePage() {
       <PageHeader title="Architecture" meta="The live pipeline. Each stage shows its status from the batched status poll (every 5s)." />
       {state.kind === "data" && state.staleSince !== null && <StaleBar since={state.staleSince} error={state.error} what="status" />}
       {state.kind === "error" && <div style={{ marginBottom: 8 }}><ErrorState error={state.error} what="the system status" onRetry={() => query.refetch()} /></div>}
-      <section className="panel" style={{ padding: 16 }} aria-label="Architecture diagram">
+      <section className="panel" style={{ padding: 16 }} aria-label="Architecture diagram" data-tour="architecture">
         <ArchitectureDiagram status={data} />
         <Legend />
       </section>

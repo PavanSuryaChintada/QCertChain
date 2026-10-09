@@ -5,6 +5,7 @@ import { BrowserRouter } from "react-router-dom";
 import App from "./App";
 import { KeyGate } from "./layout/KeyGate";
 import { ToastProvider } from "./components/Toast";
+import { TourProvider } from "./tour/TourProvider";
 import "./styles/app.css";
 
 // Stale-while-revalidate everywhere; polling is opt-in per query and pauses while the tab is hidden.
@@ -15,9 +16,11 @@ ReactDOM.createRoot(document.getElementById("root")!).render(
     <QueryClientProvider client={qc}>
       <BrowserRouter>
         <ToastProvider>
-          <KeyGate>
-            <App />
-          </KeyGate>
+          <TourProvider>
+            <KeyGate>
+              <App />
+            </KeyGate>
+          </TourProvider>
         </ToastProvider>
       </BrowserRouter>
     </QueryClientProvider>

@@ -193,7 +193,7 @@ export function EvidenceBody({ b, initial }: { b: Evidence; initial: VerifyResul
   return (
     <>
       <p className="t-meta" style={{ marginBottom: 16 }} data-testid="only-hashes">{ONLY_HASHES}</p>
-      <Section id="sec-verify" title="Verify" aside={
+      <Section id="sec-verify" tour="verify" title="Verify" aside={
         <>
           <Button variant="primary" onClick={() => run(null)} disabled={busy !== null}>{tampered ? "Restore" : "Verify"}</Button>
           <Dropdown label="Artifact to tamper" hideLabel value={target} onChange={setTarget}
@@ -242,7 +242,7 @@ export function EvidenceBody({ b, initial }: { b: Evidence; initial: VerifyResul
       <Section id="sec-attest" title="Attestations">
         {result ?? initial ? <Attestations r={(result ?? initial)!} /> : <p className="t-meta">Attestations load with the verification.</p>}
       </Section>
-      <Section id="sec-report" title="Abuse report" aside={<Button size="sm" onClick={() => setShowReport((v) => !v)}>{showReport ? "Hide report" : "Show report"}</Button>}>
+      <Section id="sec-report" tour="report" title="Abuse report" aside={<Button size="sm" onClick={() => setShowReport((v) => !v)}>{showReport ? "Hide report" : "Show report"}</Button>}>
         <p className="t-meta">Generated for review. Never sent: QCertChain does not submit takedown requests.</p>
         {showReport && (report.isError ? <p className="ink-2" style={{ marginTop: 8 }}>{errorCopy(toApiError(report.error), "the report")}</p>
           : report.data ? <pre className="code" style={{ marginTop: 8, maxHeight: 360, whiteSpace: "pre-wrap" }}>{report.data.body}</pre>

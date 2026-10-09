@@ -12,9 +12,9 @@ export function PageHeader({ title, meta, actions }: { title: ReactNode; meta?: 
   );
 }
 
-export function Section({ title, aside, children, id }: { title: ReactNode; aside?: ReactNode; children: ReactNode; id?: string }) {
+export function Section({ title, aside, children, id, tour }: { title: ReactNode; aside?: ReactNode; children: ReactNode; id?: string; tour?: string }) {
   return (
-    <section className="panel" aria-labelledby={id} style={{ marginBottom: 24 }}>
+    <section className="panel" aria-labelledby={id} data-tour={tour} style={{ marginBottom: 24 }}>
       <div className="panel-head">
         <h2 id={id} className="t-section">{title}</h2>
         {aside && <div style={{ display: "flex", gap: 8, alignItems: "center" }}>{aside}</div>}

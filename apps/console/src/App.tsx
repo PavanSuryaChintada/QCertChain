@@ -12,6 +12,8 @@ import { MetricsPage } from "./views/Metrics";
 import { HealthPage } from "./views/Health";
 import { OpsLogPage } from "./views/OpsLog";
 import { TechnicalPage } from "./views/Technical";
+import { TourOverlay } from "./tour/TourOverlay";
+import { TourStartPage } from "./tour/TourStart";
 import { DomainDrawer } from "./views/DomainDetail";
 import { PageHeader } from "./components/Page";
 import { Link } from "react-router-dom";
@@ -35,6 +37,7 @@ export default function App() {
           <Routes>
             <Route path="/" element={<ArchitecturePage />} />
             <Route path="/technical" element={<TechnicalPage />} />
+            <Route path="/tour" element={<TourStartPage />} />
             <Route path="/queue" element={<LiveQueuePage />} />
             <Route path="/campaigns" element={<CampaignsPage />} />
             <Route path="/campaigns/:id" element={<CampaignDetailPage />} />
@@ -50,6 +53,7 @@ export default function App() {
         </div>
       </main>
       <DomainDrawer />
+      <TourOverlay />
     </>
   );
 }

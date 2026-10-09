@@ -149,7 +149,7 @@ export function LiveQueuePage() {
       <PageHeader
         title="Live queue"
         meta="Nominated by triage from CT and email links. Refreshes every 5s."
-        actions={
+        actions={<div data-tour="status-filter">
           <SegmentedControl<Filter>
             label="Filter by status"
             value={filter}
@@ -160,7 +160,7 @@ export function LiveQueuePage() {
               { value: "confirmed", label: "Confirmed", count: c ? c.confirmed : null },
               { value: "dismissed", label: "Dismissed", count: c ? c.dismissed : null },
             ]}
-          />
+          /></div>
         }
       />
       {held.newCount > 0 && (
@@ -180,7 +180,7 @@ export function LiveQueuePage() {
       >
         {() => (
           <>
-            <Table<CandidateItem>
+            <div data-tour="queue"><Table<CandidateItem>
               label="Live queue"
               columns={COLUMNS}
               rows={rows}
@@ -193,7 +193,7 @@ export function LiveQueuePage() {
               maxHeight={rows.length > 200 ? "calc(100vh - 220px)" : undefined}
               onOpen={(r) => open(r.id)}
               onPointerInside={setPointerIn}
-            />
+            /></div>
             <div style={{ display: "flex", gap: 12, alignItems: "center", marginTop: 8 }}>
               <span className="t-meta">{rows.length} rows</span>
               {nextCursor && <Button size="sm" onClick={loadOlder}>Load older</Button>}

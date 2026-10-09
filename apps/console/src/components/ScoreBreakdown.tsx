@@ -60,7 +60,7 @@ export function ScoreBreakdown({ score, reasons: given, domainId }: { score: num
   const reasons = given ?? lazy.data?.triage ?? null;
   if (!given && domainId === undefined) return <span className="mono">{fmtNum(score, 2)}</span>;
   return (
-    <span style={{ position: "relative", display: "inline-block" }}
+    <span data-tour="score" style={{ position: "relative", display: "inline-block" }}
           onMouseEnter={() => setOpen(true)} onMouseLeave={() => setOpen(false)}>
       <button
         ref={anchor}

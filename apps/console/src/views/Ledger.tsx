@@ -1,6 +1,6 @@
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useSearchParams } from "react-router-dom";
 import { api, toApiError, type ByKit, type LedgerCampaign, type LedgerEvent, type LedgerStatus, type Page } from "../lib/api";
 import { fmtDateTime, fmtInt, fmtNum, sentence } from "../lib/format";
 import { POLL_MS, useLiveQuery } from "../lib/viewState";
@@ -70,8 +70,10 @@ function KitResult({ c, demo }: { c: LedgerCampaign; demo: boolean }) {
 }
 
 export function LedgerPage() {
-  const [kit, setKit] = useState("");
-  const [lookup, setLookup] = useState<string | null>(null);
+  const [params] = useSearchParams();
+  const fromUrl = params.get("kit")?.trim() || null; // the tour (or any link) can open a lookup directly
+  const [kit, setKit] = useState(fromUrl ?? "");
+  const [lookup, setLookup] = useState<string | null>(fromUrl);
   const { data: sys } = useStatus();
   const demo = sys?.key_kind === "demo";
   const status = useQuery({ queryKey: ["ledger-status"], queryFn: () => api.ledgerStatus(), staleTime: 60_000 });
@@ -85,7 +87,7 @@ export function LedgerPage() {
       {status.data && !status.data.available && (
         <p className="stale-bar">The chain is not reachable{status.data.reason ? `: ${status.data.reason}` : ""}. Queued writes: {fmtInt(status.data.queue_depth)}.</p>
       )}
-      <Section id="sec-kit" title="Kit-hash lookup">
+      <Section id="sec-kit" tour="kit-lookup" title="Kit-hash lookup">
         <p className="prose ink-2">The consortium moment: search a kit hash seen on one of your own domains and find whether another organisation already reported it. You receive their hashes and counts only. No raw telemetry is shared.</p>
         <form style={{ display: "flex", gap: 8, marginTop: 12 }} onSubmit={(e) => { e.preventDefault(); if (kit.trim()) setLookup(kit.trim()); }}>
           <label htmlFor="kit" className="sr-only">Kit hash</label>

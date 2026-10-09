@@ -196,7 +196,7 @@ export function MetricsBody({ r }: { r: MetricsReport }) {
 export function MetricsPage() {
   const q = useLiveQuery<MetricsReport>({ queryKey: ["metrics-report"], queryFn: api.metricsReport, isEmpty: () => false, staleTime: 60_000 });
   return (
-    <div>
+    <div data-tour="metrics">
       <PageHeader title="Metrics" meta={<>Measured values only. {q.data && <>Report generated <span className="mono">{fmtDateTime(q.data.generated_at)}</span>.</>}</>} />
       <ViewStateView state={q.state} what="the metrics report" empty={null} onRetry={() => q.query.refetch()}
                      skeleton={<div className="panel" style={{ height: 320, background: "var(--sunken)" }} aria-busy="true" />}>

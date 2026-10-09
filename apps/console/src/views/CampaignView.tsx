@@ -186,11 +186,11 @@ export function InterdictionWorkbench({ graph, sweep, initialK = 5, onKChange, s
 
   return (
     <>
-      <Section id="sec-graph" title="Graph" aside={<span className="t-meta">Built <span className="mono">{fmtDateTime(graph.built_at)}</span></span>}>
+      <Section id="sec-graph" tour="graph" title="Graph" aside={<span className="t-meta">Built <span className="mono">{fmtDateTime(graph.built_at)}</span></span>}>
         <CampaignGraphSvg graph={graph} selected={selected} killed={killed} uncoverable={uncoverable} />
         <GraphLegend uncoverable={uncoverable.size} />
       </Section>
-      <Section id="sec-interdiction" title="Interdiction" aside={renderMs !== null && <span className="t-meta mono" data-testid="render-ms">re-rendered in {fmtNum(renderMs, 1)} ms</span>}>
+      <Section id="sec-interdiction" tour="budget" title="Interdiction" aside={renderMs !== null && <span className="t-meta mono" data-testid="render-ms">re-rendered in {fmtNum(renderMs, 1)} ms</span>}>
         {points.length === 0 ? (
           <p className="ink-2">No precomputed sweep for this campaign yet. It is computed when the campaign graph is built.</p>
         ) : (
@@ -362,7 +362,7 @@ function SolversSection({ campaignId, k, scaling, campaignN }: { campaignId: str
   };
 
   return (
-    <Section id="sec-solvers" title="Solvers" aside={
+    <Section id="sec-solvers" tour="solvers" title="Solvers" aside={
       <>
         {run && <Button size="sm" onClick={() => run.ctrl.abort()}>Cancel</Button>}
         <Button variant="primary" size="sm" onClick={start} disabled={!!run}>Run again at k = {k}</Button>
