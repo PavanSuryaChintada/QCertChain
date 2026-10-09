@@ -3,6 +3,7 @@ import { fmtInt, fmtNum } from "../lib/format";
 import { SYS_LABEL, useStatus, worstStatus } from "../lib/status";
 import { SystemIndicator } from "../components/StatusIndicator";
 import { truncateHash } from "../lib/format";
+import { HelpButton } from "../help/HelpPanel";
 
 const SECTION: Record<string, string> = {
   queue: "Live queue", campaigns: "Campaigns", evidence: "Evidence", email: "Email analyzer", ledger: "Ledger",
@@ -71,6 +72,7 @@ export function Header() {
         </Link>
         <Stat label="Region">{data?.health.regions.api ?? "–"}</Stat>
         <Stat label="Key">{data ? KEY_KIND[data.key_kind] ?? data.key_kind : "–"}</Stat>
+        <HelpButton />
       </div>
     </header>
   );
