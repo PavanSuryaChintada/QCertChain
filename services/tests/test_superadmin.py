@@ -164,3 +164,43 @@ def test_set_and_backfill_from_env(api, db):
     assert made.startswith("qcc_demo_") and script.ensure_demo_key(db, "org2") is None  # once
     by = {o["slug"]: o["demo_key"] for o in api.get("/orgs/public", headers=NO_KEY).json()}
     assert by["org1"] == api.keys["demo1"] and by["org2"] == made
+
+
+class NoChain:
+    def available(self):
+        return False
+
+
+def provision_now(db, tmp_path):
+    """Run provisioning in the test's own transaction (the real one runs in a background thread on its own
+    connection, never available to tests)."""
+    import nacl.signing
+    from services.api import platform
+    key = nacl.signing.SigningKey.generate().encode().hex()
+    return lambda slug: platform.provision(db, NoChain(), slug, evidence_dir=tmp_path, signing_key_hex=key)
+
+
+def test_a_new_organisation_gets_its_own_seeded_campaign_queued_for_the_ledger(api, superadmin, db, tmp_path):
+    from services.api import deps, main
+    from services.api.routes import superadmin as routes
+    main.app.dependency_overrides[routes.get_provisioner] = lambda: provision_now(db, tmp_path)
+    main.app.dependency_overrides[deps.get_ledger] = lambda: NoChain()
+    h = session(api)
+    org = api.post("/superadmin/orgs", json={"name": "ShopSafe SOC", "category": "ecommerce"}, headers=h).json()
+    camps = api.get("/campaigns", headers={auth.HEADER: org["org_key"]}).json()["items"]
+    assert len(camps) == 1 and 50 <= camps[0]["domain_count"] <= 70
+    assert "Amazon India" in camps[0]["brands"]  # the sector's first brand, by default
+    queued = db.execute(sa.text("""select count(*) from anchor_queue q join organisations o on o.id = q.org_id
+                                   where o.slug = 'shopsafe-soc' and q.kind = 'campaign'""")).scalar()
+    assert queued == 1
+    listed = {o["slug"]: o for o in api.get("/superadmin/orgs", headers=h).json()}
+    assert listed["shopsafe-soc"]["campaigns"] == 1 and listed["shopsafe-soc"]["chain"] == "pending"
+
+
+def test_category_other_needs_a_brand_to_imitate(api, superadmin):
+    h = session(api)
+    assert api.post("/superadmin/orgs", json={"name": "Misc SOC", "category": "other"}, headers=h).status_code == 422
+    assert api.post("/superadmin/orgs", json={"name": "Misc SOC", "category": "other", "demo_brand": "Nope"},
+                    headers=h).status_code == 422
+    r = api.post("/superadmin/orgs", json={"name": "Misc SOC", "category": "other", "demo_brand": "Swiggy"}, headers=h)
+    assert r.status_code == 201

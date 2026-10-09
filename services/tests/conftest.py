@@ -62,6 +62,9 @@ def api(db, tmp_path):
                                                                                          decode_responses=True)
     main.app.dependency_overrides[deps.get_evidence_dir] = lambda: tmp_path
     main.app.dependency_overrides[deps.get_signing_key] = lambda: key
+    # creating an organisation provisions it in a background thread on the REAL database: never in tests
+    from services.api.routes import superadmin as superadmin_routes
+    main.app.dependency_overrides[superadmin_routes.get_provisioner] = lambda: (lambda slug: None)
     with TestClient(main.app, headers={auth.HEADER: keys["org1"]}) as c:
         c.fake_redis_server = server
         c.keys = keys

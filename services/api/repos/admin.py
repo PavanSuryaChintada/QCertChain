@@ -65,4 +65,13 @@ def reset_demo(c: sa.Connection, *, evidence_dir: Path | str, signing_key_hex: s
     seeded = {}
     for slug, kw in DEMO_SEEDS:
         seeded[slug] = seed(c, org=orgs[slug], evidence_dir=evidence_dir, signing_key_hex=signing_key_hex, **kw)
+    # every organisation the super admin created gets its own seeded campaign back (spec 2026-10-09 §6)
+    from services.api import platform
+    from services.api.repos import platform as repo_platform
+    for oid, slug in repo_platform.created_orgs(c):
+        o = repo_platform.org(c, slug)
+        brand = o.demo_brand or platform.default_brand(o.category)
+        if brand:
+            seeded[slug] = platform.seed_and_queue(c, oid, slug, brand, evidence_dir=evidence_dir,
+                                                   signing_key_hex=signing_key_hex)
     return {"removed": removed, "seeded": seeded}

@@ -47,3 +47,15 @@ def test_reset_keeps_live_ct_data_and_its_verdicts(api, db):
 def test_only_the_admin_key_can_reset(api):
     for who in ("org1", "org2", "demo1"):
         assert api.post("/admin/reset", headers=api.as_(who)).status_code in (404, 405)
+
+
+def test_reset_reseeds_every_organisation_the_super_admin_created(api, db):
+    """Spec 2026-10-09 §6: reset restores each organisation's own seeded campaign, not only Bank One's and Two's."""
+    from services.api import auth
+    db.execute(sa.text("insert into organisations (slug, name, category) values ('telco-watch', 'Telco Watch', 'telecom')"))
+    key = auth.create_key(db, "org", "telco-watch")
+    assert api.post("/admin/reset", headers=api.as_("admin")).status_code == 200
+    camps = api.get("/campaigns", headers={auth.HEADER: key}).json()["items"]
+    assert len(camps) == 1 and "Jio" in camps[0]["brands"]
+    assert api.post("/admin/reset", headers=api.as_("admin")).status_code == 200  # and again: still exactly one
+    assert len(api.get("/campaigns", headers={auth.HEADER: key}).json()["items"]) == 1
