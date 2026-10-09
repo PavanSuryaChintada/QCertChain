@@ -40,6 +40,8 @@ class Settings:
     test_chain_rpc: str = "http://127.0.0.1:8546"
     org_private_key: str = ""
     org2_private_key: str = ""
+    # registers new organisations on the chain and funds their accounts (Hardhat #0 on the demo chain: public key)
+    chain_admin_private_key: str = ""
     raw_cert_retention_h: int = 24
     # tenancy: live public-feed candidates are confirmed on behalf of this org (the pipeline operator)
     pipeline_org: str = "org1"

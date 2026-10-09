@@ -78,3 +78,18 @@ def revoke_kind(c: sa.Connection, org_id: int, kind: str) -> None:
 
 def deactivate(c: sa.Connection, org_id: int) -> None:
     c.execute(sa.text("update organisations set active = false where id = :o"), {"o": org_id})
+
+
+def set_chain_account(c: sa.Connection, slug: str, address: str, sealed_key: bytes) -> None:
+    c.execute(sa.text("update organisations set chain_address = :a, chain_key_sealed = :k where slug = :s"),
+              {"a": address, "k": sealed_key, "s": slug})
+
+
+def chain_key_sealed(c: sa.Connection, slug: str):
+    return c.execute(sa.text("select chain_key_sealed from organisations where slug = :s and active"), {"s": slug}).scalar()
+
+
+def chain_accounts(c: sa.Connection) -> list[tuple[str, str, str]]:
+    """(slug, name, address) of every active organisation with its own chain account."""
+    return [tuple(r) for r in c.execute(sa.text(
+        "select slug, name, chain_address from organisations where active and chain_address is not null order by id")).all()]

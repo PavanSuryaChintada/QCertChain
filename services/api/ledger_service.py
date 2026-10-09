@@ -36,7 +36,8 @@ def b32_hex(h: str) -> bytes:
 
 
 class Ledger:
-    def __init__(self, rpc: str, deploy_path: Path, abi_dir: Path, org_keys: dict[str, str], timeout_s: float = 5):
+    def __init__(self, rpc: str, deploy_path: Path, abi_dir: Path, org_keys: dict[str, str], timeout_s: float = 5,
+                 admin_key: str = "", key_loader=None):
         self.w3 = Web3(Web3.HTTPProvider(rpc, request_kwargs={"timeout": timeout_s}))
         self.deploy = json.loads(Path(deploy_path).read_text(encoding="utf-8"))
         self.c = {}
@@ -49,12 +50,28 @@ class Ledger:
                     sig = f"{e['name']}({','.join(i['type'] for i in e['inputs'])})"
                     self._errors[Web3.keccak(text=sig)[:4].hex().removeprefix("0x")] = e["name"]
         self.accounts = {k: Account.from_key(v) for k, v in org_keys.items() if v}
+        # organisations created by the super admin keep their (sealed) key in the database: loaded on first use
+        self._key_loader = key_loader
+        self.admin = Account.from_key(admin_key) if admin_key else None
         self._names: dict[str, str] = {}
 
     @classmethod
-    def from_settings(cls, s) -> "Ledger":
+    def from_settings(cls, s, key_loader=None) -> "Ledger":
         return cls(s.chain_rpc, ROOT / "contracts/deployments/localhost.json", ROOT / "contracts/abi",
-                   {"org1": s.org_private_key, "org2": s.org2_private_key})
+                   {"org1": s.org_private_key, "org2": s.org2_private_key},
+                   admin_key=getattr(s, "chain_admin_private_key", ""), key_loader=key_loader or _database_key)
+
+    def account(self, org: str):
+        """The signing account of an organisation: org1/org2 from settings, any other from its sealed key."""
+        acct = self.accounts.get(org)
+        if acct is None and self._key_loader is not None:
+            try:
+                key = self._key_loader(org)
+            except Exception:  # noqa: BLE001 - a database blip: report "no key", the queue retries
+                key = None
+            if key:
+                acct = self.accounts[org] = Account.from_key(key)
+        return acct
 
     # ---- plumbing --------------------------------------------------------------------------------
     def available(self) -> bool:
@@ -71,14 +88,21 @@ class Ledger:
         return text
 
     def _send(self, fn, as_org: str) -> str:
-        acct = self.accounts.get(as_org)
+        acct = self.account(as_org)
         if acct is None:
             raise LedgerError(f"no private key configured for {as_org}")
-        try:
-            tx = fn.build_transaction({"from": acct.address, "chainId": self.deploy["chainId"],
-                                       "nonce": self.w3.eth.get_transaction_count(acct.address, "pending")})
-        except (ContractCustomError, ContractLogicError) as e:
-            raise LedgerError(f"reverted: {self._decode(e)}") from e
+        return self._send_from(acct, fn)
+
+    def _send_from(self, acct, fn=None, value_to: str | None = None, value_wei: int = 0) -> str:
+        base = {"from": acct.address, "chainId": self.deploy["chainId"],
+                "nonce": self.w3.eth.get_transaction_count(acct.address, "pending")}
+        if fn is None:  # a plain transfer (funding a new organisation's account)
+            tx = {**base, "to": value_to, "value": value_wei, "gas": 21000, "gasPrice": self.w3.eth.gas_price}
+        else:
+            try:
+                tx = fn.build_transaction(base)
+            except (ContractCustomError, ContractLogicError) as e:
+                raise LedgerError(f"reverted: {self._decode(e)}") from e
         signed = acct.sign_transaction(tx)
         h = self.w3.eth.send_raw_transaction(signed.raw_transaction)
         rcpt = self.w3.eth.wait_for_transaction_receipt(h, timeout=30)
@@ -93,6 +117,21 @@ class Ledger:
 
     def _ts(self, block_number: int) -> int:
         return self.w3.eth.get_block(block_number).timestamp
+
+    # ---- organisations (the chain admin; spec 2026-10-09 §7) ---------------------------------------
+    def is_registered(self, address: str) -> bool:
+        return bool(self.c["OrgRegistry"].functions.isActive(Web3.to_checksum_address(address)).call())
+
+    def register_org(self, address: str, name: str, fund_wei: int = 10**18) -> None:
+        """Fund a new organisation's account for gas and register it. Idempotent: an active account is left alone."""
+        if self.admin is None:
+            raise LedgerError("no chain admin key (CHAIN_ADMIN_PRIVATE_KEY)")
+        address = Web3.to_checksum_address(address)
+        if self.w3.eth.get_balance(address) < fund_wei // 2:
+            self._send_from(self.admin, value_to=address, value_wei=fund_wei)
+        if not self.is_registered(address):
+            self._send_from(self.admin, self.c["OrgRegistry"].functions.registerOrg(address, name))
+        self._names.pop(address, None)
 
     # ---- writes (called by the anchor worker only) -----------------------------------------------
     def publish_campaign(self, campaign_id: str, ioc_root_hex: str, kit_hash_hex: str, domain_count: int,
@@ -142,3 +181,11 @@ class Ledger:
         s = b32_hex(subject_hash_hex)
         return {self.org_name(a): VERDICTS[at.functions.attestations(s, a).call()]
                 for a in at.functions.attestorsOf(s).call()}
+
+
+def _database_key(slug: str) -> str | None:
+    """An organisation's chain key from the database (sealed). Its own short connection: the ledger is shared."""
+    from services.api import platform
+    from services.api.db import engine
+    with engine().connect() as c:
+        return platform.chain_key(c, slug)

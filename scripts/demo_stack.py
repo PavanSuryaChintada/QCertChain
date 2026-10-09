@@ -218,6 +218,10 @@ def up() -> list[str]:
         print("deploying contracts ...")
         if not deploy_contracts():
             raise SystemExit("contract deployment failed")
+        # a fresh chain knows only Bank One and Bank Two: register the organisations the super admin created
+        r = subprocess.run([PY, "-m", "scripts.superadmin", "chain"], cwd=ROOT, capture_output=True, text=True,
+                           env={**os.environ, "PYTHONPATH": str(ROOT)})
+        print("  " + (r.stdout.strip() or r.stderr.strip()[-200:]))
     alive = alive_map([(pid, cmd) for pid, cmd in running_processes() if pid != os.getpid()])
     alive["api"] = alive["api"] or http_ok("http://127.0.0.1:8000/health")
     alive["console"] = alive["console"] or http_ok("http://127.0.0.1:5180/")
