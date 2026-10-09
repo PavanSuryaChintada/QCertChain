@@ -117,7 +117,7 @@ def main() -> int:
         test_env = {**env, "E2E_CONSOLE_URL": CONSOLE, "E2E_API_URL": API, "E2E_ARTIFACTS": str(logs),
                     **{f"E2E_KEY_{k.upper()}": v for k, v in keys.items()}}
         t = time.monotonic()
-        r = subprocess.run([PY, "-m", "pytest", "e2e/test_demo_path.py", "-q", "-s", "-p", "no:cacheprovider",
+        r = subprocess.run([PY, "-m", "pytest", "e2e/test_demo_path.py", "e2e/test_tour.py", "-q", "-s", "-p", "no:cacheprovider",
                             "-m", "e2e"], cwd=ROOT, env=test_env)
         print(f"e2e: exit {r.returncode}; click-through {time.monotonic() - t:.0f} s; "
               f"whole stack {time.monotonic() - t_start:.0f} s", flush=True)

@@ -640,3 +640,31 @@ Format: **AI did** · **Owner decided** · **Verified by** · **Rulings** (AI ju
   origin answers with that origin, a keyed `GET /campaigns` 200.
 - **Stated limits:** a quick-tunnel URL changes on every restart and `VITE_API_URL` is baked in at build time, so each
   new tunnel needs a Vercel rebuild; the tunnel lives only while this laptop and the stack run.
+
+## Explainers, Confirmed-first queue, triage stall, logout on a stray 401 (2026-10-09)
+
+- **Owner asked:** a Technical approach section, a step-by-step How it works section to click through during the
+  demo, and a ? on every page (spec 2026-10-09 §8b; Plan 1 of 4); mid-run: "See it live" buttons per Technical
+  section; the Live queue to open on confirmed domains; the Failed status and the automatic sign-outs fixed.
+- **AI did:**
+  - Explainer text in data modules (`help/content.ts`, `explain/technical.ts`, `tour/steps.ts`); a ? in the top bar
+    opening a side panel per route; a public Technical approach page with a See it live button per section, linked
+    from sign-in and the rail; a guided tour (provider above the sign-in gate, overlay that finds `data-tour`
+    anchors, live values read once with GET only); the ledger opens a kit lookup from `?kit=`.
+  - Live queue opens on Confirmed (owner choice); All and Candidates stay one click away. Live candidates are still
+    labelled "Suspicious - not verified": nothing was relabelled without evidence.
+  - Triage showed Failed: 324,744 certificates behind. Owner approved skipping the backlog. Moving the group to the
+    newest entry was not enough: on start the worker reclaims every stale pending entry (35,534 from 14 dead
+    readers) and processes them as one batch against Supabase, so it read nothing new. The group was recreated at
+    the newest entry; triage back to ok (about 4,000 to 5,000 waiting, steady). The one-big-batch reclaim is a
+    finding, not fixed.
+  - Automatic sign-outs: the API log showed 401s in the middle of runs of 503 (database unreachable) for a key that
+    is valid (re-tested: org1, org2 and demo keys all 200). The exact server-side trigger was not found. The console
+    now re-checks a 401 once against `/status` before dropping the key; a confirmed 401 still signs out, an
+    unreachable re-check keeps the key.
+  - The quick tunnel had died ("Tunnel not found"); restarted with a new URL (Vercel's `VITE_API_URL` needs it).
+- **Verified by:** tests first for each piece (RED then GREEN): explainers, help, technical, tour, tourOverlay,
+  anchors, queueDefault, auth (re-check); console typecheck and full suite after each task (98 tests before the
+  auth fix); one existing evidence test timed out at 5 s under 100 % CPU in one run and passed alone.
+- **Measured state:** the laptop's CPU is at 100 % (Docker, the demo workers, the dev server, test runs); `/status`
+  took 1.5 to 16 s and the first database connection 8 s, which is what showed "Loading organisation".

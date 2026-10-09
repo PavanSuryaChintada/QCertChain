@@ -64,13 +64,24 @@ Required state at "Action": `scripts.demo check` prints READY (both orgs seeded,
 
 ---
 
+## Explaining it (optional, any time)
+
+- **?** at the right of the top bar explains the current page: what it is, how to read it, where the data comes
+  from, and what it does not claim. Open it whenever a viewer asks "what am I looking at?".
+- **How it works** (left rail, or the sign-in screen) is a guided tour of the real pages: eleven steps, each opening
+  its page and highlighting the part that matters. Back / Next step / Exit, or the arrow keys and Esc. It only reads.
+- **Technical approach** (left rail, or the sign-in screen, no key needed) is the design on one page, with a
+  "See it live" button per section and a Start the guided tour button.
+- **The Live queue opens on Confirmed** (owner decision 2026-10-09): the confirmed domains, in red, with their
+  evidence. Live candidates are one click away under Candidates and All.
+
 ## 0:00–2:00 Ingest and triage (profile A)
 
 | Time | Click | On screen | Say |
 |---|---|---|---|
 | 0:00 | Open the console (architecture page) | The system diagram with live status squares, and certs/s on the first edge | "Everyone blocks the URL after someone clicked it. We catch the certificate before the email is sent." |
 | 0:20 | Point at the three panels under the diagram | Nothing is ever sent · Two strong signals to confirm · Hashes on-chain, never content | "Three positions the database itself enforces, not just the code." |
-| 0:40 | Click the **Triage** node | Live queue, replay label visible | "Every certificate that is logged anywhere passes through here in under 5 ms." |
+| 0:40 | Click the **Triage** node, then **All** (the queue opens on Confirmed) | Live queue, replay label visible | "Every certificate that is logged anywhere passes through here in under 5 ms." |
 | 1:00 | Hover a candidate's score | The score breakdown: brand token, keyword, TLD | "A candidate is *suspicious, not verified*. Never red. Triage only nominates." |
 | 1:20 | Point at a Cyrillic homograph row (e.g. `xn--bi-doc.co.in`) | The `skeleton_exact` signal | "A homograph of SBI's own domain. An exact confusable-skeleton match is its own strong signal." |
 | 1:40 | Segmented filter → Confirmed | Confirmed rows in red, with the reasons | "Confirmed means we fetched the page and found two strong signals. The database rejects anything less." |
