@@ -90,6 +90,12 @@ def require_admin(p: auth.Principal = Depends(get_principal)) -> auth.Principal:
     return p
 
 
+def require_superadmin(p: auth.Principal = Depends(get_principal)) -> auth.Principal:
+    if p.kind != "superadmin":
+        raise HTTPException(404, "Not found")  # the panel does not exist for any other key
+    return p
+
+
 @lru_cache(maxsize=1)
 def _redis():
     return aioredis.from_url(SETTINGS.redis_url, decode_responses=True)
@@ -135,7 +141,7 @@ async def rate_limit(p: auth.Principal = Depends(get_principal), r=Depends(get_r
     """Fixed one-minute window per key, shared across API processes via Redis. If Redis is unreachable the
     request is allowed: a limiter outage must not take the API down."""
     limit = {"demo": SETTINGS.rate_limit_demo, "org": SETTINGS.rate_limit_org,
-             "admin": SETTINGS.rate_limit_admin}[p.kind]
+             "admin": SETTINGS.rate_limit_admin, "superadmin": SETTINGS.rate_limit_admin}[p.kind]
     now = time.time()
     key = f"ratelimit:key:{p.key_id}:{int(now // 60)}"
     try:

@@ -26,13 +26,15 @@ WORKERS = {
     "triage": ([PY, "-m", "services.api.workers.triage_worker"], "services.api.workers.triage_worker"),
     "enrich": ([PY, "-m", "services.api.workers.enrich_worker"], "services.api.workers.enrich_worker"),
     "anchor": ([PY, "-m", "services.api.workers.anchor_worker"], "services.api.workers.anchor_worker"),
+    # the public site's way in (spec 2026-10-09 §10): publishes the quick-tunnel URL; restarted, it publishes anew
+    "tunnel": ([PY, "-m", "scripts.tunnel"], "scripts.tunnel"),
 }
 API = ([PY, "-m", "uvicorn", "services.api.main:app", "--host", "127.0.0.1", "--port", "8000"],
        "services.api.main:app")
 CONSOLE = ([PY, "-m", "scripts.e2e_stack", "--serve", str(ROOT / "apps/console/dist"), "5180"], "dist 5180")
 HARDHAT = str(ROOT / "contracts/node_modules/hardhat/internal/cli/cli.js")
 CHAIN_CMD = (["node", HARDHAT, "node", "--hostname", "127.0.0.1", "--port", "8545"], "--port 8545")
-ORDER = ("api", "console", "ingest", "triage", "enrich", "anchor")
+ORDER = ("api", "console", "ingest", "triage", "enrich", "anchor", "tunnel")
 SUPERVISOR = ([PY, "-m", "scripts.demo", "watch"], "scripts.demo watch")
 
 

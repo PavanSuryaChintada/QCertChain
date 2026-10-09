@@ -53,13 +53,16 @@ def test_only_admin_routes_touch_the_privileged_connection():
 
     org_routes = 0
     for r in app.routes:
-        if not isinstance(r, APIRoute) or r.path == "/health":
+        # keyless by design (spec 2026-10-09 §4): the throttled password login and the read-only-key sign-in list
+        if not isinstance(r, APIRoute) or r.path in ("/health", "/auth/superadmin/login", "/orgs/public"):
             continue
         direct = [d.call for d in r.dependant.dependencies]
         calls = set(flat(r.dependant))
         assert deps.get_principal in calls, f"{r.path}: no auth"
         if r.path.startswith("/admin/"):
             assert deps.require_admin in calls, r.path
+            continue
+        if deps.require_superadmin in calls:  # the platform panel: organisations and keys, no organisation data
             continue
         assert deps.get_conn not in direct, f"{r.path} depends on the privileged connection directly"
         if deps.get_conn in calls:  # only through get_principal (key lookup) and get_scope (binds the org)

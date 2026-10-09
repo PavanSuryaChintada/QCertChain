@@ -534,6 +534,40 @@ end;
 $$ language plpgsql;
 
 -- ===============================================================
+-- PLATFORM (spec 2026-10-09 §3, §10)  ·  organisations by category, one super admin with a password, keys
+-- sealed so the panel and the public sign-in list can show them again, and the one public row that tells the
+-- console where the API is (the quick-tunnel URL changes on every start).
+-- ===============================================================
+alter table organisations add column if not exists category text not null default 'other';
+alter table organisations add column if not exists active boolean not null default true;
+alter table organisations add column if not exists created_at timestamptz default now();
+do $$ begin
+  alter table organisations add constraint organisations_category_check check (category in
+    ('banking','fintech','ecommerce','government','telecom','brokerage','insurance','consumer','other'));
+exception when duplicate_object then null; end $$;
+update organisations set category = 'banking' where slug in ('org1','org2') and category = 'other';
+
+alter table api_keys add column if not exists token_sealed bytea;   -- SecretBox(KEY_SEAL_SECRET); never for sessions
+alter table api_keys add column if not exists expires_at timestamptz; -- super admin sessions only
+alter table api_keys drop constraint if exists api_keys_kind_check;
+alter table api_keys add constraint api_keys_kind_check check (kind in ('org','demo','admin','superadmin'));
+alter table api_keys drop constraint if exists api_keys_admin_has_no_org;
+alter table api_keys add constraint api_keys_admin_has_no_org check ((kind in ('admin','superadmin')) = (org_id is null));
+
+create table if not exists super_admins (
+  id             bigserial primary key,
+  email          text not null unique,
+  password_hash  text not null,                 -- argon2id (PyNaCl); the password itself is never stored
+  created_at     timestamptz default now()
+);
+
+create table if not exists public_endpoints (
+  name        text primary key,                 -- 'api'
+  url         text not null,                    -- https://<random>.trycloudflare.com
+  updated_at  timestamptz not null default now()
+);
+
+-- ===============================================================
 -- SUPABASE  ·  every public table is exposed through PostgREST to anyone
 -- holding the publishable key. RLS on with ZERO policies => the anon and
 -- authenticated roles can read and write nothing. The API connects as
@@ -586,3 +620,24 @@ drop policy if exists platform_or_own on ops_log;
 create policy platform_or_own on ops_log for select to qcc_app using (org_id is null or org_id = current_org());
 drop policy if exists own_write on ops_log;
 create policy own_write on ops_log for insert to qcc_app with check (org_id = current_org());
+
+-- Platform tables: password hashes and the endpoint row are read only by privileged code, never by an org role.
+revoke all on super_admins from qcc_app;
+revoke all on public_endpoints from qcc_app;
+-- The console reads the current API URL with the publishable key (Supabase role `anon`): select on that one table,
+-- nothing else. A function, so the local test database (which has no `anon`) can apply it after creating the role.
+create or replace function qcc_public_endpoint_policy() returns void language plpgsql as $$
+begin
+  if exists (select 1 from pg_roles where rolname = 'anon') then
+    drop policy if exists anon_read on public_endpoints;
+    create policy anon_read on public_endpoints for select to anon using (true);
+    grant select on public_endpoints to anon;
+    revoke insert, update, delete, truncate on public_endpoints from anon;
+    revoke all on super_admins from anon;
+  end if;
+  if exists (select 1 from pg_roles where rolname = 'authenticated') then
+    revoke all on super_admins from authenticated;
+    revoke insert, update, delete, truncate on public_endpoints from authenticated;
+  end if;
+end $$;
+select qcc_public_endpoint_policy();

@@ -11,7 +11,8 @@ from fastapi.responses import JSONResponse
 
 from services.api.deps import get_principal, rate_limit, require_key_header
 from services.api.timing import TimingMiddleware
-from services.api.routes import admin, campaigns, domains, email, evidence, ledger, ops, plans, stream
+from services.api.routes import (accounts, admin, campaigns, domains, email, evidence, ledger, ops, plans, stream,
+                                 superadmin)
 from services.config import SETTINGS
 from services.ingest.triage import warm
 
@@ -94,5 +95,8 @@ def health():
 
 # Every router requires a valid key (401 otherwise). Org routers additionally take a Scope (deps.get_scope).
 for r in (stream.router, domains.router, campaigns.router, plans.router, evidence.router, ledger.router,
-          email.router, ops.router, admin.router):
+          email.router, ops.router, admin.router, superadmin.router, superadmin.sessions):
     app.include_router(r, dependencies=[Depends(require_key_header), Depends(get_principal), Depends(rate_limit)])
+# Keyless by design (spec 2026-10-09 §4): the super admin password login (throttled) and the public organisation
+# list, which shows read-only keys only.
+app.include_router(accounts.router)

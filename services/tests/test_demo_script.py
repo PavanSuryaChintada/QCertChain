@@ -38,8 +38,16 @@ async def test_flush_drops_only_the_pending_fetch_backlog():
 def test_up_starts_only_what_is_not_already_running():
     from scripts.demo import services_to_start
     alive = {"chain": True, "api": False, "console": True, "ingest": False, "triage": True, "enrich": False,
-             "anchor": True}
+             "anchor": True, "tunnel": True}
     assert services_to_start(alive) == ["api", "ingest", "enrich"]
+
+
+def test_the_public_tunnel_is_started_and_revived_like_the_workers():
+    """Spec 2026-10-09 §10: a dead quick tunnel is restarted by the supervisor, which publishes the new URL."""
+    from scripts.demo_stack import alive_map, services_to_start
+    assert alive_map([(1, "python -m scripts.tunnel")])["tunnel"]
+    running = {k: True for k in ("api", "console", "ingest", "triage", "enrich", "anchor")}
+    assert services_to_start({**running, "tunnel": False}) == ["tunnel"]
 
 
 def test_a_fresh_chain_needs_deploy_and_reset_an_old_one_only_warming():

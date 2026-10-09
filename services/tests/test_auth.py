@@ -11,10 +11,13 @@ def test_unauthenticated_rejected_everywhere_except_health(api):
     from services.api.main import app
     bare = {auth.HEADER: ""}
     assert api.get("/health", headers=bare).status_code == 200
+    # Keyless by design (spec 2026-10-09 §4): the super admin password login and the public organisation list,
+    # which shows read-only keys only (test_superadmin.py).
+    public = {"/health", "/auth/superadmin/login", "/orgs/public"}
     checked = 0
     for route in app.routes:
         methods = getattr(route, "methods", None) or set()
-        if route.path == "/health" or not methods:
+        if route.path in public or not methods:
             continue
         path = route.path.replace("{", "").replace("}", "")  # any placeholder value: auth runs first
         for m in methods - {"HEAD", "OPTIONS"}:
@@ -61,7 +64,8 @@ def test_demo_key_gets_405_on_every_write_verb_of_every_route(api):
     demo = api.as_("demo1")
     checked = 0
     for route in app.routes:
-        if not isinstance(route, APIRoute) or route.path == "/health":
+        # the keyless sign-in routes do not read the key at all (test_superadmin.py covers them)
+        if not isinstance(route, APIRoute) or route.path in ("/health", "/auth/superadmin/login", "/orgs/public"):
             continue
         path = route.path.replace("{", "").replace("}", "")
         for verb in ("POST", "PUT", "PATCH", "DELETE"):

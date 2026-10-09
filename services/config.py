@@ -51,6 +51,11 @@ class Settings:
     db_pool_overflow: int = 5
     # hosted console origins allowed by CORS (comma-separated); any localhost/127.0.0.1 port is always allowed
     console_origins: str = "http://localhost:5180,http://127.0.0.1:5180"
+    # platform (spec 2026-10-09): 32 random bytes in hex; seals keys so the panel and the sign-in list can show them
+    key_seal_secret: str = ""
+    # the one super admin, upserted by `python -m scripts.superadmin set` (never from argv)
+    superadmin_email: str = ""
+    superadmin_password: str = ""
 
 
 def _parse_env_file(path: Path) -> dict[str, str]:
