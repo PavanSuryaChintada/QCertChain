@@ -49,6 +49,8 @@ class Settings:
     rate_limit_admin: int = 60
     db_pool_size: int = 5
     db_pool_overflow: int = 5
+    # hosted console origins allowed by CORS (comma-separated); any localhost/127.0.0.1 port is always allowed
+    console_origins: str = "http://localhost:5180,http://127.0.0.1:5180"
 
 
 def _parse_env_file(path: Path) -> dict[str, str]:

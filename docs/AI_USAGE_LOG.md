@@ -622,3 +622,21 @@ Format: **AI did** · **Owner decided** · **Verified by** · **Rulings** (AI ju
   found, so the supervisor covers it); `down` stops it. Verified: down, then up from cold to READY in ~14 min;
   re-run idempotent (nothing started twice, READY in 71 s); killing the anchor worker on purpose, the supervisor
   restarted it within its 15 s cycle (test_demo_script covers the decisions: 9 tests).
+
+## Local API behind a Cloudflare quick tunnel for the Vercel console (2026-10-09)
+
+- **Situation:** the owner deployed the console to Vercel (`https://q-cert-chain.vercel.app`) and asked to serve it from
+  the local stack through a free `trycloudflare.com` tunnel instead of Railway. Locally the API, the four workers and
+  the supervisor had stopped (cause not found; port 5180 was then taken by `npm run dev`), so the console showed
+  "Could not reach the API".
+- **AI did:** started Docker, the API and the four workers (not the production console or the supervisor, which would
+  clash with the dev server on :5180); CORS now allows every `http://localhost` / `http://127.0.0.1` port and reads
+  `CONSOLE_ORIGINS` from the environment **or `.env`** (new `Settings.console_origins`, `main.cors_config`), so the
+  hosted origin survives restarts; `.env` (local, gitignored) lists the Vercel origin; quick tunnel started with
+  `npx cloudflared tunnel --url http://127.0.0.1:8000`.
+- **Verified by:** test_cors first (9 failing for the missing `cors_config` / `console_origins`), then green: 11 passed,
+  including foreign and look-alike origins (`http://localhost.evil.example`) refused and an unlisted `*.vercel.app`
+  refused; test_config and the two static guards pass. Through the tunnel: `/health` 200, a preflight from the Vercel
+  origin answers with that origin, a keyed `GET /campaigns` 200.
+- **Stated limits:** a quick-tunnel URL changes on every restart and `VITE_API_URL` is baked in at build time, so each
+  new tunnel needs a Vercel rebuild; the tunnel lives only while this laptop and the stack run.

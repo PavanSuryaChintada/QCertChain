@@ -1,7 +1,6 @@
 """QCertChain API — the only HTTP surface. Errors are RFC 7807 problem+json (API_CONTRACT.md)."""
 from __future__ import annotations
 
-import os
 from contextlib import asynccontextmanager
 
 from fastapi import Depends, FastAPI, HTTPException, Request
@@ -13,9 +12,18 @@ from fastapi.responses import JSONResponse
 from services.api.deps import get_principal, rate_limit, require_key_header
 from services.api.timing import TimingMiddleware
 from services.api.routes import admin, campaigns, domains, email, evidence, ledger, ops, plans, stream
+from services.config import SETTINGS
 from services.ingest.triage import warm
 
 PROBLEM = "application/problem+json"
+# any port on this machine, both spellings (dev server, preview, e2e): a demo opened at 127.0.0.1 must not fail on CORS
+LOCAL_ORIGIN = r"http://(localhost|127\.0\.0\.1)(:\d+)?"
+
+
+def cors_config(origins: str) -> dict:
+    """CORS for the console: every local origin, plus the hosted consoles listed in CONSOLE_ORIGINS (env or .env)."""
+    return {"allow_origins": [o.strip() for o in origins.split(",") if o.strip()], "allow_origin_regex": LOCAL_ORIGIN,
+            "allow_methods": ["*"], "allow_headers": ["*"]}
 
 
 def _warm_solvers() -> None:
@@ -53,11 +61,7 @@ app = FastAPI(title="QCertChain API", version="0.1.0", lifespan=lifespan, docs_u
               openapi_url=None)
 app.add_middleware(TimingMiddleware)
 app.add_middleware(GZipMiddleware, minimum_size=1024)  # graph and list payloads compress ~5-10x
-app.add_middleware(CORSMiddleware,
-                   # both spellings of this machine: a demo opened at 127.0.0.1 must not fail on CORS
-                   allow_origins=[o for o in os.environ.get(
-                       "CONSOLE_ORIGINS", "http://localhost:5180,http://127.0.0.1:5180").split(",") if o],
-                   allow_methods=["*"], allow_headers=["*"])
+app.add_middleware(CORSMiddleware, **cors_config(SETTINGS.console_origins))
 
 
 def problem(status: int, title: str, detail: str | None, instance: str) -> JSONResponse:
