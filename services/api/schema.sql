@@ -546,6 +546,9 @@ do $$ begin
     ('banking','fintech','ecommerce','government','telecom','brokerage','insurance','consumer','other'));
 exception when duplicate_object then null; end $$;
 update organisations set category = 'banking' where slug in ('org1','org2') and category = 'other';
+alter table organisations add column if not exists chain_address text;      -- its signing account on the chain
+alter table organisations add column if not exists chain_key_sealed bytea;  -- sealed; org1/org2 keep theirs in .env
+alter table organisations add column if not exists demo_brand text;         -- the brand its seeded campaign imitates
 
 alter table api_keys add column if not exists token_sealed bytea;   -- SecretBox(KEY_SEAL_SECRET); never for sessions
 alter table api_keys add column if not exists expires_at timestamptz; -- super admin sessions only
