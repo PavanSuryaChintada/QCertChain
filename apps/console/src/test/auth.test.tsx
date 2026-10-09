@@ -26,6 +26,26 @@ it("a 401 drops the key so the sign-in gate shows", async () => {
   expect(getKey()).toBeNull();
 });
 
+it("one 401 while the database is struggling does not sign you out: the key is re-checked first", async () => {
+  setKey("qcc_org_valid");
+  const f = vi.spyOn(globalThis, "fetch")
+    .mockResolvedValueOnce(new Response("{}", { status: 401 })) // the stray rejection
+    .mockResolvedValueOnce(new Response("{}", { status: 200 })); // the re-check: the key is fine
+  await apiFetch("/campaigns");
+  expect(getKey()).toBe("qcc_org_valid");
+  expect(String(f.mock.calls[1][0])).toContain("/status");
+  expect((f.mock.calls[1][1]!.headers as Record<string, string>)[KEY_HEADER]).toBe("qcc_org_valid");
+});
+
+it("a re-check that cannot reach the API keeps the key (an outage is not a bad key)", async () => {
+  setKey("qcc_org_valid");
+  vi.spyOn(globalThis, "fetch")
+    .mockResolvedValueOnce(new Response("{}", { status: 401 }))
+    .mockRejectedValueOnce(new TypeError("Failed to fetch"));
+  await apiFetch("/campaigns");
+  expect(getKey()).toBe("qcc_org_valid");
+});
+
 it("renders nothing of the console without a key, then the console once signed in", async () => {
   const qc = new QueryClient();
   render(

@@ -1,5 +1,5 @@
 // Typed client for the QCertChain API. The console talks only to this API, always with the X-API-Key header.
-import { authHeaders, setKey } from "./auth";
+import { KEY_HEADER, authHeaders, getKey, setKey } from "./auth";
 
 export const API_URL: string = (import.meta.env.VITE_API_URL as string | undefined) ?? "http://127.0.0.1:8000"; // not localhost: on Windows each new connection to localhost first tries IPv6 (~200 ms)
 
@@ -232,11 +232,23 @@ export class ApiError extends Error {
   }
 }
 
-/** Every request carries the key. A 401 means the key is missing, revoked or wrong: drop it so the key gate shows. */
+/** Every request carries the key. A 401 means the key is missing, revoked or wrong: drop it so the key gate shows.
+ *  A 401 is re-checked once before signing out: while the database was dropping connections (2026-10-09) a valid
+ *  key was seen rejected, and signing an analyst out mid-demo for it costs more than one extra request. */
 export async function apiFetch(path: string, init?: RequestInit): Promise<Response> {
+  const key = getKey();
   const r = await fetch(API_URL + path, { ...init, headers: { ...authHeaders(), ...(init?.headers ?? {}) } });
-  if (r.status === 401) setKey(null);
+  if (r.status === 401 && key && (await keyRejected(key))) setKey(null);
   return r;
+}
+
+let recheck: Promise<boolean> | null = null; // parallel 401s share one re-check
+function keyRejected(key: string): Promise<boolean> {
+  recheck ??= fetch(API_URL + "/status", { headers: { [KEY_HEADER]: key } })
+    .then((again) => again.status === 401)
+    .catch(() => false) // unreachable is an outage, not a bad key
+    .finally(() => { recheck = null; });
+  return recheck;
 }
 
 export function toApiError(e: unknown): ApiError {
