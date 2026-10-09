@@ -1,8 +1,9 @@
 # Deploying QCertChain
 
-**Not deployed yet.** Deployment is an outward-facing action and waits for the owner's explicit go-ahead
-and the credentials listed below (spec D6). Everything here is ready to run, and the images are built and
-smoke-tested locally (see the end of this file), but nothing has been run against a hosted Railway or Vercel account.
+**What runs today (2026-10-10):** the console is on Vercel at https://q-cert-chain.vercel.app (deployed by the
+owner from `main`); the API, workers and demo chain run on the owner's laptop and are reached through a free
+Cloudflare quick tunnel whose URL the console looks up at run time (§10). Railway is not used. The Railway plan below
+stays ready for when the owner gives the go-ahead and credentials (spec D6).
 
 Database changes, backups, key creation and rollback are in [`MIGRATION_RUNBOOK.md`](MIGRATION_RUNBOOK.md).
 
@@ -105,7 +106,10 @@ into the repository.
 | `EVIDENCE_DIR` | ✓ | | | ✓ | | `/data/evidence` on a volume (bundles vanish on redeploy otherwise) |
 | `USER_AGENT` | | | | ✓ | | `QCertChain-Scanner/0.1 (phishing research; contact: <owner email>)` |
 | `PIPELINE_ORG` | | | | ✓ | | `org1` (default) |
-| `CONSOLE_ORIGINS` | ✓ | | | | | `https://<app>.vercel.app` (comma-separated) |
+| `CONSOLE_ORIGINS` | ✓ | | | | | `https://<app>.vercel.app` (comma-separated; https://q-cert-chain.vercel.app and any local port are allowed by default) |
+| `KEY_SEAL_SECRET` | ✓ | | | | | 32 random bytes in hex: seals the copies of read-only keys shown on the home page and new organisations' chain keys |
+| `SUPERADMIN_EMAIL`, `SUPERADMIN_PASSWORD` | | | | | | read once by `python -m scripts.superadmin set`, which stores an argon2id hash only |
+| `CHAIN_ADMIN_PRIVATE_KEY` | ✓ | | | | | the chain admin that funds and registers new organisations' accounts (Hardhat #0 on the demo chain) |
 | `TRIAGE_THRESHOLD`, `TRIAGE_MODEL_PATH` | ✓ | | ✓ | | | defaults |
 | `STREAM_MODE`, `REPLAY_FILE`, `REPLAY_SPEED` | | ✓ | | | | defaults (`live`); switch at runtime with `POST /admin/stream/mode` |
 | `RATE_LIMIT_DEMO` / `_ORG` / `_ADMIN` | ✓ | | | | | defaults 60 / 600 / 60 per minute |
@@ -189,3 +193,28 @@ start on that machine. On Railway, `deploy/railway/api.json` sets `healthcheckTi
 
 Known issue (not a build problem): with no `DATABASE_URL`, a keyed route called without a key returns 500
 instead of 401, because the key lookup needs the database. It does not occur in a configured deployment.
+
+## 10. The public site and the laptop API: Cloudflare quick tunnel
+
+The hosted console needs an https address for the API. A Cloudflare quick tunnel gives one with no account and no
+domain, but its URL is random and changes whenever the tunnel restarts, so it is looked up at run time, not built in:
+
+1. `python -m scripts.tunnel` (started by `scripts.demo up` and supervised by `scripts.demo watch`) runs
+   `cloudflared tunnel --url http://127.0.0.1:8000`, waits until `/health` answers through the new URL, and writes it
+   to the `public_endpoints` table (row `api`). When Cloudflare drops the tunnel ("Tunnel not found") or cloudflared
+   exits, it starts a new tunnel and publishes the new URL.
+2. The console (`apps/console/src/lib/publicConfig.ts`) holds the Supabase project URL and its **publishable** key.
+   Both are public by design: row-level security lets that key read one row of `public_endpoints` and nothing else,
+   and every write is refused. Only `https://<words>.trycloudflare.com` URLs are accepted from it.
+3. On the hosted site the console reads the URL at start-up and again after a network error; on this machine
+   (`localhost`, `127.0.0.1`) it never does, so the offline demo and the e2e job need no internet.
+4. The API allows the hosted origin by default (`CONSOLE_ORIGINS`), and the super admin sign-in throttle counts the
+   real client from Cloudflare's `CF-Connecting-IP` (the API listens on 127.0.0.1 only, so nothing else can set it).
+
+**Check it:** the published URL's `/health` answers 200; a preflight from `https://q-cert-chain.vercel.app` gets
+`access-control-allow-origin`; the home page lists every organisation under "Try the console"; super admin sign-in
+reaches the panel. A new organisation stuck in "Setting up" (its background setup was lost, e.g. by an API restart):
+`python -m scripts.superadmin provision <slug>`.
+
+**Limits:** the site works only while the laptop, the API and the tunnel are up; quick tunnels carry no uptime
+guarantee. For an always-on site, use the Railway plan above.

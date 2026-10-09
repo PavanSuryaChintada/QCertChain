@@ -63,6 +63,27 @@ Every decision taken on the owner's behalf during the build (`Ruling:`), and eve
 - Final: fixed candidate_at/verdict_at used transaction-start now() — test_candidate_stores_our_receipt_time RED→GREEN with clock_timestamp(); Ruling: test allows 1 s host/DB clock skew — cost if wrong: none (latencies are seconds).
 - Task 26: Ruling: STREAM_MAXLEN 1,000,000 -> 500,000 — §7 smoke found XADD rejected (Redis 512 MB noeviction, 587 B/entry measured); pinned by test_stream_cap_fits_in_redis_memory; live stream trimmed after confirming lag 0 / pending 0 — cost if wrong: 4.5 min of backlog at 1,840 certs/s instead of 9.
 
+## Platform (2026-10-09 / 10)
+
+Owner-approved changes to earlier decisions are listed in spec `2026-10-09-multi-sector-platform-design.md` §9:
+sealed, retrievable keys with every read-only key published on the home page; live candidates routed by sector; a
+super admin password login; the public site served from the laptop through a quick tunnel; the Supabase publishable
+key used by the console. Rulings made while building it:
+
+- Ruling: response time counts each live domain once, with the verdict of whichever organisation checked it — with
+  sector routing only one organisation checks a live domain, so per-organisation counting would split or double it —
+  cost if wrong: figures are not comparable with the earlier Bank-One-only method.
+- Ruling: the Supabase project URL and publishable key are committed in `apps/console/src/lib/publicConfig.ts`, not
+  set as Vercel build variables — the hosted site failed to find the API without them, and both are public by design
+  (row-level security: one readable row, no writes) — cost if wrong: anyone can read the current tunnel URL, which
+  the public site exposes anyway.
+- Ruling: https://q-cert-chain.vercel.app is in the API's default `CONSOLE_ORIGINS` — the line vanished from the local
+  `.env` once and the public site broke — cost if wrong: one extra allowed origin; every call still needs a key.
+- Ruling: a lost provisioning failure is logged on the existing 'system' channel rather than adding 'platform' to
+  the `ops_log` check — no schema migration for a log label — cost if wrong: platform lines mix with system lines.
+- Ruling: CI pulls the official postgres and redis images from the AWS public mirror — Docker Hub's anonymous pull
+  limit stopped the python and e2e jobs before any test ran — cost if wrong: the mirror can trail Docker Hub by hours.
+
 ## Live confirmation findings (2026-10-07, measured on the live CT feed)
 
 - **Safety hole, fixed: one artifact could confirm a domain on its own.** While wiring the new S1 (exfiltration

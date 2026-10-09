@@ -75,6 +75,22 @@ Required state at "Action": `scripts.demo check` prints READY (both orgs seeded,
 - **The Live queue opens on Confirmed** (owner decision 2026-10-09): the confirmed domains, in red, with their
   evidence. Live candidates are one click away under Candidates and All.
 
+## The platform (optional, before the main script): one service, many organisations
+
+Needs the laptop stack and the tunnel up (`docs/DEPLOY.md` §10). On https://q-cert-chain.vercel.app, signed out:
+
+| Click | On screen | Say |
+|---|---|---|
+| The home page | The certificate log (an illustration, captioned so), the life of a phishing domain, what a team gets, how evidence is collected, the pipeline, a labelled roadmap | "Most defences act when a blocklist catches up. We act when the certificate is logged." |
+| Try the console → **Open** beside Bank One | Bank One's console with its read-only key: it can look, never change | "Every organisation on the platform, with a read-only key a judge can open." |
+| **Sign in** (top bar) → super admin | The panel: every organisation, its category, campaigns, chain status, keys | "Sign-in is the platform operator's only. The password is throttled before it is checked." |
+| Create an organisation: a name, category E-commerce | A new row, "Setting up", then one campaign and chain registered | "It gets its own chain account, a seeded demo campaign imitating a brand of its sector, and its sector's live candidates." |
+| **Open console** on the new row | Its own console; the Live queue opens on its sector | "It sees only its own data: row-level security, not a filter in the UI." |
+| **Rotate read-only key** | A new key; the home page sidebar shows the new one | "Keys are revoked at once, and stored only as a hash and a sealed copy." |
+
+Never type the super admin password on camera; sign in before recording. If a new row stays on "Setting up", run
+`python -m scripts.superadmin provision <slug>` off camera.
+
 ## 0:00–2:00 Ingest and triage (profile A)
 
 | Time | Click | On screen | Say |

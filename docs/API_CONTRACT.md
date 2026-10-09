@@ -101,7 +101,11 @@ data: {"ts":"2026-09-27T03:02:13Z","certs_per_sec":3204}
 
 ## 2. Domains
 
-### `GET /candidates?status=&min_score=&limit=50&offset=0`
+### `GET /candidates?status=&min_score=&sector=&limit=50&offset=0`
+
+`sector` (optional): one of `banking`, `fintech`, `ecommerce`, `government`, `telecom`, `brokerage`,
+`insurance`, `consumer`. Keeps the candidates whose `brand_matched` is a brand of that sector in the brand list
+(spec 2026-10-09 §5). The Live queue sends the organisation's own category by default; "All sectors" omits it.
 
 ```json
 {
@@ -463,6 +467,56 @@ JSON `{"raw": "<headers or full .eml>", "source": "analyst" | "sample"}` or mult
 renders grey, exactly like a domain candidate. Email never confirms a domain; it can only create candidates.
 
 ### `GET /email/analyses?verdict=&limit=&offset=` → `Page` of the above. `GET /email/analyses/{id}`.
+
+---
+
+## 10. Platform: the super admin and the public home page (spec 2026-10-09)
+
+Two routes need no key; everything under `/superadmin` needs a super admin session and is a `404` for any other key.
+
+### `POST /auth/superadmin/login` (no key)
+
+```json
+{ "email": "admin@example.org", "password": "..." }
+```
+→ `200 { "token": "qcc_superadmin_...", "expires_at": "2026-10-10T14:00:00+00:00" }` (a 12-hour session key).
+`401` wrong email or password · `429` too many failed sign-ins (5 per client, 30 overall, per minute; `Retry-After`),
+checked before any password · `503` the throttle store is down (sign-in fails closed).
+
+### `POST /auth/logout` (super admin session) → `204`; the session key is revoked.
+
+### `GET /orgs/public` (no key)
+
+```json
+[ { "slug": "org1", "name": "Bank One SOC", "category": "banking", "demo_key": "qcc_demo_..." } ]
+```
+Active organisations only, with their read-only key (or `null`). Never an org, admin or session key.
+
+### `GET /superadmin/orgs`
+
+```json
+[ { "slug": "org1", "name": "Bank One SOC", "category": "banking", "active": true,
+    "created_at": "2026-10-09T17:59:29+00:00", "live_keys": 2, "campaigns": 1, "chain": "registered" } ]
+```
+`chain`: `registered` · `pending` (account made, chain down or not yet registered) · `none` (no account).
+`campaigns: 0` on a new organisation means its demo campaign is still being seeded.
+
+### `POST /superadmin/orgs`
+
+```json
+{ "name": "ShopSafe SOC", "category": "ecommerce", "demo_brand": null }
+```
+`category`: the eight sectors above or `other`. `demo_brand` (optional) must be a brand in the brand list; `other`
+requires one. → `201 { "slug", "name", "category", "org_key", "demo_key" }`, then in the background: a chain account,
+and a seeded demo campaign imitating that brand (or its sector's first brand). `409` name taken · `422` unknown brand
+or `other` without a brand. If the background setup is lost, `python -m scripts.superadmin provision <slug>` re-runs it.
+
+### `GET /superadmin/orgs/{slug}/keys` → `{ "org_key": "...", "demo_key": "..." }` (either may be `null`)
+
+### `POST /superadmin/orgs/{slug}/rotate` `{ "kind": "org" | "demo" }` → `{ "kind", "key" }`; the old key stops working at once.
+
+### `POST /superadmin/orgs/{slug}/deactivate` → `{ "slug", "active": false }`; its keys stop working. `409` for the
+pipeline organisation (live candidates are confirmed on its behalf).
 
 ---
 
