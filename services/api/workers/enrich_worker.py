@@ -106,7 +106,14 @@ async def _promote_retries(r) -> None:
     due = await r.zrangebyscore(RETRY_ZSET, 0, time.time())
     if due:
         await r.zrem(RETRY_ZSET, *due)
-        await r.rpush(QUEUE, *due)
+        await r.lpush(QUEUE, *due)  # due re-checks go to the front, before older queued candidates
+
+
+async def pop_next(r, timeout: int = 5) -> str | None:
+    """Newest first (owner decision 2026-10-09): producers push onto the front, so popping the front checks the
+    freshest candidates while the backlog waits. Oldest-first left every new row unchecked on one laptop."""
+    got = await r.blpop(QUEUE, timeout=timeout)
+    return got[1] if got else None
 
 
 def pipeline_org_id() -> int:
@@ -120,11 +127,11 @@ def pipeline_org_id() -> int:
 async def worker(r, sem: asyncio.Semaphore, default_org: int) -> None:
     while True:
         await _promote_retries(r)
-        got = await r.brpop(QUEUE, timeout=5)
-        if not got:
+        item = await pop_next(r)
+        if item is None:
             continue
         try:
-            force, org, domain_id = parse_item(got[1])
+            force, org, domain_id = parse_item(item)
         except ValueError:
             continue  # malformed item: nothing to confirm
         org = org if org is not None else default_org

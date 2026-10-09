@@ -114,3 +114,21 @@ async def test_kill_switch_reaches_confirmation_without_a_restart(db, tmp_path, 
     await enrich_worker.handle_one(d, conn=db, redis=r, evidence_dir=tmp_path,
                                    signing_key_hex=nacl.signing.SigningKey.generate().encode().hex())
     assert seen == {"exfil": "off", "js_post": "off"}
+
+
+async def test_the_newest_candidate_is_checked_first():
+    """Owner decision 2026-10-09: the checker is hours behind on one laptop, so oldest-first left every fresh row
+    at the top of the queue unchecked ("Suspicious" only). Newest first gives the live view real verdicts."""
+    r = fr.FakeRedis(decode_responses=True)
+    for d in ("1", "2", "3"):  # triage pushes each new candidate onto the front
+        await r.lpush(enrich_worker.QUEUE, d)
+    assert [await enrich_worker.pop_next(r) for _ in range(3)] == ["3", "2", "1"]
+    assert await enrich_worker.pop_next(r, timeout=1) is None
+
+
+async def test_a_due_retry_goes_before_older_queued_items():
+    r = fr.FakeRedis(decode_responses=True)
+    await r.lpush(enrich_worker.QUEUE, "1", "2")
+    await r.zadd(enrich_worker.RETRY_ZSET, {"9": 0})  # due long ago
+    await enrich_worker._promote_retries(r)
+    assert await enrich_worker.pop_next(r) == "9"
