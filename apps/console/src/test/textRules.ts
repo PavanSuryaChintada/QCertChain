@@ -7,7 +7,7 @@ export function strings(x: unknown): string[] {
 }
 
 // Names that contain digits but are not measurements.
-const NOT_MEASUREMENTS = /Ed25519|SHA-256|404/g;
+const NOT_MEASUREMENTS = /Ed25519|SHA-256|404|RFC 2142/g;
 
 /** Explainer text never types a measured number (spec §8b): live figures come from the API at run time. */
 export function measuredNumber(s: string): boolean {

@@ -178,12 +178,13 @@ const HELP_ENTRIES = {
     notClaimed: "A new organisation sees the shared certificate feed now; its own sector feed and seeded campaign come with the next update.",
   },
   signin: {
-    title: "Sign in",
-    what: "Several organisations share QCertChain. Your key decides which organisation you are and which data exists for you.",
+    title: "Home",
+    what: "What QCertChain does for a security team, how it collects evidence and how it is built, with every organisation's read-only key on the right.",
     read: [
-      { label: "Organisations", text: "Every organisation by category, each with a read-only key: one click signs in to look, never to change anything." },
-      { label: "Super admin", text: "The platform operator's email and password: creates organisations and manages their keys." },
-      { label: "API key", text: "Paste a full key to sign in with every right your organisation has." },
+      { label: "Try the console", text: "Every organisation by category, each with a read-only key: one click opens its console to look, never to change anything." },
+      { label: "Sign in", text: "For the platform's super admin: email and password. It creates organisations and manages their keys." },
+      { label: "Request access", text: "A demo form: sign-up is by invitation during the pilot, and the form sends and stores nothing." },
+      { label: "On the roadmap", text: "What is not built yet is listed there and only there." },
       { label: "Technical approach", text: "Open without a key: how the system works and why it is built this way." },
       { label: "How it works", text: "A guided tour of the live console. Sign in first; the tour starts on its own." },
     ],

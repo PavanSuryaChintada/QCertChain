@@ -1,7 +1,7 @@
 import { Link } from "react-router-dom";
 import { PageHeader, Section } from "../components/Page";
 import { TECHNICAL } from "../explain/technical";
-import { ArchitectureDiagram, Legend } from "./Architecture";
+import { PipelineDiagram } from "../components/PipelineDiagram";
 
 /** How the system works and why. Open without a key; measured figures live on the Metrics page, not here. */
 export function TechnicalPage() {
@@ -9,8 +9,7 @@ export function TechnicalPage() {
     <div>
       <PageHeader title="Technical approach" meta="How QCertChain works and why it is built this way. Measured results are on the Metrics page." />
       <section className="panel" style={{ padding: 16, marginBottom: 24 }} aria-label="Pipeline diagram">
-        <ArchitectureDiagram status={undefined} />
-        <Legend />
+        <PipelineDiagram />
       </section>
       {TECHNICAL.map((s) => (
         <Section key={s.id} id={`tech-${s.id}`} title={s.title}

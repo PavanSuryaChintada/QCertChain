@@ -196,3 +196,55 @@ textarea.input { height: auto; padding: 8px; font-family: var(--font-mono); font
 
 /* tour anchors scrolled to their start stay below the fixed top bar */
 [data-tour] { scroll-margin-top: 64px; }
+
+/* ---- public home page (owner request 2026-10-09) ------------------------------------------------------------- */
+.landing { display: grid; grid-template-columns: minmax(0, 1fr) 320px; gap: 48px; max-width: 1200px; padding: 32px 24px 48px; }
+.landing-main { min-width: 0; max-width: 760px; }
+.landing-side { position: sticky; top: 64px; align-self: start; }
+.landing-brand { font-weight: 600; }
+.landing-title { font-size: 40px; line-height: 1.15; font-weight: 600; letter-spacing: -0.01em; max-width: 24ch; color: var(--ink); }
+.landing-lead { font-size: 17px; line-height: 1.55; margin-top: 16px; max-width: 64ch; color: var(--ink-2); }
+.landing-block { margin-top: 48px; }
+.landing-h2 { font-size: 24px; line-height: 1.25; font-weight: 600; color: var(--ink); }
+.landing-intro { margin-top: 8px; max-width: 64ch; }
+.landing-items { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 24px 32px; margin-top: 16px; }
+.landing-items dt { font-weight: 600; }
+.landing-items dd { margin-top: 4px; line-height: 1.5; }
+.landing-steps { margin-top: 16px; padding-left: 24px; }
+.landing-steps li { margin-top: 16px; padding-left: 8px; }
+.landing-steps li::marker { font-weight: 600; color: var(--ink-3); }
+.landing-step-title { font-weight: 600; }
+.landing-org { display: flex; gap: 12px; align-items: center; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid var(--hairline); }
+.landing-form { display: grid; gap: 8px; }
+
+/* the life of a phishing domain: one track, QCertChain's marker on the first tick */
+.lifeline { list-style: none; display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); margin-top: 32px; padding: 0; border-top: 2px solid var(--ink-3); }
+.lifeline li { position: relative; padding: 16px 12px 0 0; }
+.lifeline li::before { content: ""; position: absolute; top: -8px; left: 0; width: 14px; height: 14px; background: var(--paper); border: 2px solid var(--ink-3); }
+.lifeline li.ours::before { background: var(--action); border-color: var(--action); }
+.lifeline-step { font-weight: 600; }
+.lifeline-note { margin-top: 4px; color: var(--ink-3); font-size: 13px; }
+.lifeline-note.ours-note { color: var(--action); font-weight: 600; }
+
+/* the pipeline: three lanes of stages, what each does and why it is there */
+.flow { margin: 0; }
+.flow-lane { margin-top: 16px; }
+.flow-lane-name { font-weight: 600; color: var(--ink-3); }
+.flow-steps { list-style: none; display: flex; flex-wrap: wrap; align-items: stretch; gap: 8px; margin-top: 8px; padding: 0; }
+.flow-step { flex: 1 1 160px; background: var(--paper); border: 1px solid var(--hairline-firm); padding: 12px; }
+.flow-arrow { align-self: center; color: var(--ink-3); }
+.flow-name { font-weight: 600; }
+.flow-what { margin-top: 4px; font-size: 13px; line-height: 1.45; }
+.flow-why { margin-top: 4px; font-size: 13px; line-height: 1.45; color: var(--ink-2); }
+
+@media (max-width: 960px) {
+  .landing { grid-template-columns: 1fr; gap: 32px; padding: 24px 16px 48px; }
+  .landing-side { position: static; }
+  .landing-title { font-size: 32px; }
+}
+@media (max-width: 640px) {
+  .lifeline { grid-template-columns: 1fr; border-top: none; border-left: 2px solid var(--ink-3); }
+  .lifeline li { padding: 0 0 16px 24px; }
+  .lifeline li::before { top: 2px; left: -8px; }
+  .flow-arrow { display: none; }
+}

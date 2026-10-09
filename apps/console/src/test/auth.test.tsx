@@ -71,6 +71,8 @@ it("a write that met a stray 401 is not sent twice: it comes back as a transient
 });
 
 it("renders nothing of the console without a key, then the console once signed in", async () => {
+  vi.spyOn(globalThis, "fetch").mockResolvedValue(new Response(JSON.stringify([
+    { slug: "org1", name: "Bank One SOC", category: "banking", demo_key: "qcc_demo_abc" }]), { status: 200 }));
   const qc = new QueryClient();
   render(
     <QueryClientProvider client={qc}>
@@ -78,8 +80,8 @@ it("renders nothing of the console without a key, then the console once signed i
     </QueryClientProvider>,
   );
   expect(screen.queryByText("console body")).toBeNull();
-  fireEvent.change(screen.getByLabelText("API key"), { target: { value: "qcc_org_abc" } });
-  fireEvent.click(screen.getByRole("button", { name: "Sign in" }));
+  // signed out, the home page lists every organisation's read-only key; one click signs in
+  fireEvent.click(await screen.findByRole("button", { name: "Sign in to Bank One SOC (read-only)" }));
   expect(await screen.findByText("console body")).toBeInTheDocument();
 });
 

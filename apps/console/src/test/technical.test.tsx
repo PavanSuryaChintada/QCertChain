@@ -27,17 +27,17 @@ it("the Technical approach page opens without a key", () => {
   expect(screen.queryByText("console body")).toBeNull();
 });
 
-it("the sign-in screen links to both explainers and carries a ?", () => {
+it("the home page links to both explainers and carries a ?", () => {
   gate("/");
   expect(screen.getByRole("link", { name: "Technical approach" })).toHaveAttribute("href", "/technical");
   expect(screen.getByRole("link", { name: "How it works" })).toHaveAttribute("href", "/tour");
-  expect(screen.getByRole("button", { name: "Help: Sign in" })).toBeInTheDocument();
+  expect(screen.getByRole("button", { name: "Help: Home" })).toBeInTheDocument();
 });
 
-it("opening the tour signed out says it needs a key, and offers the sign-in", () => {
+it("opening the tour signed out says how to start it, next to the organisations to open", () => {
   gate("/tour");
-  expect(screen.getByTestId("tour-note")).toHaveTextContent("read-only demo key");
-  expect(screen.getByLabelText("API key")).toBeInTheDocument();
+  expect(screen.getByTestId("tour-note")).toHaveTextContent("Try the console");
+  expect(screen.getByRole("complementary", { name: "Try the console" })).toBeInTheDocument();
 });
 
 it("the page states the takedown framing verbatim and no heading says quantum", () => {

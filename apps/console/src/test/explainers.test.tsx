@@ -1,6 +1,7 @@
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { FRAMING } from "../explain/framing";
+import * as LANDING from "../explain/landing";
 import { HELP, helpKeyFor } from "../help/content";
 import { measuredNumber, strings } from "./textRules";
 
@@ -34,5 +35,12 @@ it("every entry has its four parts and no title mentions quantum", () => {
   for (const [k, e] of Object.entries(HELP)) {
     expect([k, e.title.toLowerCase().includes("quantum")]).toEqual([k, false]);
     expect([k, !!e.what && e.read.length > 0 && !!e.data && !!e.notClaimed]).toEqual([k, true]);
+  }
+});
+
+it("the home page types no measured number, and nothing on it says quantum", () => {
+  for (const s of strings(LANDING)) {
+    expect([s, measuredNumber(s)]).toEqual([s, false]);
+    expect(s.toLowerCase()).not.toContain("quantum");
   }
 });
