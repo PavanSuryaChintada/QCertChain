@@ -166,14 +166,15 @@ Three pieces, all open without a key, all following `docs/DESIGN.md`, all bound 
 - Stated limits are stated: HTTP-only phishing has no certificate; wildcard certificates hide the subdomain; the
   live pipeline currently ends at the confirmation gate (0 live confirmations, with the measured cause).
 
-**Technical approach (`/technical`, public, static).** One page, sections in this order: the problem (why blocking
-URLs is too late; the base-rate argument: a classifier alone cannot work at this volume); the five stages (ingest
-from Certificate Transparency, triage, confirmation by evidence, campaign clustering, interdiction) with the method
-of each; evidence and chain of custody (artifacts hashed into a Merkle root, Ed25519 signature, root anchored);
-the ledger (what goes on chain and what never does; the four reasons it exists); takedown selection (maximum
-coverage, the verbatim framing above); the platform (organisations, categories, row-level security, sector routing);
-how it is served (laptop, tunnel, Supabase, Vercel); stated limits. Reuses the Architecture diagram in a static
-mode (no status squares without a key). Linked from the login page and the left rail.
+**Technical approach (`/technical`, public, static).** One page, sections in pipeline order: the problem (why
+blocking URLs is too late; the base-rate argument: a classifier alone cannot work at this volume); the five stages
+(ingest from Certificate Transparency, triage, confirmation by evidence, campaign clustering, interdiction) with the
+method of each; takedown selection (maximum coverage, the verbatim framing above); evidence and chain of custody
+(artifacts hashed into a Merkle root, Ed25519 signature, root anchored); the ledger (what goes on chain and what never
+does; the four reasons it exists); the platform (organisations, row-level security; categories and sector routing
+once Plan 2 ships); how it is served (laptop, tunnel, Supabase, Vercel); stated limits. Reuses the Architecture
+diagram without live status (its squares show "no report"). Linked from the login page and the left rail. Until
+Plan 2 adds `GET /orgs/public`, the tour started signed out asks for a key first, then starts on its own.
 
 **How it works (`/tour`, a guided tour of the real pages).**
 - Started from the login page ("How it works") or the left rail. Started signed out, it first signs in read-only
