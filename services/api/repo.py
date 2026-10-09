@@ -203,3 +203,9 @@ def bulk_add_edges(c: sa.Connection, edges: list[tuple[int, int, float]]) -> Non
         from (select node_id, count(*) as n from graph_edges where node_id = any(:ids) and org_id = current_org()
               group by node_id) s
         where i.id = s.node_id and i.org_id = current_org()"""), {"ids": sorted({n for _, n, _ in edges})})
+
+
+def sector_orgs(conn: sa.Connection) -> list[tuple[str, int]]:
+    """(category, organisation id) for active organisations, oldest first (spec 2026-10-09 §5)."""
+    return [tuple(r) for r in conn.execute(sa.text(
+        "select category, id from organisations where active order by created_at nulls first, id")).all()]

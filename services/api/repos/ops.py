@@ -24,6 +24,7 @@ def status_counts(s: Scope) -> dict:
     """Everything the console's status bar and architecture page need from the database, in ONE statement."""
     return dict(s.conn.execute(sa.text("""
         select (select name from organisations where id = :org) as org_name,
+               (select category from organisations where id = :org) as org_category,
                (select count(*) from campaigns where org_id = :org and status = 'active') as campaigns_active,
                (select count(*) from domain_verdicts where org_id = :org and status = 'confirmed') as domains_confirmed,
                (select count(*) from org_domains where status = 'candidate') as domains_candidate,

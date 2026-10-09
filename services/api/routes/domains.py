@@ -1,11 +1,14 @@
 """Candidates and domain detail. Every verdict is returned with its reasons — a verdict without reasons is a bug."""
 from __future__ import annotations
 
+from typing import Literal
+
 from fastapi import APIRouter, Depends, HTTPException, Query
 from starlette.concurrency import run_in_threadpool
 
 from services.api import cursor
 from services.api.deps import Scope, get_redis, get_scope
+from services.api.platform import brand_sectors
 from services.api.repos import domains as repo_domains
 from services.api.models import (CandidateCounts, CandidateItem, ConfirmationOut, DomainDetail, DomainStatus, EnrichmentOut, Page,
                                  SignalOut, TriageOut)
@@ -14,11 +17,17 @@ from services.config import SETTINGS
 router = APIRouter()
 
 
+Sector = Literal["banking", "fintech", "ecommerce", "government", "telecom", "brokerage", "insurance", "consumer"]
+
+
 @router.get("/candidates", response_model=Page[CandidateItem])
 def candidates(status: DomainStatus | None = None, min_score: float | None = Query(None, ge=0, le=1),
+               sector: Sector | None = None,
                limit: int = cursor.LimitQ, cursor_: str | None = Query(None, alias="cursor", max_length=512), s: Scope = Depends(get_scope)):
+    # a sector: the candidates imitating its brands (spec 2026-10-09 §5)
+    brands = [b for b, sec in brand_sectors().items() if sec == sector] if sector else None
     rows = repo_domains.list_candidates(s, status=status, min_score=min_score, limit=limit,
-                                        after=cursor.decode(cursor_, 2))
+                                        after=cursor.decode(cursor_, 2), brands=brands)
     return cursor.page(rows, limit, lambda r: [r["first_seen"], r["id"]])
 
 

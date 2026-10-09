@@ -81,3 +81,21 @@ async def test_unacked_entries_of_a_crashed_worker_are_reclaimed():
     await r.xreadgroup(GROUP, "dead-worker", {STREAM: ">"}, count=3)  # delivered, never acked
     got = await reclaim_stale(r, "new-worker", min_idle_ms=0)
     assert len(got) == 3
+
+
+async def test_a_new_candidate_is_confirmed_for_the_organisation_of_its_brands_sector(db):
+    """Spec 2026-10-09 §5: the oldest active organisation in the brand's sector confirms it (banking: Bank One, the
+    older of the two banks); a sector with no organisation stays untagged (the pipeline organisation)."""
+    from services.api.workers import triage_worker as tw
+    tw.clear_sector_cache()
+    shop = db.execute(sa.text("insert into organisations (slug, name, category) values ('shopsafe', 'ShopSafe', 'ecommerce') "
+                              "returning id")).scalar()
+    r = fr.FakeRedis(decode_responses=True)
+    b = await process_batch([entry("fpE", ["amazon-login-verify.top"]), entry("fpB", ["sbi-verify-kyc.top"]),
+                             entry("fpJ", ["myjio-kyc-update.top"])], redis=r, conn=db)
+    await tw.publish(r, b)
+    ids = {n: db.execute(sa.text("select id from domains where name = :n"), {"n": n}).scalar()
+           for n in ("amazon-login-verify.top", "sbi-verify-kyc.top", "myjio-kyc-update.top")}
+    queued = set(await r.lrange("enrich:queue", 0, -1))
+    assert queued == {f"{shop}:{ids['amazon-login-verify.top']}", f"1:{ids['sbi-verify-kyc.top']}",
+                      str(ids["myjio-kyc-update.top"])}

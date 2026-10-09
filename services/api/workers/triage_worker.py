@@ -10,6 +10,7 @@ import asyncio
 import json
 import os
 import socket
+import time
 from dataclasses import dataclass, field
 
 import redis.asyncio as aioredis
@@ -28,11 +29,44 @@ BATCH = 500
 FEED_SOURCE = {"certstream": "live", "replay": "replay", "seed": "seed", "email": "email", "sample": "sample"}
 
 
+SECTOR_TTL_S = 60.0
+_sector_cache: tuple[float, dict[str, int]] | None = None
+
+
+def clear_sector_cache() -> None:
+    global _sector_cache
+    _sector_cache = None
+
+
+def sector_orgs(conn: sa.Connection) -> dict[str, int]:
+    """Category -> the oldest active organisation in it (ties by id). Cached for a minute: a new organisation starts
+    receiving its sector's candidates within that time."""
+    global _sector_cache
+    now = time.monotonic()
+    if _sector_cache and now - _sector_cache[0] < SECTOR_TTL_S:
+        return _sector_cache[1]
+    out: dict[str, int] = {}
+    for category, oid in repo.sector_orgs(conn):
+        out.setdefault(category, oid)
+    _sector_cache = (now, out)
+    return out
+
+
+def queue_item(conn: sa.Connection, domain_id: int, brand: str | None) -> str:
+    """Spec 2026-10-09 §5: confirmed on behalf of the organisation that owns the brand's sector. No brand, or no
+    organisation in that sector: untagged, so the pipeline organisation confirms it (as before)."""
+    from services.api.platform import brand_sectors
+    sector = brand_sectors().get(brand) if brand else None
+    oid = sector_orgs(conn).get(sector) if sector else None
+    return f"{oid}:{domain_id}" if oid else str(domain_id)
+
+
 @dataclass
 class Batch:
     stats: dict
     feed: list[str] = field(default_factory=list)
     new_ids: list[int] = field(default_factory=list)
+    queue: list[str] = field(default_factory=list)  # enrich queue items: "<org_id>:<domain_id>" or "<domain_id>"
     dead: list[str] = field(default_factory=list)
 
 
@@ -64,6 +98,7 @@ async def process_batch(raw_certs: list[str], *, redis, conn: sa.Connection) -> 
                 if created:
                     stats["new_candidates"] += 1
                     b.new_ids.append(domain_id)
+                    b.queue.append(queue_item(conn, domain_id, t.brand))
             b.feed.append(json.dumps({"ts": rec.seen_at.isoformat(), "name": name, "etld1": t.etld1,
                                       "score": t.score, "is_candidate": t.is_candidate, "domain_id": domain_id,
                                       "issuer": rec.issuer, "source": FEED_SOURCE.get(rec.source, rec.source)},
@@ -78,7 +113,7 @@ async def publish(redis, b: Batch) -> None:
     async with redis.pipeline(transaction=False) as p:
         for f in b.feed:
             p.publish(LIVE_CHANNEL, f)
-        for d in b.new_ids:
+        for d in b.queue:
             p.lpush(ENRICH_QUEUE, d)
         for raw in b.dead:
             p.lpush(DEAD_LETTER, raw[:10_000])

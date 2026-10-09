@@ -61,7 +61,7 @@ async def status(s: Scope = Depends(get_scope), r=Depends(get_redis), ledger=Dep
     metrics = {k: counts[k] for k in ("campaigns_active", "domains_confirmed", "domains_candidate", "plans_today",
                                       "bundles_today", "anchor_queue_depth", "candidates_last_hour",
                                       "confirmations_last_hour")}
-    return {"org": {"slug": s.org_slug, "name": counts["org_name"]}, "key_kind": s.kind,
+    return {"org": {"slug": s.org_slug, "name": counts["org_name"], "category": counts["org_category"]}, "key_kind": s.kind,
             "stream": stream.model_dump(mode="json"), "metrics": {**metrics, "certs_per_sec": stream.certs_per_sec},
             "ledger": {"available": ledger_up, "queue_depth": counts["anchor_queue_depth"]},
             "components": _components(stream, counts, ledger_up), "health": await run_in_threadpool(report)}

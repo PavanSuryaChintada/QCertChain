@@ -6,7 +6,7 @@ from services.api.deps import Scope
 
 
 def list_candidates(s: Scope, *, status: str | None, min_score: float | None, limit: int,
-                    after: list | None) -> list[dict]:
+                    after: list | None, brands: list[str] | None = None) -> list[dict]:
     """Shared public-feed candidates plus this org's private ones, each with THIS org's verdict only.
     Keyset on (first_seen, id) desc; returns limit + 1 rows (the extra one only signals a next page)."""
     return [dict(r) for r in s.conn.execute(sa.text("""
@@ -15,9 +15,10 @@ def list_candidates(s: Scope, *, status: str | None, min_score: float | None, li
         from org_domains
         where (cast(:status as text) is null or status = :status)
           and (cast(:min_score as real) is null or triage_score >= :min_score)
+          and (cast(:brands as text[]) is null or brand_matched = any(cast(:brands as text[])))
           and (cast(:af as timestamptz) is null or (first_seen, id) < (cast(:af as timestamptz), cast(:ai as bigint)))
         order by first_seen desc, id desc limit :limit"""),
-        {"status": status, "min_score": min_score, "limit": limit + 1,
+        {"status": status, "min_score": min_score, "limit": limit + 1, "brands": brands,
          "af": after[0] if after else None, "ai": after[1] if after else None}).mappings()]
 
 
