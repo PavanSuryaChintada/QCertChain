@@ -17,6 +17,8 @@ import { useToast } from "../components/Toast";
 
 type Filter = "all" | "candidate" | "confirmed" | "dismissed";
 const FILTERS: Filter[] = ["all", "candidate", "confirmed", "dismissed"];
+/** Owner decision 2026-10-09: the queue opens on confirmed domains; the live candidates are one click away. */
+const DEFAULT_FILTER: Filter = "confirmed";
 
 export function sourceLabel(s: string): string {
   return s === "certstream" || s === "replay" ? "ct" : s;
@@ -99,7 +101,7 @@ export function LiveQueuePage() {
   const [params, setParams] = useSearchParams();
   const toast = useToast();
   const raw = params.get("status");
-  const filter: Filter = FILTERS.includes(raw as Filter) ? (raw as Filter) : "all";
+  const filter: Filter = FILTERS.includes(raw as Filter) ? (raw as Filter) : DEFAULT_FILTER;
   const domainId = params.get("domain");
   const [pointerIn, setPointerIn] = useState(false);
   const [older, setOlder] = useState<{ rows: CandidateItem[]; cursor: string | null; filter: Filter } | null>(null);
@@ -132,7 +134,7 @@ export function LiveQueuePage() {
 
   const setFilter = (f: Filter) => {
     const next = new URLSearchParams(params);
-    if (f === "all") next.delete("status"); else next.set("status", f);
+    if (f === DEFAULT_FILTER) next.delete("status"); else next.set("status", f);
     setParams(next, { replace: true });
   };
   const open = (id: number) => {
