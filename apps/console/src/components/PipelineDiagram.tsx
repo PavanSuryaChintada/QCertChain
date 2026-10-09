@@ -6,7 +6,7 @@ import { PIPELINE } from "../explain/landing";
 export function PipelineDiagram() {
   return (
     <figure className="flow" aria-labelledby="flow-caption">
-      <figcaption id="flow-caption" className="t-section">How the pipeline works</figcaption>
+      <figcaption id="flow-caption" className="landing-h2">How the pipeline works</figcaption>
       {PIPELINE.map((lane) => (
         <div key={lane.lane} className="flow-lane">
           <p className="flow-lane-name">{lane.lane}</p>

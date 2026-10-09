@@ -693,3 +693,32 @@ Format: **AI did** · **Owner decided** · **Verified by** · **Rulings** (AI ju
   "See it live" links land on sign-in without context; `/technical/` with a trailing slash is not public.
 - **Not yet run:** the offline browser e2e (`scripts.e2e_stack`, now including `test_tour.py`): it needs the
   laptop free.
+
+## Platform today: newest-first checking, super admin, public home page, tunnel URL discovery (2026-10-09 evening)
+
+- **Owner asked:** live rows with real verdicts (not only "Suspicious"); a super admin who creates organisations by
+  category (a SaaS); a public home page that sells the service without AI slop, with sign-up as a dummy, sign-in for
+  the super admin only, and every organisation's sample key in a sidebar; the Cloudflare tunnel to keep working.
+- **AI did (tests first for each):**
+  - page checker takes the newest candidates first (oldest-first left every new row unchecked);
+  - schema: categories, active flag, sealed key copies, super-admin sessions, `super_admins`, `public_endpoints`
+    (the publishable key may read that one row, nothing else); super admin login (argon2id, throttled per client and
+    overall before any check, 12-hour sessions), panel routes (create by category, keys, rotate, deactivate), the
+    public read-only key list; `scripts.superadmin`, `scripts.tunnel` (publishes the quick-tunnel URL, supervised),
+    `scripts.backup_tables`;
+  - console: run-time API URL lookup, super admin panel, the public home page (life of a phishing domain, what the
+    team gets, how evidence is collected, the pipeline with why Redis / workers / ledger / row-level security, what
+    happens after confirmation, security, a labelled roadmap), demo request-access form that stores nothing.
+- **Claims check on the owner's pasted blueprint:** automatic abuse emails, Safe Browsing / SmartScreen submission,
+  honey-tokens, sinkholing, SIEM webhooks, SSO, per-org brand rules, ASN score spikes and HAR capture are not built;
+  the owner chose "built + labelled roadmap". Honey-tokens are left out; sending stays human-reviewed (CLAUDE.md §2.1).
+  True and kept: reports are addressed to the registrar's RDAP abuse contact (the abuse@ mailbox of RFC 2142).
+- **Migration:** `pg_dump` from Docker failed repeatedly (TLS resets on Docker's network path); a full backup of all
+  22 tables (57,421 rows) was taken through the app's own connection, then the schema applied (on the 4th retry).
+  Mistake owned: the first migration script restarted the API on the new code although the schema had not applied,
+  so signed-in requests returned 500 for a few minutes; it was fixed by applying the schema, and the script lesson is
+  to stop on a failed apply.
+- **Verified:** Python: test_superadmin 10, test_tunnel 3, test_demo_script 10, test_enrich_worker 9, auth / tenancy /
+  async guards green; console 126/126; live: super admin login 200 (wrong password 401), `/orgs/public` lists Bank One
+  and Bank Two with read-only keys, the tunnel published its URL, Supabase REST returns it with the publishable key and
+  refuses writes and the super admin table. Home page and panel screenshotted at desktop and phone width.

@@ -145,7 +145,7 @@ export function LandingPage({ tourNote = false }: { tourNote?: boolean }) {
     <>
       <header className="topbar" style={{ left: 0 }}>
         <span className="landing-brand">QCertChain</span>
-        <nav aria-label="Explainers" style={{ display: "flex", gap: 16 }}>
+        <nav aria-label="Explainers" className="landing-nav">
           <Link to="/tour" className="link">How it works</Link>
           <Link to="/technical" className="link">Technical approach</Link>
         </nav>
