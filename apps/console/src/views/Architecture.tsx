@@ -15,8 +15,8 @@ type Kind = "input" | "stage" | "store";
 interface ArchNode { id: string; name: string; does: string; x: number; y: number; kind: Kind; to: string; component: ComponentKey | "api"; dest: string }
 
 export const ARCH_NODES: ArchNode[] = [
-  { id: "ct", name: "CT firehose", does: "certstream v1.10.1", x: col(0), y: ROW1, kind: "input", to: "/queue", component: "ct", dest: "Live queue" },
-  { id: "triage", name: "Triage", does: "Name scoring, <5 ms", x: col(1), y: ROW1, kind: "stage", to: "/queue", component: "triage", dest: "Live queue" },
+  { id: "ct", name: "CT firehose", does: "certstream v1.10.1", x: col(0), y: ROW1, kind: "input", to: "/queue?status=all", component: "ct", dest: "Live queue" },
+  { id: "triage", name: "Triage", does: "Name scoring, <5 ms", x: col(1), y: ROW1, kind: "stage", to: "/queue?status=all", component: "triage", dest: "Live queue" },
   { id: "confirm", name: "Confirm", does: "2 strong signals", x: col(2), y: ROW1, kind: "stage", to: "/queue?status=confirmed", component: "confirm", dest: "Confirmed domains" },
   { id: "enrich", name: "Enrich", does: "TLS / DNS / RDAP", x: col(3), y: ROW1, kind: "stage", to: "/queue?status=confirmed", component: "enrich", dest: "Confirmed domains" },
   { id: "graph", name: "Campaign graph", does: "Shared infrastructure", x: col(4), y: ROW1, kind: "stage", to: "/campaigns", component: "graph", dest: "Campaigns" },

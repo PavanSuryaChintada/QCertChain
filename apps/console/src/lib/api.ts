@@ -237,18 +237,38 @@ export class ApiError extends Error {
  *  key was seen rejected, and signing an analyst out mid-demo for it costs more than one extra request. */
 export async function apiFetch(path: string, init?: RequestInit): Promise<Response> {
   const key = getKey();
-  const r = await fetch(API_URL + path, { ...init, headers: { ...authHeaders(), ...(init?.headers ?? {}) } });
-  if (r.status === 401 && key && (await keyRejected(key))) setKey(null);
-  return r;
+  const send = () => fetch(API_URL + path, { ...init, headers: { ...authHeaders(), ...(init?.headers ?? {}) } });
+  const r = await send();
+  if (r.status !== 401 || !key) return r;
+  const verdict = await recheckKey(key);
+  if (verdict === "rejected") {
+    setKey(null);
+    return r;
+  }
+  // The key is fine (or the API cannot say): never surface "sign in again" for it. A read is retried once; a write
+  // is never sent twice. Anything left becomes a transient 503, so views keep retrying and polling.
+  const method = (init?.method ?? "GET").toUpperCase();
+  if (verdict === "valid" && (method === "GET" || method === "HEAD")) {
+    const again = await send();
+    if (again.status !== 401) return again;
+  }
+  return transient(path);
 }
 
-let recheck: Promise<boolean> | null = null; // parallel 401s share one re-check
-function keyRejected(key: string): Promise<boolean> {
+type Verdict = "rejected" | "valid" | "unknown";
+let recheck: Promise<Verdict> | null = null; // parallel 401s share one re-check
+function recheckKey(key: string): Promise<Verdict> {
   recheck ??= fetch(API_URL + "/status", { headers: { [KEY_HEADER]: key } })
-    .then((again) => again.status === 401)
-    .catch(() => false) // unreachable is an outage, not a bad key
+    .then((again): Verdict => (again.status === 401 ? "rejected" : again.ok ? "valid" : "unknown"))
+    .catch((): Verdict => "unknown") // unreachable is an outage, not a bad key
     .finally(() => { recheck = null; });
   return recheck;
+}
+
+function transient(path: string): Response {
+  const problem: Problem = { type: "about:blank", title: "Service unavailable", status: 503, instance: path,
+    detail: "The API rejected a valid key once, most likely while its database connection dropped. Retrying." };
+  return new Response(JSON.stringify(problem), { status: 503, headers: { "content-type": "application/problem+json" } });
 }
 
 export function toApiError(e: unknown): ApiError {

@@ -1,7 +1,11 @@
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { useEffect, useState, type ReactNode } from "react";
 import { MemoryRouter, Route, Routes } from "react-router-dom";
 import { Drawer } from "../components/Drawer";
+import { Dropdown } from "../components/Dropdown";
+import { ScoreBreakdown } from "../components/ScoreBreakdown";
+import { GLOSSARY } from "../explain/glossary";
 import type { Campaign, DomainDetail, Page } from "../lib/api";
 import { STEPS, type TourReads } from "../tour/steps";
 import { TourOverlay } from "../tour/TourOverlay";
@@ -39,9 +43,11 @@ function Pages() {
 
 function setup(waitMs = 50, extra: ReactNode = null) {
   return render(
-    <MemoryRouter initialEntries={["/"]}>
-      <TourProvider reads={stub()}><Pages />{extra}<Start /><TourOverlay waitMs={waitMs} /></TourProvider>
-    </MemoryRouter>,
+    <QueryClientProvider client={new QueryClient({ defaultOptions: { queries: { retry: false } } })}>
+      <MemoryRouter initialEntries={["/"]}>
+        <TourProvider reads={stub()}><Pages />{extra}<Start /><TourOverlay waitMs={waitMs} /></TourProvider>
+      </MemoryRouter>
+    </QueryClientProvider>,
   );
 }
 
@@ -54,6 +60,14 @@ it("shows the step card, highlights the step's element and moves focus to the ca
   expect(screen.getByRole("dialog", { name: "The pipeline" })).toBeInTheDocument();
   expect(await screen.findByTestId("tour-highlight")).toBeInTheDocument();
   expect(screen.getByRole("heading", { name: "The pipeline" })).toHaveFocus();
+});
+
+it("the card explains the words on the step's page", async () => {
+  setup();
+  fireEvent.click(screen.getByText("start"));
+  await screen.findByText(`Step 1 of ${N}`);
+  expect(screen.getByRole("heading", { name: "What the words mean" })).toBeInTheDocument();
+  for (const t of STEPS[0].terms) expect(screen.getByText(GLOSSARY[t].term)).toBeInTheDocument();
 });
 
 it("Next step, the arrow keys and Esc drive it", async () => {
@@ -147,4 +161,35 @@ it("the ledger runs a kit-hash lookup passed in the address", async () => {
   renderWith(<LedgerPage />, { route: `/ledger?kit=${kit}` });
   await waitFor(() => expect(f.mock.calls.some(([u]) => String(u).includes(`/ledger/by-kit/${kit}`))).toBe(true));
   expect(screen.getByPlaceholderText("Kit hash (64 hex characters)")).toHaveValue(kit);
+});
+
+it("keys a control has already handled, and modified arrows, leave the tour alone", async () => {
+  const extra = (
+    <>
+      <Dropdown label="Artifact to tamper" value="a" onChange={() => {}} options={[{ value: "a", label: "dom.html" }, { value: "b", label: "cert.pem" }]} />
+      <ScoreBreakdown score={0.5} reasons={{ score: 0.5, provenance: "rules", threshold: 0.35, reasons: [] }} />
+    </>
+  );
+  setup(50, extra);
+  fireEvent.click(screen.getByText("start"));
+  await screen.findByText(`Step 1 of ${N}`);
+  fireEvent.click(screen.getByRole("button", { name: /Artifact to tamper/ }));
+  const list = await screen.findByRole("listbox");
+  fireEvent.keyDown(list, { key: "Escape" }); // closes the dropdown, not the tour
+  fireEvent.keyDown(screen.getByRole("button", { name: /Triage score/ }), { key: "Escape" }); // closes the popover
+  fireEvent.keyDown(document.body, { key: "ArrowRight", ctrlKey: true });
+  fireEvent.keyDown(document.body, { key: "ArrowLeft", altKey: true }); // browser Back
+  expect(screen.getByText(`Step 1 of ${N}`)).toBeInTheDocument();
+});
+
+it("an element taller than the window is scrolled to its start, not its middle", async () => {
+  const scroll = vi.fn();
+  Object.defineProperty(Element.prototype, "scrollIntoView", { value: scroll, configurable: true, writable: true });
+  setup();
+  const el = document.querySelector('[data-tour="architecture"]')!;
+  vi.spyOn(el, "getBoundingClientRect").mockReturnValue({ top: 0, left: 0, width: 800, height: 5000, right: 800, bottom: 5000, x: 0, y: 0, toJSON: () => ({}) } as DOMRect);
+  fireEvent.click(screen.getByText("start"));
+  await screen.findByTestId("tour-highlight");
+  expect(scroll).toHaveBeenCalledWith({ block: "start" });
+  delete (Element.prototype as { scrollIntoView?: unknown }).scrollIntoView;
 });

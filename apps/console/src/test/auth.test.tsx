@@ -30,7 +30,8 @@ it("one 401 while the database is struggling does not sign you out: the key is r
   setKey("qcc_org_valid");
   const f = vi.spyOn(globalThis, "fetch")
     .mockResolvedValueOnce(new Response("{}", { status: 401 })) // the stray rejection
-    .mockResolvedValueOnce(new Response("{}", { status: 200 })); // the re-check: the key is fine
+    .mockResolvedValueOnce(new Response("{}", { status: 200 })) // the re-check: the key is fine
+    .mockResolvedValueOnce(new Response("{}", { status: 200 })); // the retried request
   await apiFetch("/campaigns");
   expect(getKey()).toBe("qcc_org_valid");
   expect(String(f.mock.calls[1][0])).toContain("/status");
@@ -42,7 +43,30 @@ it("a re-check that cannot reach the API keeps the key (an outage is not a bad k
   vi.spyOn(globalThis, "fetch")
     .mockResolvedValueOnce(new Response("{}", { status: 401 }))
     .mockRejectedValueOnce(new TypeError("Failed to fetch"));
-  await apiFetch("/campaigns");
+  const r = await apiFetch("/campaigns");
+  expect(getKey()).toBe("qcc_org_valid");
+  expect(r.status).toBe(503); // transient: views keep retrying and polling instead of "sign in again"
+});
+
+it("when the re-check finds the key valid, a GET is retried once and its answer returned, so the view keeps polling", async () => {
+  setKey("qcc_org_valid");
+  const f = vi.spyOn(globalThis, "fetch")
+    .mockResolvedValueOnce(new Response("{}", { status: 401 }))
+    .mockResolvedValueOnce(new Response("{}", { status: 200 }))
+    .mockResolvedValueOnce(new Response('{"items":[]}', { status: 200 }));
+  const r = await apiFetch("/campaigns");
+  expect(r.status).toBe(200);
+  expect(String(f.mock.calls[2][0])).toContain("/campaigns");
+});
+
+it("a write that met a stray 401 is not sent twice: it comes back as a transient 503", async () => {
+  setKey("qcc_org_valid");
+  const f = vi.spyOn(globalThis, "fetch")
+    .mockResolvedValueOnce(new Response("{}", { status: 401 }))
+    .mockResolvedValueOnce(new Response("{}", { status: 200 }));
+  const r = await apiFetch("/ledger/corroborate/x", { method: "POST" });
+  expect(r.status).toBe(503);
+  expect(f).toHaveBeenCalledTimes(2);
   expect(getKey()).toBe("qcc_org_valid");
 });
 

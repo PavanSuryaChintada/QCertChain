@@ -1,4 +1,8 @@
 import { fireEvent, screen, waitFor } from "@testing-library/react";
+import { readFileSync } from "node:fs";
+import { resolve } from "node:path";
+import { HELP } from "../help/content";
+import { ARCH_NODES } from "../views/Architecture";
 import { LiveQueuePage } from "../views/LiveQueue";
 import { json, renderWith } from "./fixtures";
 
@@ -35,4 +39,12 @@ it("All is still one click away, in the address, and lists every row", async () 
   await waitFor(() => expect(candidateCalls(f).length).toBeGreaterThan(0));
   expect(candidateCalls(f).every((u) => !u.includes("status="))).toBe(true);
   expect(screen.getByRole("radio", { name: /^All/ })).toHaveAttribute("aria-checked", "true");
+});
+
+it("links into the live candidates ask for All, since the queue opens on Confirmed", () => {
+  const to = Object.fromEntries(ARCH_NODES.map((n) => [n.id, n.to]));
+  expect(to.ct).toBe("/queue?status=all");
+  expect(to.triage).toBe("/queue?status=all");
+  expect(readFileSync(resolve(__dirname, "../views/EmailAnalyzer.tsx"), "utf8")).toContain("/queue?status=all&domain=");
+  expect(HELP["/queue"].what).toMatch(/opens on confirmed/i);
 });

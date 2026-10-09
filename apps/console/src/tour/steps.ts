@@ -1,4 +1,5 @@
 import { FRAMING } from "../explain/framing";
+import type { TermId } from "../explain/glossary";
 import type { Campaign, CampaignGraph, DomainDetail, Page, Sweep } from "../lib/api";
 import { fmtInt } from "../lib/format";
 
@@ -19,8 +20,10 @@ export interface TourStep {
   target: string;
   title: string;
   body: (c: TourCtx) => string;
-  /** what the card says while the element is not on the page (no data yet) */
-  missing: string;
+  /** what the card says while the element is not on the page: still loading, or no data yet */
+  missing: (c: TourCtx) => string;
+  /** the words on this page the card defines (from the glossary) */
+  terms: TermId[];
 }
 
 /** The largest takedown budget the tour quotes (the demo's slider value). */
@@ -35,58 +38,69 @@ export const STEPS: TourStep[] = [
   {
     id: "pipeline", route: () => "/", target: "architecture", title: "The pipeline",
     body: () => "Every HTTPS certificate is published to public Certificate Transparency logs before browsers trust it. QCertChain listens to those logs and moves each lookalike domain through triage, confirmation, campaign clustering, interdiction, evidence and the ledger. Each square is that stage's live status.",
-    missing: "The pipeline diagram appears here once the page has loaded.",
+    missing: () => "The pipeline diagram appears here once the page has loaded.",
+    terms: ["ct", "triage", "statusSquare"],
   },
   {
     id: "queue", route: allRows, target: "queue", title: "Certificates arriving",
     body: () => "Domains that triage nominates appear here as their certificates are logged. Triage is cheap and errs towards catching too many: it nominates, it never decides.",
-    missing: "The queue fills as certificates arrive; it is empty right now.",
+    missing: () => "The queue is loading, or empty right now; it fills as certificates arrive.",
+    terms: ["triage", "candidate", "source"],
   },
   {
     id: "score", route: allRows, target: "score", title: "Why a domain was nominated",
     body: () => "Hover a score to see its parts: the brand it imitates, keywords, the top-level domain and confusable characters. A candidate is suspicious, not verified, and is never shown in red.",
-    missing: "Scores appear on each row once the queue has candidates.",
+    missing: () => "Scores appear on each row once the queue has loaded its candidates.",
+    terms: ["score", "brandToken", "homograph", "tld"],
   },
   {
     id: "confirmed", route: () => "/queue?status=confirmed", target: "status-filter", title: "Confirmation needs evidence",
     body: () => "A domain is confirmed only after its page is fetched and two independent strong signals are found, such as a cloned login form and credentials posted to a foreign site. The database rejects a confirmation with fewer.",
-    missing: "The status filter is at the top of the queue.",
+    missing: () => "The status filter is at the top of the queue.",
+    terms: ["confirmed", "strongSignal", "independent"],
   },
   {
     id: "graph", route: campaign, target: "graph", title: "One operator, many domains",
     body: (c) => `${c.domainCount ? `This campaign's ${c.domainCount} domains are` : "A campaign's domains are"} linked by the hosting, nameservers, registrars and phishing kit they share. Blocking one domain leaves the rest running.`,
-    missing: "Your organisation has no campaign yet. Campaigns appear once confirmed domains share infrastructure.",
+    missing: (c) => (c.campaignId ? "The campaign graph is still loading; it is highlighted when it arrives." : "Your organisation has no campaign yet. Campaigns appear once confirmed domains share infrastructure."),
+    terms: ["campaign", "infraNode", "kitHash"],
   },
   {
     id: "budget", route: campaign, target: "budget", title: "The fewest takedowns",
     body: (c) => `${c.coverage ? `With a budget of ${c.coverage.k} takedowns, the best plan covers ${c.coverage.killed} of ${c.coverage.total} domains. ` : ""}Choosing which few targets cover the most domains is maximum coverage, an NP-hard problem, solved here with CP-SAT. Drag the budget to see the plan change.`,
-    missing: "The takedown planner appears on a campaign's page.",
+    missing: (c) => (c.campaignId ? "The campaign is still loading; the planner is highlighted when it arrives." : "The takedown planner appears on a campaign's page."),
+    terms: ["takedown", "budget", "coverage", "reachable", "npHard"],
   },
   {
     id: "solvers", route: campaign, target: "solvers", title: "Solvers compared",
     body: () => `${FRAMING} Every solver's result is shown, losses included.`,
-    missing: "The solver comparison appears on a campaign's page.",
+    missing: (c) => (c.campaignId ? "The campaign is still loading; the solver table is highlighted when it arrives." : "The solver comparison appears on a campaign's page."),
+    terms: ["cpsat", "greedy", "annealing", "qubo", "gap"],
   },
   {
     id: "report", route: bundle, target: "report", title: "Generated, never sent",
     body: () => "For each target the system writes an evidence-backed abuse request to the hosting provider, DNS provider or registrar. It is never submitted: one false positive would take a legitimate business offline.",
-    missing: "Abuse reports belong to evidence bundles, which exist only for confirmed domains.",
+    missing: (c) => (c.bundleId ? "The evidence bundle is still loading; its report is highlighted when it arrives." : "Abuse reports belong to evidence bundles, which exist only for confirmed domains."),
+    terms: ["abuseReport", "route", "takedown"],
   },
   {
     id: "evidence", route: bundle, target: "verify", title: "Tamper-evident evidence",
     body: () => "The screenshot, page, certificate, DNS and WHOIS records are hashed into one Merkle root and signed with Ed25519. Verify recomputes the root and compares it with the copy anchored on the chain. Only the hash is on the chain, never the content.",
-    missing: "Verification appears on an evidence bundle's page.",
+    missing: (c) => (c.bundleId ? "The evidence bundle is still loading; Verify is highlighted when it arrives." : "Verification appears on an evidence bundle's page."),
+    terms: ["artifact", "fileHash", "merkleRoot", "signature", "anchored"],
   },
   {
     id: "ledger", route: (c) => (c.kitHash ? `/ledger?kit=${encodeURIComponent(c.kitHash)}` : "/ledger"), target: "kit-lookup",
     title: "One organisation protects the next",
     body: () => "Looking up a phishing kit's hash shows every organisation that published a campaign built with it: counts, confidence, reporter and time. Domain names, addresses and page content are never shared.",
-    missing: "The kit-hash lookup is at the top of the ledger page.",
+    missing: () => "The kit-hash lookup is at the top of the ledger page.",
+    terms: ["kitHash", "iocRoot", "corroborate", "dispute", "transaction", "confidence"],
   },
   {
     id: "metrics", route: () => "/metrics", target: "metrics", title: "Measured, not asserted",
     body: () => "Every figure on this page comes from a measurement script, and what could not be measured says so. That is the end of the tour.",
-    missing: "The metrics appear once the report has loaded.",
+    missing: () => "The metrics appear once the report has loaded.",
+    terms: ["precision", "recall", "baseRate", "leadTime"],
   },
 ];
 

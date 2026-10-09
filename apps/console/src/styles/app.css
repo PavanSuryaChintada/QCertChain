@@ -193,3 +193,6 @@ textarea.input { height: auto; padding: 8px; font-family: var(--font-mono); font
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation: none !important; transition: none !important; }
 }
+
+/* tour anchors scrolled to their start stay below the fixed top bar */
+[data-tour] { scroll-margin-top: 64px; }

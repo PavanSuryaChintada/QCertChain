@@ -91,7 +91,7 @@ function LinkDomains({ a }: { a: EmailAnalysis }) {
               <td className="mono" title={h}>{h}</td>
               <td className="num mono">{d ? fmtNum(d.triage.score, 2) : "–"}</td>
               <td>{sev ? <StatusIndicator severity={sev.severity} label={sev.label} /> : <span className="ink-3">Not a candidate</span>}</td>
-              <td>{d ? <Link className="link" to={`/queue?domain=${d.id}`}>{newIds.has(d.id) ? "New candidate: open" : "Open in pipeline"}</Link> : <span className="ink-3">{"–"}</span>}</td>
+              <td>{d ? <Link className="link" to={`/queue?status=all&domain=${d.id}`}>{newIds.has(d.id) ? "New candidate: open" : "Open in pipeline"}</Link> : <span className="ink-3">{"–"}</span>}</td>
             </tr>
           );
         })}

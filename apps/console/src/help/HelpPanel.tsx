@@ -2,7 +2,22 @@ import { useEffect, useState } from "react";
 import { useLocation } from "react-router-dom";
 import { Button } from "../components/Button";
 import { Drawer } from "../components/Drawer";
+import { GLOSSARY, type TermId } from "../explain/glossary";
 import { HELP, helpKeyFor, type HelpEntry, type HelpKey } from "./content";
+
+/** Term and meaning, as a definition list: shared by the ? panel and the tour card. */
+export function TermList({ terms }: { terms: TermId[] }) {
+  return (
+    <dl>
+      {terms.map((t) => (
+        <div key={t} style={{ marginTop: 8 }}>
+          <dt style={{ fontWeight: 500 }}>{GLOSSARY[t].term}</dt>
+          <dd className="ink-2" style={{ marginTop: 4 }}>{GLOSSARY[t].meaning}</dd>
+        </div>
+      ))}
+    </dl>
+  );
+}
 
 export function HelpBody({ entry }: { entry: HelpEntry }) {
   return (
@@ -18,6 +33,12 @@ export function HelpBody({ entry }: { entry: HelpEntry }) {
           </div>
         ))}
       </dl>
+      {entry.terms && entry.terms.length > 0 && (
+        <>
+          <h3 className="t-section" style={{ marginTop: 24 }}>Words on this page</h3>
+          <TermList terms={entry.terms} />
+        </>
+      )}
       <h3 className="t-section" style={{ marginTop: 24 }}>Where the data comes from</h3>
       <p style={{ marginTop: 8 }}>{entry.data}</p>
       <h3 className="t-section" style={{ marginTop: 24 }}>What it does not claim</h3>

@@ -1,17 +1,19 @@
 import { useEffect, useId, useRef, useState } from "react";
 import { useLocation } from "react-router-dom";
 import { Button } from "../components/Button";
+import { TermList } from "../help/HelpPanel";
 import { useTour } from "./TourProvider";
 
 /** How long a step waits before saying its element is missing. It keeps looking after that: a cold campaign graph
  *  can take seconds, and the highlight appears whenever the element does. */
 export const TARGET_WAIT_MS = 8000;
 const PAD = 4;
+const TOPBAR = 48;
 // Above the rail and top bar (z 20), below drawers (z 30): an opened ? panel covers the card, closing it shows the card.
 const Z_HIGHLIGHT = 24;
 const Z_CARD = 25;
 // Controls that use the arrow keys themselves: the tour leaves them alone.
-const ARROW_OWNERS = 'input, textarea, select, [contenteditable="true"], [role="radiogroup"], [role="slider"], [role="grid"], table';
+const ARROW_OWNERS = 'input, textarea, select, [contenteditable="true"], [role="radiogroup"], [role="listbox"], [role="slider"], [role="grid"], table';
 
 export function TourOverlay({ waitMs = TARGET_WAIT_MS }: { waitMs?: number }) {
   const t = useTour();
@@ -36,7 +38,8 @@ export function TourOverlay({ waitMs = TARGET_WAIT_MS }: { waitMs?: number }) {
       el = document.querySelector(`[data-tour="${step.target}"]`);
       if (el) {
         setMissing(false);
-        el.scrollIntoView?.({ block: "center" });
+        const tall = el.getBoundingClientRect().height > window.innerHeight - TOPBAR - 2 * PAD;
+        el.scrollIntoView?.({ block: tall ? "start" : "center" });
         measure();
         return;
       }
@@ -61,6 +64,8 @@ export function TourOverlay({ waitMs = TARGET_WAIT_MS }: { waitMs?: number }) {
   useEffect(() => {
     if (!active) return;
     const onKey = (e: KeyboardEvent) => {
+      // a control already handled it (React's root listener runs first), or it is a shortcut such as Alt+Left (Back)
+      if (e.defaultPrevented || e.altKey || e.ctrlKey || e.metaKey || e.shiftKey) return;
       if (e.key === "Escape") {
         if (document.querySelector(".drawer")) return; // Esc closes the open drawer first
         e.preventDefault();
@@ -88,13 +93,15 @@ export function TourOverlay({ waitMs = TARGET_WAIT_MS }: { waitMs?: number }) {
                       height: rect.height + 2 * PAD, outline: "2px solid var(--focus)", pointerEvents: "none", zIndex: Z_HIGHLIGHT }} />
       )}
       <section className="overlay panel" role="dialog" aria-modal="false" aria-labelledby={`${id}-title`}
-               style={{ position: "fixed", right: 24, bottom: 24, width: 380, zIndex: Z_CARD }}>
+               style={{ position: "fixed", right: 24, bottom: 24, width: 420, maxHeight: "calc(100vh - 96px)", overflowY: "auto", zIndex: Z_CARD }}>
         <div className="panel-body">
           <p className="sr-only" aria-live="polite">{`${counter}: ${step.title}`}</p>
           <p className="t-label">{counter}</p>
           <h2 id={`${id}-title`} ref={heading} tabIndex={-1} className="t-section" style={{ marginTop: 4 }}>{step.title}</h2>
           <p className="prose" style={{ marginTop: 8 }}>{step.body(t.state.ctx)}</p>
-          {missing && <p className="prose ink-2" style={{ marginTop: 8 }} data-testid="tour-missing">{step.missing}</p>}
+          {missing && <p className="prose ink-2" style={{ marginTop: 8 }} data-testid="tour-missing">{step.missing(t.state.ctx)}</p>}
+          <h3 className="t-label" style={{ marginTop: 16 }}>What the words mean</h3>
+          <div className="prose" style={{ marginTop: 4 }}><TermList terms={step.terms} /></div>
           <div style={{ display: "flex", gap: 8, marginTop: 16, justifyContent: "flex-end" }}>
             <Button size="sm" variant="ghost" onClick={t.exit}>Exit</Button>
             <Button size="sm" onClick={t.back} disabled={index === 0} disabledReason="This is the first step">Back</Button>

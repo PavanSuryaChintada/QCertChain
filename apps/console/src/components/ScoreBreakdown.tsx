@@ -73,7 +73,7 @@ export function ScoreBreakdown({ score, reasons: given, domainId }: { score: num
         onFocus={() => setOpen(true)}
         onBlur={() => setOpen(false)}
         onClick={(e) => { e.stopPropagation(); setOpen((o) => !o); }}
-        onKeyDown={(e) => { if (e.key === "Escape") setOpen(false); }}
+        onKeyDown={(e) => { if (e.key === "Escape") { e.preventDefault(); setOpen(false); } }}
       >
         {fmtNum(score, 2)}
       </button>

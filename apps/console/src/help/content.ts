@@ -1,4 +1,5 @@
 import { FRAMING } from "../explain/framing";
+import type { TermId } from "../explain/glossary";
 
 /** What the ? panel says about one page. Plain words; no measured numbers (spec §8b). */
 export interface HelpEntry {
@@ -7,11 +8,14 @@ export interface HelpEntry {
   read: { label: string; text: string }[];
   data: string;
   notClaimed: string;
+  /** the words on this page, defined in the glossary */
+  terms?: TermId[];
 }
 
 const HELP_ENTRIES = {
   "/": {
     title: "Architecture",
+    terms: ["ct", "statusSquare", "triage"],
     what: "The whole pipeline on one diagram, from the certificate stream to the console, with each stage's live status.",
     read: [
       { label: "Boxes", text: "Dashed grey boxes are inputs, white boxes are pipeline stages, and boxes with a thick left edge store records. Click a box to open its page." },
@@ -24,7 +28,8 @@ const HELP_ENTRIES = {
   },
   "/queue": {
     title: "Live queue",
-    what: "Every domain triage has nominated, newest first, from the certificate stream and from links in analysed emails.",
+    terms: ["candidate", "confirmed", "score", "brandToken", "homograph", "tld", "source"],
+    what: "Every domain triage has nominated, from the certificate stream and from links in analysed emails. It opens on confirmed domains; Candidates and All show what triage nominated, newest first.",
     read: [
       { label: "Status filter", text: "All, candidates, confirmed or dismissed, with a count on each. A candidate is suspicious, not verified." },
       { label: "Triage score", text: "Hover it for the breakdown: the brand it imitates, keywords, the top-level domain and confusable characters. Above the threshold, a name becomes a candidate." },
@@ -36,6 +41,7 @@ const HELP_ENTRIES = {
   },
   "/campaigns": {
     title: "Campaigns",
+    terms: ["campaign", "confidence", "infraNode"],
     what: "Confirmed domains grouped into campaigns by the infrastructure they share.",
     read: [
       { label: "Each row", text: "One campaign: how many domains and infrastructure nodes it has, its confidence, and when it was first seen. Open it to see the graph and plan the takedowns." },
@@ -46,6 +52,7 @@ const HELP_ENTRIES = {
   },
   "/campaigns/:id": {
     title: "Campaign",
+    terms: ["campaign", "infraNode", "kitHash", "takedown", "budget", "coverage", "reachable", "npHard", "cpsat", "greedy", "annealing", "qubo", "gap"],
     what: "One campaign: the graph of its domains and shared infrastructure, the takedown plan for a budget, and the solvers compared.",
     read: [
       { label: "Graph", text: "Domains around the infrastructure they share. Filled squares are takedown targets (hosting address, nameserver, registrar). Dashed circles are evidence only, such as kit and favicon hashes: nobody can take down a hash." },
@@ -59,6 +66,7 @@ const HELP_ENTRIES = {
   },
   "/evidence": {
     title: "Evidence",
+    terms: ["artifact", "merkleRoot"],
     what: "Where evidence bundles open. A bundle is built for each confirmed domain.",
     read: [{ label: "Bundle id", text: "Enter a bundle id, or open a bundle from a confirmed domain's detail in the live queue." }],
     data: "Your organisation's bundles only.",
@@ -66,6 +74,7 @@ const HELP_ENTRIES = {
   },
   "/evidence/:id": {
     title: "Evidence bundle",
+    terms: ["artifact", "fileHash", "merkleRoot", "signature", "anchored", "abuseReport", "route"],
     what: "Everything kept for one confirmed domain, how it is sealed against tampering, and the abuse report generated from it.",
     read: [
       { label: "Bundle contents", text: "Each artifact (screenshot, page, certificate, DNS and WHOIS records) with its SHA-256 hash and size." },
@@ -79,6 +88,7 @@ const HELP_ENTRIES = {
   },
   "/email": {
     title: "Email analyzer",
+    terms: ["strongSignal", "candidate"],
     what: "Paste the headers of a suspicious email, or the whole message, to see whether it is spoofed and where its links lead.",
     read: [
       { label: "Parsed headers", text: "Sender, return path, the relays it passed through, and the SPF, DKIM and DMARC results with pass or fail." },
@@ -91,6 +101,7 @@ const HELP_ENTRIES = {
   },
   "/ledger": {
     title: "Ledger",
+    terms: ["kitHash", "iocRoot", "corroborate", "dispute", "transaction", "confidence", "anchored"],
     what: "The shared chain: what your organisation anchored and published, and lookups across organisations by kit hash.",
     read: [
       { label: "Kit-hash lookup", text: "Paste the hash of a phishing kit seen on one of your domains. The result lists every organisation that published a campaign built with that kit: domain count, confidence, reporter and time. Corroborate or Dispute records your organisation's answer on the chain, signed with its own key." },
@@ -101,6 +112,7 @@ const HELP_ENTRIES = {
   },
   "/metrics": {
     title: "Metrics",
+    terms: ["precision", "recall", "baseRate", "leadTime"],
     what: "How the system measures up: triage precision and recall, the threshold sweep, lead time, response time per stage, and the interdiction, evidence and ledger figures.",
     read: [
       { label: "Triage precision", text: "Precision at a realistic base rate, worked out from the measured false-positive rate and recall, not from a balanced test set." },
@@ -134,6 +146,7 @@ const HELP_ENTRIES = {
   },
   "/technical": {
     title: "Technical approach",
+    terms: ["ct", "triage", "strongSignal", "merkleRoot", "iocRoot", "kitHash"],
     what: "How QCertChain works and why it is built this way, on one page.",
     read: [
       { label: "Sections", text: "The problem, the five stages, choosing the takedowns, evidence, the shared ledger, organisations, how it is served, and what it does not do." },

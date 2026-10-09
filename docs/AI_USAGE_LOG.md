@@ -668,3 +668,28 @@ Format: **AI did** · **Owner decided** · **Verified by** · **Rulings** (AI ju
   auth fix); one existing evidence test timed out at 5 s under 100 % CPU in one run and passed alone.
 - **Measured state:** the laptop's CPU is at 100 % (Docker, the demo workers, the dev server, test runs); `/status`
   took 1.5 to 16 s and the first database connection 8 s, which is what showed "Loading organisation".
+
+## Glossary on every step and page; independent review and its fixes (2026-10-09)
+
+- **Owner asked:** explain the words more deeply in each step ("what is that IOC, corroborate…").
+- **AI did:** one glossary (`explain/glossary.ts`, about forty terms, no typed numbers); every tour card lists the
+  words of its page ("What the words mean") and every ? panel lists them ("Words on this page").
+- **Independent review** (a fresh reviewer over the whole range, read-only): no critical issues; five important
+  findings fixed in one pass, each test first:
+  - a 401 whose key re-checks as valid no longer freezes the view with "sign in again": a read is retried once,
+    a write is never sent twice, and anything left becomes a transient 503 so views keep polling;
+  - the tour ignores keys a control already handled and modified keys (Esc in the Verify dropdown or on the score
+    popup no longer ends the tour; Alt+Left stays browser Back);
+  - the card says "still loading" instead of "no campaign yet" while a known campaign or bundle is loading;
+  - elements taller than the window are scrolled to their start, kept below the top bar;
+  - links into live candidates (diagram CT and Triage boxes, the email analyzer's link) ask for All, and the Live
+    queue help says it opens on Confirmed.
+  The guard test first failed for the wrong reason (no QueryClient in its harness); the harness was fixed and the
+  test was shown to fail with the guard switched off and pass with it on.
+- **Deferred minors** (owner decides): the re-check blocks on `/status` and lacks a key-switch guard; browser Back
+  is trapped at `/tour`; a persisted tour index is not clamped; a re-mounted anchor is not re-found; the Ledger
+  reads `?kit=` only on mount; line-ending churn (no `.gitattributes`; Python edits on Windows write CRLF); the
+  reused diagram shows static "<5 ms" and "2 strong signals"; test gaps for real table rows and resize; signed-out
+  "See it live" links land on sign-in without context; `/technical/` with a trailing slash is not public.
+- **Not yet run:** the offline browser e2e (`scripts.e2e_stack`, now including `test_tour.py`): it needs the
+  laptop free.

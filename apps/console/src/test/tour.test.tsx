@@ -46,9 +46,16 @@ it("without data the tour still runs, with no live values", async () => {
 it("every step's text types no measured number and no title says quantum", () => {
   const ph: TourCtx = { campaignId: "C", domainCount: "N", kitHash: "K", bundleId: "B", coverage: { k: "K", killed: "X", total: "T" } };
   for (const s of STEPS) {
-    for (const text of [s.title, s.body(ph), s.body({}), s.missing]) expect([s.id, measuredNumber(text)]).toEqual([s.id, false]);
+    for (const text of [s.title, s.body(ph), s.body({}), s.missing(ph), s.missing({})]) expect([s.id, measuredNumber(text)]).toEqual([s.id, false]);
     expect(s.title.toLowerCase()).not.toContain("quantum");
   }
+});
+
+it("while a known campaign is still loading, the card says so instead of claiming there is none", () => {
+  const by = Object.fromEntries(STEPS.map((s) => [s.id, s]));
+  expect(by.graph.missing({ campaignId: "big" })).toMatch(/still loading/);
+  expect(by.graph.missing({})).toMatch(/no campaign yet/);
+  expect(by.queue.missing({})).toMatch(/loading, or empty/);
 });
 
 it("a step without its item falls back to the list page", () => {
