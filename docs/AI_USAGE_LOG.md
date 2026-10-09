@@ -722,3 +722,29 @@ Format: **AI did** · **Owner decided** · **Verified by** · **Rulings** (AI ju
   async guards green; console 126/126; live: super admin login 200 (wrong password 401), `/orgs/public` lists Bank One
   and Bank Two with read-only keys, the tunnel published its URL, Supabase REST returns it with the publishable key and
   refuses writes and the super admin table. Home page and panel screenshotted at desktop and phone width.
+
+## Deployed sign-in, CI, a less plain home page, a lost provisioning failure (2026-10-10)
+
+- **Owner asked:** sign-in on https://q-cert-chain.vercel.app failed; CI was red; the home page looked too plain.
+- **AI did (tests first for each):**
+  - deployed sign-in: the hosted console now finds the tunnel URL without build settings (public Supabase URL and
+    publishable key committed in `publicConfig.ts`; they read one row under row-level security); the hosted origin is
+    in the API's default CORS list, because the `CONSOLE_ORIGINS` line had vanished from the local `.env` and the
+    preflight returned 400; `scripts.tunnel` replaces a quick tunnel Cloudflare drops ("Tunnel not found");
+  - CI: `test_visible_demos` expected the status organisation without its category; the offline e2e console tried
+    the Supabase lookup on a network error, so the lookup now runs only on the hosted site;
+  - home page: a dark hero band with a certificate-log illustration (fictitious `.example` names, captioned as an
+    illustration; the candidate row is shown as a candidate, never as confirmed), line icons on capabilities and
+    security, evidence steps as a linked chain, a timeline for what follows confirmation, roadmap items dashed and
+    tagged "Not built yet", a dark footer. No new claims: every word comes from `explain/landing.ts`;
+  - the organisation "amazon" sat in "Setting up" since 2026-10-09 20:10 UTC with no chain account and no campaign.
+    Its background setup had failed, and the failure line was lost because it was logged on a channel the `ops_log`
+    check rejects ('platform'). A rolled-back dry run succeeded, so the failure was transient (a database blip, or
+    the API restart for the CORS fix killing the setup thread; the lost line means we cannot tell which). Fixed: the
+    failure is logged on 'system'; a test checks every logged channel against the table; `scripts.superadmin
+    provision <slug>` re-runs a lost setup, and was run for amazon.
+- **Verified:** console 133/133 (the new hero test failed against the old page, passes on the new); Python:
+  test_ops_channels failed on 'platform' then passed; test_superadmin_cli, test_superadmin, test_tenancy_static
+  18/18; CI green on 377fe56; live: deployed home page shows the new hero, super admin sign-in on the Vercel site
+  reaches the panel and lists all three organisations; through the tunnel amazon now shows one campaign and chain
+  registered. Screenshots at desktop and phone width.
