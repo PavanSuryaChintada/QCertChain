@@ -12,7 +12,9 @@ const IDLE: TourState = { active: false, index: 0, ctx: {} };
 function load(): TourState {
   try {
     const raw = window.sessionStorage.getItem(STORAGE);
-    if (raw) return { ...IDLE, ...(JSON.parse(raw) as Partial<TourState>) };
+    const s = raw ? { ...IDLE, ...(JSON.parse(raw) as Partial<TourState>) } : IDLE;
+    // a position saved by an older version of the tour may no longer exist: start idle rather than break the page
+    if (Number.isInteger(s.index) && s.index >= 0 && s.index < STEPS.length) return s;
   } catch {
     /* blocked or corrupt: start idle */
   }
@@ -32,7 +34,8 @@ export interface Tour {
   state: TourState;
   steps: TourStep[];
   starting: boolean;
-  start: () => Promise<void>;
+  /** `replace`: the first step replaces the current entry (from /tour, so browser Back does not restart the tour) */
+  start: (opts?: { replace?: boolean }) => Promise<void>;
   next: () => void;
   back: () => void;
   exit: () => void;
@@ -54,18 +57,18 @@ export function TourProvider({ children, reads = api }: { children: ReactNode; r
   readsRef.current = reads;
   const busy = useRef(false);
 
-  const go = useCallback((s: TourState) => {
+  const go = useCallback((s: TourState, replace = false) => {
     setState(s);
     save(s);
-    if (s.active) navRef.current(STEPS[s.index].route(s.ctx));
+    if (s.active) navRef.current(STEPS[s.index].route(s.ctx), { replace });
   }, []);
 
-  const start = useCallback(async () => {
+  const start = useCallback(async (opts?: { replace?: boolean }) => {
     if (busy.current) return; // StrictMode runs effects twice; one tour at a time
     busy.current = true;
     setStarting(true);
     try {
-      go({ active: true, index: 0, ctx: await resolveCtx(readsRef.current) });
+      go({ active: true, index: 0, ctx: await resolveCtx(readsRef.current) }, opts?.replace ?? false);
     } finally {
       busy.current = false;
       setStarting(false);

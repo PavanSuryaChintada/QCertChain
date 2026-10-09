@@ -1,5 +1,5 @@
 import { useMutation, useQuery } from "@tanstack/react-query";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 import { api, toApiError, type ByKit, type LedgerCampaign, type LedgerEvent, type LedgerStatus, type Page } from "../lib/api";
 import { fmtDateTime, fmtInt, fmtNum, sentence } from "../lib/format";
@@ -74,6 +74,8 @@ export function LedgerPage() {
   const fromUrl = params.get("kit")?.trim() || null; // the tour (or any link) can open a lookup directly
   const [kit, setKit] = useState(fromUrl ?? "");
   const [lookup, setLookup] = useState<string | null>(fromUrl);
+  // a new ?kit= while the page stays open (the tour moving between steps, a pasted link) runs that lookup
+  useEffect(() => { if (fromUrl) { setKit(fromUrl); setLookup(fromUrl); } }, [fromUrl]);
   const { data: sys } = useStatus();
   const demo = sys?.key_kind === "demo";
   const status = useQuery({ queryKey: ["ledger-status"], queryFn: () => api.ledgerStatus(), staleTime: 60_000 });

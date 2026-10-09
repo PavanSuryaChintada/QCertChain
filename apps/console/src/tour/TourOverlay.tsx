@@ -33,7 +33,11 @@ export function TourOverlay({ waitMs = TARGET_WAIT_MS }: { waitMs?: number }) {
     let el: Element | null = null;
     let timer = 0;
     const deadline = Date.now() + waitMs;
-    const measure = () => { if (el) setRect(el.getBoundingClientRect()); };
+    const measure = () => {
+      // the page may have re-rendered the element (new data): follow the new one, never a detached old one
+      if (el && !el.isConnected) el = document.querySelector(`[data-tour="${step.target}"]`);
+      if (el) setRect(el.getBoundingClientRect());
+    };
     const find = () => {
       el = document.querySelector(`[data-tour="${step.target}"]`);
       if (el) {

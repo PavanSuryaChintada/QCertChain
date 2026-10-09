@@ -5,6 +5,6 @@ import { useTour } from "./TourProvider";
 /** /tour: starts the guided tour on this organisation's data, then the tour navigates to its first step. */
 export function TourStartPage() {
   const { start } = useTour();
-  useEffect(() => { void start(); }, [start]);
+  useEffect(() => { void start({ replace: true }); }, [start]); // Back from the first step leaves, not restarts
   return <PageHeader title="How it works" meta="Preparing the tour from your organisation's data." />;
 }

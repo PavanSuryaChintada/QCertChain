@@ -209,7 +209,7 @@ function RequestAccess() {
 }
 
 /** The public home page for anyone without a key (spec 2026-10-09; owner request: a SaaS page, not AI slop). */
-export function LandingPage({ tourNote = false }: { tourNote?: boolean }) {
+export function LandingPage({ tourNote = false, signinNote = false }: { tourNote?: boolean; signinNote?: boolean }) {
   const [open, setOpen] = useState<"signin" | "access" | null>(null);
   const side = useRef<HTMLDivElement>(null);
   return (
@@ -230,6 +230,11 @@ export function LandingPage({ tourNote = false }: { tourNote?: boolean }) {
         <section className="hero-band" aria-labelledby="hero-title">
           <div className="hero-inner">
             <div className="hero-text">
+              {signinNote && (
+                <p className="hero-note" data-testid="signin-note">
+                  That page shows an organisation's live data: open an organisation under Try the console to see it.
+                </p>
+              )}
               {tourNote && (
                 <p className="hero-note" data-testid="tour-note">
                   The guided tour runs on live data: open an organisation under Try the console and the tour starts.

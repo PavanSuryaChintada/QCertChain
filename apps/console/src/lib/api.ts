@@ -284,7 +284,7 @@ export async function apiFetch(path: string, init?: RequestInit, discovery?: Dis
   if (r.status !== 401 || !key) return r;
   const verdict = await recheckKey(key);
   if (verdict === "rejected") {
-    setKey(null);
+    if (getKey() === key) setKey(null); // a key chosen while this one was being checked is not this key's verdict
     return r;
   }
   // The key is fine (or the API cannot say): never surface "sign in again" for it. A read is retried once; a write
@@ -298,13 +298,17 @@ export async function apiFetch(path: string, init?: RequestInit, discovery?: Dis
 }
 
 type Verdict = "rejected" | "valid" | "unknown";
-let recheck: Promise<Verdict> | null = null; // parallel 401s share one re-check
+const rechecks = new Map<string, Promise<Verdict>>(); // parallel 401s with the same key share one re-check
 function recheckKey(key: string): Promise<Verdict> {
-  recheck ??= fetch(apiUrl() + "/status", { headers: { [KEY_HEADER]: key } })
-    .then((again): Verdict => (again.status === 401 ? "rejected" : again.ok ? "valid" : "unknown"))
-    .catch((): Verdict => "unknown") // unreachable is an outage, not a bad key
-    .finally(() => { recheck = null; });
-  return recheck;
+  let p = rechecks.get(key);
+  if (!p) {
+    p = fetch(apiUrl() + "/status", { headers: { [KEY_HEADER]: key } })
+      .then((again): Verdict => (again.status === 401 ? "rejected" : again.ok ? "valid" : "unknown"))
+      .catch((): Verdict => "unknown") // unreachable is an outage, not a bad key
+      .finally(() => { rechecks.delete(key); });
+    rechecks.set(key, p);
+  }
+  return p;
 }
 
 function transient(path: string): Response {

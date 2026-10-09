@@ -36,7 +36,9 @@ export function KeyGate({ children }: { children: ReactNode }) {
   // warm the demo path once per signed-in organisation key, so each page opens from cache (best-effort)
   useEffect(() => { if (key && !isSuperadminKey(key)) void prefetchDemoPath(qc); }, [key, qc]);
   if (key) return isSuperadminKey(key) ? <SuperAdminPage /> : <>{children}</>;
-  if (PUBLIC_PATHS.includes(pathname)) return <PublicShell><TechnicalPage /></PublicShell>;
-  // signed out: the public home page (owner decision 2026-10-09); the super admin signs in from it
-  return <LandingPage tourNote={pathname === "/tour"} />;
+  const path = pathname.length > 1 ? pathname.replace(/\/+$/, "") : pathname; // "/technical/" is "/technical"
+  if (PUBLIC_PATHS.includes(path)) return <PublicShell><TechnicalPage /></PublicShell>;
+  // signed out: the public home page (owner decision 2026-10-09); the super admin signs in from it. A console link
+  // (e.g. "See it live" on the Technical page) says why the home page opened instead.
+  return <LandingPage tourNote={path === "/tour"} signinNote={path !== "/" && path !== "/tour"} />;
 }
