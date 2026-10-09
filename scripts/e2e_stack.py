@@ -63,9 +63,16 @@ def _database(base_url: str) -> str:
 
 
 def main() -> int:
-    from services.api import auth
+    import dataclasses
+    import secrets
+
+    from services.api import auth, seal
     from services.config import SETTINGS
     t_start = time.monotonic()
+    # The home page lists read-only keys from their sealed copy: seal with one secret here and in the API (CI has
+    # no .env, so the run brings its own).
+    seal_secret = SETTINGS.key_seal_secret or secrets.token_hex(32)
+    seal.SETTINGS = dataclasses.replace(seal.SETTINGS, key_seal_secret=seal_secret)
     db_url = _database(os.environ.get("TEST_DATABASE_URL", SETTINGS.test_database_url))
     eng = sa.create_engine(db_url)
     with eng.begin() as c:
@@ -76,7 +83,7 @@ def main() -> int:
     env = {**os.environ, "DATABASE_URL": db_url, "EVIDENCE_DIR": evidence,
            "COLLECTOR_PRIVATE_KEY": nacl.signing.SigningKey.generate().encode().hex(),
            "CONSOLE_ORIGINS": f"{CONSOLE},http://localhost:{CONSOLE_PORT}", "API_REGION": "local",
-           "RATE_LIMIT_DEMO": "60", "PYTHONUNBUFFERED": "1"}
+           "RATE_LIMIT_DEMO": "60", "PYTHONUNBUFFERED": "1", "KEY_SEAL_SECRET": seal_secret}
     procs: list[subprocess.Popen] = []
     logs = ROOT / "e2e" / "artifacts"
     logs.mkdir(parents=True, exist_ok=True)

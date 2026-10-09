@@ -46,13 +46,13 @@ def test_tour_signed_out_to_the_end_with_help_on_every_page():
         page.on("pageerror", lambda e: errors.append(str(e)))
         page.on("request", lambda r: writes.append(f"{r.method} {r.url}") if r.method not in ("GET", "HEAD", "OPTIONS") else None)
 
-        # no key yet: the Technical approach is open; the tour asks for a key first
+        # no key yet: the Technical approach is open; the tour asks visitors to open an organisation first, from the
+        # home page's list of read-only keys
         page.goto(CONSOLE + "/technical")
         expect(page.get_by_role("heading", name="Technical approach", level=1)).to_be_visible(timeout=30_000)
         page.goto(CONSOLE + "/tour")
         expect(page.get_by_test_id("tour-note")).to_be_visible()
-        page.get_by_label("API key").fill(DEMO_KEY)
-        page.get_by_role("button", name="Sign in").click()
+        page.get_by_role("button", name="Sign in to Bank One SOC (read-only)").click(timeout=60_000)
 
         for n in range(1, STEPS + 1):
             expect(page.get_by_text(f"Step {n} of {STEPS}", exact=True)).to_be_visible(timeout=60_000)
