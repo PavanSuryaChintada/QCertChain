@@ -752,6 +752,10 @@ def main(argv: list[str] | None = None) -> int:
     m_out.parent.mkdir(parents=True, exist_ok=True)
     m_out.write_text(json.dumps(metrics, indent=1, default=str), encoding="utf-8")
     r_out.write_text(render(metrics), encoding="utf-8")
+    if m_out.resolve() == (ROOT / "reports/metrics.json").resolve():  # the repo's measurements: the home page follows
+        from scripts import build_measured
+        lat = ROOT / "reports/api_latency.json"
+        build_measured.write(metrics, json.loads(lat.read_text(encoding="utf-8")) if lat.exists() else {})
     for line in summary_lines(sec):
         print(line)
     print(f"wrote {m_out}\nwrote {r_out}\nwrote {data_dir / 'ct_24h.jsonl.gz'} (+ .summary.json)")

@@ -3,6 +3,8 @@ import { fireEvent, render, screen, waitFor, within } from "@testing-library/rea
 import { MemoryRouter } from "react-router-dom";
 import { KeyGate } from "../layout/KeyGate";
 import { getKey, setKey } from "../lib/auth";
+import { CONTRASTS, TIMING_STEPS } from "../explain/landing";
+import { CT_TO_CANDIDATE, MEASURED } from "../explain/measured";
 import { json } from "./fixtures";
 
 const ORGS = [
@@ -144,4 +146,41 @@ it("a dead stream falls back to the labelled illustration", async () => {
   home();
   await waitFor(() => expect(spy.mock.calls.some(([u]) => String(u).endsWith("/certs/public"))).toBe(true));
   expect(screen.getByRole("figure", { name: /^Illustration:/ })).toBeInTheDocument();
+});
+
+it("the home page shows how long each step takes, only as measured (generated from reports/metrics.json)", () => {
+  mockApi();
+  home();
+  const timing = screen.getByRole("region", { name: "How long each step takes" });
+  expect(MEASURED.length).toBeGreaterThan(0);
+  for (const m of MEASURED) {
+    const row = within(timing).getByTestId(`timing-${m.id}`);
+    expect(row).toHaveTextContent(TIMING_STEPS[m.id].title);
+    expect(within(row).getByText(m.value)).toBeInTheDocument();
+    if (m.n) expect(row).toHaveTextContent(`${m.n} ${m.unit}`);
+    if (m.p95) expect(row).toHaveTextContent(`95% within ${m.p95}`);
+  }
+  expect(within(timing).getByTestId("timing-relay")).toHaveTextContent("Outside our code");
+  if (CT_TO_CANDIDATE) expect(timing).toHaveTextContent(`${CT_TO_CANDIDATE.relay} of it before the certificate reaches us`);
+  // a step without a measurement has no row: nothing is estimated
+  for (const id of Object.keys(TIMING_STEPS)) {
+    if (!MEASURED.some((m) => m.id === id)) expect(within(timing).queryByTestId(`timing-${id}`)).toBeNull();
+  }
+});
+
+it("every section says how our approach differs from the usual one, and never races blocklists on speed", () => {
+  mockApi();
+  home();
+  const sections: [string, keyof typeof CONTRASTS][] = [
+    ["What your security team gets", "offer"], ["How long each step takes", "timing"], ["How we collect evidence", "evidence"],
+    ["Pipeline", "pipeline"], ["After a phishing domain is confirmed", "after"], ["Security and isolation", "security"],
+  ];
+  for (const [name, id] of sections) {
+    const group = within(screen.getByRole("region", { name })).getByRole("group", { name: "The usual approach and QCertChain" });
+    expect(group).toHaveTextContent(CONTRASTS[id].usual);
+    expect(group).toHaveTextContent(CONTRASTS[id].ours);
+  }
+  for (const c of Object.values(CONTRASTS)) {
+    for (const s of [c.usual, c.ours]) expect(s).not.toMatch(/faster|sooner|quicker|ahead of|before (any |the )?blocklist/i);
+  }
 });

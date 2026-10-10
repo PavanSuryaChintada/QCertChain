@@ -95,3 +95,47 @@ export const LOG_ILLUSTRATION: { name: string; verdict: "passed" | "candidate" |
   { name: "status.contoso.example", verdict: "passed", why: "no brand imitated" },
   { name: "icici-netbanking-login.example", verdict: "confirmed", why: "cloned login form, passwords sent to a foreign site" },
 ];
+
+/** "How long each step takes" (owner decision 2026-10-10). The words only: every number comes from measured.ts,
+ *  generated from reports/metrics.json. A step that was not measured is not shown. */
+export const TIMING = {
+  title: "How long each step takes",
+  intro: "Measured on our own runs. Each step shows its median time, the time almost every run finished within, and how many were measured. Steps we have not measured are not shown.",
+};
+export const TIMING_STEPS: Record<"relay" | "triage" | "candidate" | "verdict" | "plan" | "verify", Item> = {
+  relay: { title: "The public certificate relay", text: "The open certificate-stream service hands each logged certificate to our ingest. This wait is outside our code." },
+  triage: { title: "Triage scores each name", text: "Brand tokens, look-alikes built from confusable characters, phishing keywords and risky top-level domains, for every name in every certificate." },
+  candidate: { title: "Candidate stored", text: "From our receipt of the certificate to a candidate row in the database, queued for a page check." },
+  verdict: { title: "First verdict on the page", text: "A page-check worker opens the candidate in an isolated browser and records what it found: confirmed, dismissed, unreachable or still a candidate." },
+  plan: { title: "Takedown plan", text: "CP-SAT picks the hosting, DNS or registrar targets that take the most domains offline, requested through the API." },
+  verify: { title: "Evidence verified", text: "Recompute a bundle's Merkle root, check its Ed25519 signature and compare it with the ledger." },
+};
+
+/** Why the approach differs, section by section. A contrast of method, never a speed race with blocklists: our own
+ *  lead-time measurement did not show us ahead of them (reports/metrics.json, lead_time). */
+export const CONTRASTS: Record<"offer" | "timing" | "evidence" | "pipeline" | "after" | "security", { usual: string; ours: string }> = {
+  offer: {
+    usual: "A link is blocked after someone has reported it, one URL at a time, often on a model's score alone.",
+    ours: "A look-alike domain becomes a candidate from its own certificate, with no report needed. It is confirmed only on evidence, and handled together with its whole campaign.",
+  },
+  timing: {
+    usual: "Speed is quoted as a target or a promise.",
+    ours: "Every time on this page was measured on our own runs, with how many were measured. What we have not measured is left out.",
+  },
+  evidence: {
+    usual: "Screenshots and notes sit in a ticket, and nobody outside the team can check they were not changed.",
+    ours: "Each artifact is hashed into one signed Merkle root anchored on a ledger, so anyone holding the files can check them at any time.",
+  },
+  pipeline: {
+    usual: "One service does everything, so a burst of certificates or one slow page holds up the rest.",
+    ours: "A stream absorbs bursts, workers check pages away from the API, and each part can fail and restart on its own.",
+  },
+  after: {
+    usual: "Each domain is reported on its own, one abuse request per domain.",
+    ours: "The planner names the few hosting, DNS or registrar targets that take the most domains offline at once, and writes each report for an analyst to review and send.",
+  },
+  security: {
+    usual: "Customers are kept apart by filters in application code, where one missed filter is a leak.",
+    ours: "Row-level security in the database: another organisation's data does not exist for your key, whatever the code asks for.",
+  },
+};

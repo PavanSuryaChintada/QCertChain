@@ -6,7 +6,9 @@ import { Drawer } from "../components/Drawer";
 import { HashDisplay } from "../components/HashDisplay";
 import { LandingIcon } from "../components/LandingIcons";
 import { PipelineDiagram } from "../components/PipelineDiagram";
-import { AFTER, EVIDENCE, HERO, LIFELINE, LOG_ILLUSTRATION, OFFER, POSITIONING, ROADMAP, SECURITY, type Item } from "../explain/landing";
+import { AFTER, CONTRASTS, EVIDENCE, HERO, LIFELINE, LOG_ILLUSTRATION, OFFER, POSITIONING, ROADMAP, SECURITY, TIMING,
+         TIMING_STEPS, type Item } from "../explain/landing";
+import { CT_TO_CANDIDATE, MEASURED, type MeasuredStep } from "../explain/measured";
 import { HelpButton } from "../help/HelpPanel";
 import { api, CATEGORIES, toApiError, type PublicFeed, type PublicOrg } from "../lib/api";
 import { setKey } from "../lib/auth";
@@ -80,13 +82,73 @@ function IllustratedLog() {
   );
 }
 
-function Block({ id, title, intro, children }: { id: string; title: string; intro?: string; children: ReactNode }) {
+type ContrastText = { usual: string; ours: string };
+
+function Block({ id, title, intro, contrast, children }:
+  { id: string; title: string; intro?: string; contrast?: ContrastText; children: ReactNode }) {
   return (
     <section className="landing-block" aria-labelledby={id}>
       <h2 id={id} className="landing-h2">{title}</h2>
       {intro && <p className="prose ink-2 landing-intro">{intro}</p>}
       {children}
+      {contrast && <Contrast c={contrast} />}
     </section>
+  );
+}
+
+/** Why the approach differs: the usual way beside ours. A difference of method, never a speed race. */
+function Contrast({ c }: { c: ContrastText }) {
+  return (
+    <div className="contrast" role="group" aria-label="The usual approach and QCertChain">
+      <div className="contrast-usual"><p className="contrast-label">The usual approach</p><p>{c.usual}</p></div>
+      <div className="contrast-ours"><p className="contrast-label">QCertChain</p><p>{c.ours}</p></div>
+    </div>
+  );
+}
+
+function timingMeta(m: MeasuredStep): string[] {
+  return [
+    m.p95 && `95% within ${m.p95}`,
+    m.slowest && `slowest ${m.slowest}`,
+    m.n && `${m.n} ${m.unit}`,
+    m.stat === "p95" && "95th percentile of the request, measured by the API latency run",
+    m.at && `measured ${m.at}`,
+  ].filter((x): x is string => Boolean(x));
+}
+
+/** Every number here is generated from reports/metrics.json (explain/measured.ts); the words come from landing.ts. */
+function Timing() {
+  return (
+    <>
+      {CT_TO_CANDIDATE && (
+        <p className="timing-summary">
+          <span className="timing-summary-num">{CT_TO_CANDIDATE.value}</span>
+          <span>median from a certificate being logged to a stored candidate ({CT_TO_CANDIDATE.n} domains),
+            {" "}{CT_TO_CANDIDATE.relay} of it before the certificate reaches us.</span>
+        </p>
+      )}
+      <ol className="timing">
+        {MEASURED.map((m) => (
+          <li key={m.id} className={m.id === "relay" ? "timing-step timing-outside" : "timing-step"} data-testid={`timing-${m.id}`}>
+            <div className="timing-value">
+              <span className="timing-num">{m.value}</span>
+              <span className="timing-stat">{m.stat === "p95" ? "95% within" : "median"}</span>
+            </div>
+            <div>
+              <p className="landing-step-title">
+                {TIMING_STEPS[m.id].title}
+                {m.id === "relay" && <span className="landing-tag">Outside our code</span>}
+              </p>
+              <p className="ink-2">{TIMING_STEPS[m.id].text}</p>
+              {m.unreachable && (
+                <p className="ink-2">{m.unreachable} live candidates had pages that could not be reached, which settle quickly.</p>
+              )}
+              <p className="timing-meta">{timingMeta(m).join("; ")}</p>
+            </div>
+          </li>
+        ))}
+      </ol>
+    </>
   );
 }
 
@@ -263,12 +325,17 @@ export function LandingPage({ tourNote = false, signinNote = false }: { tourNote
         </section>
         <div className="landing">
           <div className="landing-main">
-            <Block id="offer" title="What your security team gets"><Items items={OFFER} icons={OFFER_ICONS} /></Block>
-            <Block id="evidence" title="How we collect evidence"
+            <Block id="offer" title="What your security team gets" contrast={CONTRASTS.offer}>
+              <Items items={OFFER} icons={OFFER_ICONS} />
+            </Block>
+            <Block id="evidence" title="How we collect evidence" contrast={CONTRASTS.evidence}
                    intro="Every confirmed domain comes with a bundle anyone can check, in six steps."><Steps items={EVIDENCE} chain /></Block>
-            <section className="landing-block" aria-label="Pipeline"><PipelineDiagram /></section>
-            <Block id="after" title="After a phishing domain is confirmed"><Steps items={AFTER} /></Block>
-            <Block id="security" title="Security and isolation"><Items items={SECURITY} icons={SECURITY_ICONS} /></Block>
+            <section className="landing-block" aria-label="Pipeline"><PipelineDiagram /><Contrast c={CONTRASTS.pipeline} /></section>
+            <Block id="timing" title={TIMING.title} intro={TIMING.intro} contrast={CONTRASTS.timing}><Timing /></Block>
+            <Block id="after" title="After a phishing domain is confirmed" contrast={CONTRASTS.after}><Steps items={AFTER} /></Block>
+            <Block id="security" title="Security and isolation" contrast={CONTRASTS.security}>
+              <Items items={SECURITY} icons={SECURITY_ICONS} />
+            </Block>
             <Block id="roadmap" title="On the roadmap" intro="Not built yet. Listed so you can see where the product is going.">
               <Items items={ROADMAP} tag="Not built yet" />
             </Block>

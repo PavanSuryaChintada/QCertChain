@@ -328,3 +328,31 @@ textarea.input { height: auto; padding: 8px; font-family: var(--font-mono); font
 /* live rows: new names every few seconds are motion enough, so no fade; one line each, so the hero never jumps */
 .ct-live .ct-row { animation: none; opacity: 1; }
 .ct-live .ct-name { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; overflow-wrap: normal; }
+
+/* ---- home page: the usual approach beside ours, at the end of each section ---------------------------------------- */
+.contrast { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); margin-top: 24px; border: 1px solid var(--hairline-firm); }
+.contrast > div { padding: 16px; }
+.contrast-usual { background: var(--sunken); color: var(--ink-2); }
+.contrast-ours { background: var(--paper); border-left: 3px solid var(--action); }
+.contrast-label { font-size: 12px; font-weight: 600; color: var(--ink-3); margin-bottom: 4px; }
+.contrast-ours .contrast-label { color: var(--action); }
+
+/* ---- home page: how long each step takes (numbers generated from reports/metrics.json) -------------------------- */
+.timing-summary { display: flex; align-items: baseline; gap: 16px; flex-wrap: wrap; margin-top: 16px; padding: 16px;
+                  background: var(--ink); color: var(--hairline); }
+.timing-summary-num { font-family: var(--font-mono); font-size: 32px; font-weight: 600; color: var(--paper); }
+.timing { list-style: none; padding: 0; margin-top: 24px; border-top: 1px solid var(--hairline-firm); }
+.timing-step { display: grid; grid-template-columns: 144px minmax(0, 1fr); gap: 24px; padding: 16px 0;
+               border-bottom: 1px solid var(--hairline-firm); }
+.timing-value { display: flex; flex-direction: column; gap: 4px; padding-left: 12px; border-left: 3px solid var(--action); }
+.timing-num { font-family: var(--font-mono); font-size: 24px; font-weight: 600; color: var(--ink); line-height: 1.1; }
+.timing-stat { font-size: 12px; color: var(--ink-3); }
+.timing-meta { margin-top: 8px; font-size: 12px; color: var(--ink-3); }
+.timing-outside .timing-value { border-left-color: var(--hairline-firm); }
+.timing-outside .timing-num { color: var(--ink-3); }
+
+@media (max-width: 640px) {
+  .contrast { grid-template-columns: 1fr; }
+  .contrast-ours { border-left: none; border-top: 3px solid var(--action); }
+  .timing-step { grid-template-columns: 1fr; gap: 8px; }
+}

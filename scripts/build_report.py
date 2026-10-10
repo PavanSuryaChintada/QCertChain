@@ -834,4 +834,6 @@ if __name__ == "__main__":
     m = json.loads((ROOT / "reports/metrics.json").read_text(encoding="utf-8"))
     (ROOT / "docs/REPORT.md").write_text(render(m), encoding="utf-8")
     print("wrote docs/REPORT.md")
+    from scripts import build_measured  # the home page's step times follow the same measurements
+    build_measured.main()
     sys.exit(0)
