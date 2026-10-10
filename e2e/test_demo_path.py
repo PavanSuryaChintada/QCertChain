@@ -145,8 +145,8 @@ def test_demo_path_in_order_offline(browser):
     expect(p2.get_by_text(re.compile(r"not found|does not exist", re.I)).first).to_be_visible(timeout=30_000)
     p2.goto(CONSOLE + "/ledger")
     expect(p2.get_by_test_id("org-name")).to_contain_text("Bank Two SOC", timeout=30_000)
-    p2.get_by_label("Kit hash").fill(kit)
-    p2.get_by_role("button", name="Look up").click()
+    p2.get_by_label("Kit hash", exact=True).fill(kit)
+    p2.get_by_role("button", name="Look up", exact=True).click()
     expect(p2.get_by_text("Bank One SOC").first).to_be_visible(timeout=60_000)
     _shot(p2, "07-org2-ledger")
 
