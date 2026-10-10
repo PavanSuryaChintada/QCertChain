@@ -820,3 +820,15 @@ Format: **AI did** · **Owner decided** · **Verified by** · **Rulings** (AI ju
   superadmin / ledger 49/49; CI green on 8a77285 and 95f55d2; `scripts.demo up` READY; through the API with each
   organisation's read-only key: Bank Two's kit lookup finds only Bank One's report (470 domains), amazon's finds only
   its own (60 domains); the public site reaches the API through the tunnel.
+
+## Architecture page: how it works, step by step (2026-10-10)
+
+- **Owner asked:** below the architecture section, the plain-words explanation of the pipeline (certstream, Redis,
+  workers, evidence, chain, campaigns, takedown plan, API, console, hosting) and the tech stack. Asked which page;
+  **owner chose** the console Architecture page.
+- **AI did (test first):** `explain/architecture.ts` (twelve steps, each with the repository paths of the code behind
+  it and a link to see it live; the tech stack), rendered below the diagram and its three panels; measured times
+  come from the generated `measured.ts`; the takedown step carries the framing sentence verbatim. Every path was
+  checked to exist and every stack entry against the requirements.
+- **Verified:** console 153/153 (architecture tests failed first on the missing module); screenshot of the section and
+  the stack table, no page error.

@@ -1,4 +1,7 @@
-import { useNavigate } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
+import { ARCH_INTRO, ARCH_STEPS, STACK, type ArchStep } from "../explain/architecture";
+import { FRAMING } from "../explain/framing";
+import { MEASURED } from "../explain/measured";
 import type { ComponentKey, SystemStatus } from "../lib/api";
 import { fmtInt, fmtNum } from "../lib/format";
 import { SYS_LABEL, type SysStatus, componentStatus, useStatus } from "../lib/status";
@@ -137,6 +140,45 @@ const POSITIONS = [
   { title: "Hashes on-chain, never evidence content", body: "The ledger holds Merkle roots, kit fingerprints, counts and the reporting organisation. Pages, screenshots, domain names and personal data never leave the evidence store." },
 ];
 
+/** One step: what it does, the code that does it, its generated measurement and where to see it live. */
+function ArchStepRow({ s }: { s: ArchStep }) {
+  const m = s.measured ? MEASURED.find((x) => x.id === s.measured) : undefined;
+  return (
+    <li className="arch-step" data-testid={`arch-step-${s.id}`}>
+      <p className="arch-step-title">{s.title}</p>
+      <p className="prose ink-2">{s.text}</p>
+      {s.id === "takedown" && <p className="prose ink-2">{FRAMING}</p>}
+      <p className="arch-code"><span className="t-label">Code</span>{s.code.map((f) => <code key={f}>{f}</code>)}</p>
+      {(m || s.live) && (
+        <p className="arch-meta">
+          {m && (
+            <span data-testid="arch-measured">
+              Measured: {m.value} {m.stat === "p95" ? "at the 95th percentile" : "median"}{m.n && ` over ${m.n} ${m.unit}`}
+            </span>
+          )}
+          {s.live && <Link className="link" to={s.live.to}>{s.live.label}</Link>}
+        </p>
+      )}
+    </li>
+  );
+}
+
+/** Owner request 2026-10-10: below the diagram, how it works in plain words, the code behind it, the tech stack. */
+function StepByStep() {
+  return (
+    <section className="panel panel-body" style={{ marginTop: 24 }} aria-labelledby="arch-how">
+      <h2 id="arch-how" className="t-section">How it works, step by step</h2>
+      <p className="prose ink-2" style={{ marginTop: 8 }}>{ARCH_INTRO}</p>
+      <ol className="arch-steps">{ARCH_STEPS.map((s) => <ArchStepRow key={s.id} s={s} />)}</ol>
+      <h2 className="t-section" style={{ marginTop: 24 }}>Tech stack</h2>
+      <table className="kv arch-stack" aria-label="Tech stack" style={{ marginTop: 8 }}>
+        <thead><tr><th scope="col">Part</th><th scope="col">Tech</th></tr></thead>
+        <tbody>{STACK.map((r) => <tr key={r.part}><th scope="row">{r.part}</th><td>{r.tech}</td></tr>)}</tbody>
+      </table>
+    </section>
+  );
+}
+
 export function ArchitecturePage() {
   const { state, data, query } = useStatus();
   return (
@@ -156,6 +198,7 @@ export function ArchitecturePage() {
           </section>
         ))}
       </div>
+      <StepByStep />
     </div>
   );
 }
