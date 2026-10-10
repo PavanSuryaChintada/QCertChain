@@ -778,3 +778,25 @@ Format: **AI did** · **Owner decided** · **Verified by** · **Rulings** (AI ju
   145/145 (the review-fix tests failed first for the bug itself, e.g. Back landed on the tour again); live: the
   running API and triage workers restarted on the new code, `/certs/public` answers locally and through the tunnel
   with real names and masked candidates; hero screenshotted at desktop and phone width.
+
+## Step times, why the approach differs, findable bundle ids and kit hashes (2026-10-10)
+
+- **Owner asked:** every step with its time and why our approach wins, in every section, more professional; and the
+  bundle ids and kit-hash lookups kept where they are used ("we cannot find them anywhere").
+- **Found before building, told the owner:** our own lead-time measurement did not show us ahead of blocklists
+  (OpenPhish: 0 CT-first matches; PhishTank 30-minute sample: all 11 listed before CT showed them). **Owner chose:**
+  measured step times only, and a contrast of method in each section with no speed claim against blocklists.
+- **AI did (tests first for each):**
+  - `scripts/build_measured.py` renders `apps/console/src/explain/measured.ts` from `reports/metrics.json` and
+    `reports/api_latency.json` (finalize and build_report run it); a test fails if the console file drifts from the
+    measurements; unmeasured steps are left out, and anchoring time is not shown (it includes queueing while the
+    anchor worker was down);
+  - home page: "How long each step takes" (relay, triage, candidate stored, first verdict, takedown plan, evidence
+    verified: medians, 95th percentiles, sample sizes, dates; the public relay marked "Outside our code"; most live
+    candidates' pages were unreachable, which is said beside the verdict time); every section ends with "The usual
+    approach" beside "QCertChain";
+  - `GET /evidence` (your newest bundles, per organisation) and an Evidence page list of them, each opening its
+    evidence; the Ledger lists your campaigns' kit hashes with a Look up button.
+- **Verified:** Python test_build_measured 4, test_evidence_list 3 (each failed first), finalize / build_report 58;
+  console 149/149; live as Bank Two: the Evidence list shows 20 bundles and opens one; Look up on its own campaign's kit
+  hash finds Bank One's report (hashes and counts only). Screenshots at desktop and phone width.
