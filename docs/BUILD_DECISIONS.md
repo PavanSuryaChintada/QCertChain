@@ -81,6 +81,10 @@ key used by the console. Rulings made while building it:
   `.env` once and the public site broke — cost if wrong: one extra allowed origin; every call still needs a key.
 - Ruling: a lost provisioning failure is logged on the existing 'system' channel rather than adding 'platform' to
   the `ops_log` check — no schema migration for a log label — cost if wrong: platform lines mix with system lines.
+- Ruling: each sector's seeded campaigns get their own kit (a sector-specific block of tags in the seed page; the kit
+  hash is the tag structure), and banking keeps the original kit — an e-commerce organisation's demo campaign turned
+  up in a bank's kit-hash lookup; banking unchanged keeps the reports already on the ledger findable — cost if wrong:
+  a demo needing a cross-sector kit match has none (real kits are not sector-bound).
 - Ruling: CI pulls the official postgres and redis images from the AWS public mirror — Docker Hub's anonymous pull
   limit stopped the python and e2e jobs before any test ran — cost if wrong: the mirror can trail Docker Hub by hours.
 

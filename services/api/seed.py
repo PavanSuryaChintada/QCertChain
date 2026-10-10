@@ -38,6 +38,29 @@ def _zipf(rng: random.Random, items: list, s: float = 1.3):
     return rng.choices(items, weights=[1 / (i + 1) ** s for i in range(len(items))])[0]
 
 
+# A kit hash is the page's tag structure (services/enrich/fingerprint.py). Each sector's seeded pages carry their own
+# block of tags, so each sector has its own kit and an organisation's kit-hash lookup finds only its sector's
+# campaigns (owner request 2026-10-10). Banking has no block: its kit is the one already on the demo ledger.
+_SECTOR_BLOCKS = ("fintech", "ecommerce", "government", "telecom", "brokerage", "insurance", "consumer")
+
+
+def sector_block(sector: str | None) -> str:
+    if not sector or sector == "banking":
+        return ""
+    n = _SECTOR_BLOCKS.index(sector) + 1 if sector in _SECTOR_BLOCKS else len(_SECTOR_BLOCKS) + 1
+    return '<div class="offer">' + "<p>Action required on your account.</p>" * n + "</div>"
+
+
+def render_page(sector: str | None, **fields) -> str:
+    return TEMPLATE.format(sector_block=sector_block(sector), **fields)
+
+
+def kit_for(sector: str | None) -> str:
+    """The kit hash every seeded page of this sector carries."""
+    return page_kit_hash(render_page(sector, brand="X", bg="#fff", accent="#000", slug="x", tagline="x",
+                                     collector=COLLECTOR, ref="x"))
+
+
 def seed_campaign(c: sa.Connection, *, label: str, domains: int = 400, ips: int = 12, asns: int = 3,
                   nameservers: int = 4, registrars: int = 3, brands: list[str] | None = None,
                   shared_dns_fraction: float = 0.08, seed: int = 42,
@@ -65,10 +88,10 @@ def seed_campaign(c: sa.Connection, *, label: str, domains: int = 400, ips: int 
     asn_of = {ip: DOC_ASNS[i % max(1, min(asns, len(DOC_ASNS)))] for i, ip in enumerate(ip_list)}
     ns_list = list(dict.fromkeys(shared_nameservers + [f"ns{i + 1}.{slug}-dns.example" for i in range(nameservers)]))
     reg_list = [f"Registrar {chr(65 + i)} (seed)" for i in range(registrars)]
-    kit_label = f"{slug} (seed kit)"
+    sector = chosen[0].sector  # the kit of the campaign's (first) brand's sector
+    kit_label = f"{slug} (seed kit, {sector or 'any'} sector)"
 
-    sample = TEMPLATE.format(brand="X", bg="#fff", accent="#000", slug="x", tagline="x", collector=COLLECTOR, ref="x")
-    kit_hash = page_kit_hash(sample)
+    kit_hash = kit_for(sector)
     assert kit_hash, "seed kit template must clear the kit complexity floor"
     repo.add_known_kit(c, kit_hash, kit_label, "seed")
     known = repo.known_kits(c)
@@ -86,9 +109,9 @@ def seed_campaign(c: sa.Connection, *, label: str, domains: int = 400, ips: int 
             if name not in seen_names:
                 break
         seen_names.add(name)
-        html = TEMPLATE.format(brand=brand.name, bg=rng.choice(("#f4f4f4", "#ffffff", "#eef2f7")),
-                               accent=rng.choice(PALETTE), slug=token, tagline=rng.choice(("Hum Hai Na", "Secure", "")),
-                               collector=COLLECTOR, ref=f"{label}-{rng.randint(1, 99999)}")
+        html = render_page(sector, brand=brand.name, bg=rng.choice(("#f4f4f4", "#ffffff", "#eef2f7")),
+                           accent=rng.choice(PALETTE), slug=token, tagline=rng.choice(("Hum Hai Na", "Secure", "")),
+                           collector=COLLECTOR, ref=f"{label}-{rng.randint(1, 99999)}")
         page = FetchedPage(f"https://{name}/", f"https://{name}/login", 200, html,
                            {"x-qcertchain-seed": "synthetic"}, [f"https://{name}/"], None, None, [], "httpx")
         ips, asn, ns, registrar, note = infra(rng)

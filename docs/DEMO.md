@@ -88,6 +88,9 @@ Needs the laptop stack and the tunnel up (`docs/DEPLOY.md` §10). On https://q-c
 | **Open console** on the new row | Its own console; the Live queue opens on its sector | "It sees only its own data: row-level security, not a filter in the UI." |
 | **Rotate read-only key** | A new key; the home page sidebar shows the new one | "Keys are revoked at once, and stored only as a hash and a sealed copy." |
 
+Each sector's seeded campaigns share one phishing kit and no two sectors share one, so on the Ledger a bank's kit-hash
+lookup finds the other banks' reports and never an e-commerce organisation's (and the other way round).
+
 Never type the super admin password on camera; sign in before recording. If a new row stays on "Setting up", run
 `python -m scripts.superadmin provision <slug>` off camera.
 

@@ -127,7 +127,7 @@ def ingest():
 
 
 # ---- confirmation gate on labelled local pages -------------------------------------------------------------
-KIT = (ROOT / "services/api/kit_template.html").read_text(encoding="utf-8")
+KIT = (ROOT / "services/api/kit_template.html").read_text(encoding="utf-8").replace("{sector_block}", "")  # the original kit
 KIT_B = KIT.replace('<div class="container">', '<section class="container"><div>').replace(
     '  </div>\n  <div class="footer">', '  </div></section>\n  <div class="footer">')
 
