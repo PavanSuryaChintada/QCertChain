@@ -800,3 +800,5 @@ Format: **AI did** · **Owner decided** · **Verified by** · **Rulings** (AI ju
 - **Verified:** Python test_build_measured 4, test_evidence_list 3 (each failed first), finalize / build_report 58;
   console 149/149; live as Bank Two: the Evidence list shows 20 bundles and opens one; Look up on its own campaign's kit
   hash finds Bank One's report (hashes and counts only). Screenshots at desktop and phone width.
+- **CI:** the offline e2e first failed at the ledger step: its "Kit hash" and "Look up" locators were not exact and
+  now also matched the new kit-hash list. Made exact; green on 433f820 (console, python, e2e, contracts).
