@@ -1,7 +1,7 @@
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
-import { api, toApiError, type ByKit, type LedgerCampaign, type LedgerEvent, type LedgerStatus, type Page } from "../lib/api";
+import { api, toApiError, type ByKit, type Campaign, type LedgerCampaign, type LedgerEvent, type LedgerStatus, type Page } from "../lib/api";
 import { fmtDateTime, fmtInt, fmtNum, sentence } from "../lib/format";
 import { POLL_MS, useLiveQuery } from "../lib/viewState";
 import { useStatus } from "../lib/status";
@@ -69,6 +69,21 @@ function KitResult({ c, demo }: { c: LedgerCampaign; demo: boolean }) {
   );
 }
 
+function campaignName(c: Campaign): string {
+  return c.label ?? (c.brands.length ? `${c.brands.join(", ")} campaign` : `campaign ${c.id.slice(0, 8)}`);
+}
+
+function kitColumns(lookUp: (kit: string) => void): Column<Campaign>[] {
+  return [
+    { key: "name", header: "Campaign", render: (c) => campaignName(c) },
+    { key: "domains", header: "Domains", width: 96, align: "right", mono: true, render: (c) => fmtInt(c.domain_count) },
+    { key: "kit", header: "Kit hash", width: 176, render: (c) => <HashDisplay value={c.kit_hash!} label="kit hash" /> },
+    { key: "go", header: "", width: 112, render: (c) => (
+      <Button size="sm" iconLabel={`Look up the kit hash of ${campaignName(c)}`} onClick={() => lookUp(c.kit_hash!)}>Look up</Button>
+    ) },
+  ];
+}
+
 export function LedgerPage() {
   const [params] = useSearchParams();
   const fromUrl = params.get("kit")?.trim() || null; // the tour (or any link) can open a lookup directly
@@ -80,6 +95,9 @@ export function LedgerPage() {
   const demo = sys?.key_kind === "demo";
   const status = useQuery({ queryKey: ["ledger-status"], queryFn: () => api.ledgerStatus(), staleTime: 60_000 });
   const events = useLiveQuery<Page<LedgerEvent>>({ queryKey: ["ledger-events"], queryFn: (s) => api.ledgerEvents(null, s), poll: POLL_MS });
+  const mine = useLiveQuery<Page<Campaign>>({ queryKey: ["campaigns"], queryFn: (s) => api.campaigns({ limit: 200 }, s), poll: POLL_MS });
+  const kits = (mine.query.data?.items ?? []).filter((c) => c.kit_hash);
+  const lookUp = (k: string) => { setKit(k); setLookup(k); };
   const found = useLiveQuery<ByKit>({ queryKey: ["by-kit", lookup], queryFn: (s) => api.byKit(lookup!, s), enabled: lookup !== null, isEmpty: (d) => d.campaigns.length === 0, retry: 0 });
   const me = status.data ? status.data.orgs[status.data.you] : undefined;
   const cols = eventColumns(status.data);
@@ -96,6 +114,13 @@ export function LedgerPage() {
           <input id="kit" className="input mono" style={{ flex: 1 }} placeholder="Kit hash (64 hex characters)" value={kit} onChange={(e) => setKit(e.target.value)} />
           <Button type="submit" variant="primary" disabled={!kit.trim()}>Look up</Button>
         </form>
+        {kits.length > 0 && (
+          <div style={{ marginTop: 12 }}>
+            <p className="t-label">Kit hashes of your campaigns: pick one to see whether another organisation reported the same kit.</p>
+            <Table<Campaign> label="Kit hashes of your campaigns" density="compact" rows={kits} rowKey={(c) => c.id}
+                             columns={kitColumns(lookUp)} />
+          </div>
+        )}
         {lookup !== null && (
           <div style={{ marginTop: 12 }}>
             <ViewStateView state={found.state} what="the kit-hash lookup" empty="No organisation has published a campaign for this kit hash yet."

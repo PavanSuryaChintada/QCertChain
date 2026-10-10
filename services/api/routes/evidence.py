@@ -24,6 +24,12 @@ def _bundle_or_404(s: Scope, bundle_id: str):
     return got
 
 
+@router.get("/evidence")
+def list_bundles(limit: int = Query(20, ge=1, le=50), s: Scope = Depends(get_scope)) -> list[dict]:
+    """Your newest bundles, so a bundle id is picked from a list, never hunted for."""
+    return repo_evidence.recent(s, limit)
+
+
 @router.get("/evidence/{bundle_id}", response_model=EvidenceOut)
 def get_bundle(bundle_id: str, s: Scope = Depends(get_scope)):
     b, arts = _bundle_or_404(s, bundle_id)

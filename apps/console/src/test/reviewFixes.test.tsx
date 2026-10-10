@@ -1,6 +1,6 @@
 // The deferred minors of the Plan 1 review (docs/AI_USAGE_LOG.md), fixed 2026-10-10 at the owner's request.
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { act, fireEvent, render, renderHook, screen, waitFor } from "@testing-library/react";
+import { act, fireEvent, render, renderHook, screen, waitFor, within } from "@testing-library/react";
 import { useState, type ReactNode } from "react";
 import { MemoryRouter, Route, Routes, useLocation, useNavigate, type NavigateFunction } from "react-router-dom";
 import { KeyGate } from "../layout/KeyGate";
@@ -169,4 +169,42 @@ it("parallel 401s with different keys are re-checked with their own key", async 
   await waitFor(() => expect(checked).toEqual(["qcc_org_a", "qcc_org_b"]));
   release();
   await Promise.all([a, b]);
+});
+
+// Owner request 2026-10-10: "keep the bundle keys and lookup in the respective ones, we cannot find them anywhere".
+it("the Evidence page lists your bundles, each one opening its evidence", async () => {
+  const { EvidenceIndexPage } = await import("../views/EvidenceViewer");
+  const { renderWith } = await import("./fixtures");
+  const id = "3f2a91c8-0000-4000-8000-000000000001";
+  vi.spyOn(globalThis, "fetch").mockImplementation(async (u) => String(u).includes("/evidence?")
+    ? json([{ bundle_id: id, domain: "icici-netbanking-login.top", campaign_id: null, created_at: "2026-10-09T10:00:00Z",
+              anchored: true, partial: false }])
+    : json({}, 404));
+  renderWith(<EvidenceIndexPage />, { route: "/evidence" });
+  const table = await screen.findByRole("table", { name: "Your evidence bundles" });
+  expect(within(table).getByText("icici-netbanking-login.top")).toBeInTheDocument();
+  expect(within(table).getByRole("link", { name: "Open the evidence for icici-netbanking-login.top" }))
+    .toHaveAttribute("href", `/evidence/${id}`);
+  expect(within(table).getByText("Anchored")).toBeInTheDocument();
+});
+
+it("the Ledger lists your campaigns' kit hashes, and Look up runs the lookup for one", async () => {
+  const kit = "ef".repeat(32);
+  const f = vi.spyOn(globalThis, "fetch").mockImplementation(async (url) => {
+    const u = String(url);
+    if (u.includes("/campaigns")) return json({ items: [{ id: "c1", label: "smoke", kit_hash: kit, domain_count: 60, infra_count: 9,
+      confidence: 80, brands: ["ICICI Bank"], status: "active", first_seen: "2026-10-07T00:00:00Z", published_tx: null }],
+      limit: 200, next_cursor: null });
+    if (u.includes("/ledger/by-kit/")) return json({ kit_hash: kit, campaigns: [], local_telemetry_received: false });
+    if (u.includes("/ledger/status")) return json({ available: true, queue_depth: 0, orgs: {}, you: "org1", reason: null });
+    if (u.includes("/ledger/events")) return json({ items: [], limit: 50, next_cursor: null });
+    return json({}, 404);
+  });
+  render(
+    <QueryClientProvider client={qc()}><MemoryRouter initialEntries={["/ledger"]}><LedgerPage /></MemoryRouter></QueryClientProvider>,
+  );
+  const mine = await screen.findByRole("table", { name: "Kit hashes of your campaigns" });
+  fireEvent.click(within(mine).getByRole("button", { name: "Look up the kit hash of smoke" }));
+  await waitFor(() => expect(f.mock.calls.some(([u]) => String(u).includes(`/ledger/by-kit/${kit}`))).toBe(true));
+  expect(screen.getByPlaceholderText("Kit hash (64 hex characters)")).toHaveValue(kit);
 });

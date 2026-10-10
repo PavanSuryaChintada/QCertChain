@@ -7,6 +7,16 @@ import sqlalchemy as sa
 from services.api.deps import Scope
 
 
+def recent(s: Scope, limit: int) -> list[dict]:
+    """This organisation's newest bundles, with the domain each one is for (the Evidence page lists them)."""
+    rows = s.conn.execute(sa.text("""
+        select b.id::text as bundle_id, d.name as domain, b.campaign_id::text as campaign_id, b.created_at,
+               b.anchored_tx is not null as anchored, b.partial
+        from evidence_bundles b left join domains d on d.id = b.domain_id
+        where b.org_id = :org order by b.created_at desc, b.id limit :n"""), {"org": s.org_id, "n": limit})
+    return [dict(r) for r in rows.mappings()]
+
+
 def bundle(s: Scope, bundle_id: str) -> tuple[dict, list[dict]] | None:
     """The bundle and its artifact hashes in one statement."""
     try:

@@ -321,6 +321,14 @@ Response:
 
 ## 5. Evidence
 
+### `GET /evidence?limit=20`
+
+Your organisation's newest bundles (`limit` 1–50), so a bundle id is picked from a list (owner request 2026-10-10).
+```json
+[ { "bundle_id": "094247bc-...", "domain": "hdfcbank-netbanking-alert-4843.example", "campaign_id": "8989...",
+    "created_at": "2026-10-08T19:25:51Z", "anchored": true, "partial": false } ]
+```
+
 ### `GET /evidence/{bundle_id}`
 
 ```json

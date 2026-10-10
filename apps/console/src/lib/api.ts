@@ -211,6 +211,10 @@ export interface LedgerCampaign {
   reporter: { address: string; name: string }; published_at: string; tx_hash: string | null;
   corroborations: { address: string; name: string; at: string }[]; campaign_id: string | null; yours: boolean;
 }
+/** GET /evidence: your newest bundles, so a bundle id is picked from a list, never hunted for. */
+export interface EvidenceSummary {
+  bundle_id: string; domain: string | null; campaign_id: string | null; created_at: string; anchored: boolean; partial: boolean;
+}
 export interface ByKit { kit_hash: string; campaigns: LedgerCampaign[]; local_telemetry_received: false }
 export interface LedgerEvent {
   id: number; kind: "campaign_published" | "evidence_anchored" | "attested" | "corroborated"; tx_hash: string;
@@ -381,6 +385,7 @@ export const api = {
   domain: (id: number, signal?: AbortSignal) => get<DomainDetail>(`/domains/${id}`, signal),
   reconfirm: (id: number) => post<Queued>(`/domains/${id}/confirm`),
 
+  evidenceList: (limit = 20, signal?: AbortSignal) => get<EvidenceSummary[]>(`/evidence?limit=${limit}`, signal),
   campaigns: (p: { min_size?: number; status?: string; limit?: number; cursor?: string | null } = {}, signal?: AbortSignal) =>
     get<Page<Campaign>>(`/campaigns${qs(p)}`, signal),
   campaign: (id: string, signal?: AbortSignal) => get<Campaign>(`/campaigns/${encodeURIComponent(id)}`, signal),

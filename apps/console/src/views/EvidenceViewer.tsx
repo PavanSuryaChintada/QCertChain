@@ -1,15 +1,16 @@
 import { useQuery } from "@tanstack/react-query";
 import { useEffect, useRef, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
-import { api, toApiError, type ApiError, type Evidence, type VerifyResult } from "../lib/api";
+import { api, toApiError, type ApiError, type Evidence, type EvidenceSummary, type VerifyResult } from "../lib/api";
 import { fmtDateTime, fmtInt, sentence, truncateHash } from "../lib/format";
-import { useLiveQuery } from "../lib/viewState";
+import { POLL_MS, useLiveQuery } from "../lib/viewState";
+import { Table, type Column } from "../components/Table";
 import type { SysStatus } from "../lib/status";
 import { HashDisplay } from "../components/HashDisplay";
 import { SystemIndicator, StatusIndicator } from "../components/StatusIndicator";
 import { Button } from "../components/Button";
 import { Dropdown } from "../components/Dropdown";
-import { ErrorState, ViewStateView, errorCopy } from "../components/States";
+import { ErrorState, SkeletonRows, ViewStateView, errorCopy } from "../components/States";
 import { PageHeader, Section } from "../components/Page";
 
 export const ONLY_HASHES = "Only hashes are anchored on the ledger, never evidence content.";
@@ -268,14 +269,38 @@ export function EvidencePage() {
   );
 }
 
+const BUNDLE_COLUMNS: Column<EvidenceSummary>[] = [
+  { key: "domain", header: "Domain", render: (b) => (
+    <Link className="link mono" to={`/evidence/${encodeURIComponent(b.bundle_id)}`}
+          aria-label={b.domain ? `Open the evidence for ${b.domain}` : `Open bundle ${b.bundle_id}`}>{b.domain ?? "Domain no longer stored"}</Link>
+  ) },
+  { key: "created", header: "Sealed", width: 176, mono: true, render: (b) => fmtDateTime(b.created_at) },
+  { key: "ledger", header: "Ledger", width: 168, render: (b) => (b.anchored ? "Anchored" : "Queued for the ledger") },
+  { key: "id", header: "Bundle id", width: 176, render: (b) => <HashDisplay value={b.bundle_id} label="bundle id" /> },
+];
+
 export function EvidenceIndexPage() {
   const nav = useNavigate();
   const [id, setId] = useState("");
+  const list = useLiveQuery<EvidenceSummary[]>({ queryKey: ["evidence-list"], queryFn: (s) => api.evidenceList(20, s),
+                                                 poll: POLL_MS, isEmpty: (d) => d.length === 0 });
   return (
     <div>
       <PageHeader title="Evidence" meta={ONLY_HASHES} />
+      <Section id="sec-bundles" title="Your evidence bundles">
+        <p className="prose ink-2">The newest bundles your organisation sealed. Open one to see its artifacts, verify it against the ledger, or read its abuse report.</p>
+        <div style={{ marginTop: 12 }}>
+          <ViewStateView state={list.state} what="your evidence bundles" onRetry={() => list.query.refetch()}
+                         empty="No bundles yet. A bundle is sealed when a page check confirms a domain, and for every seeded demo campaign."
+                         skeleton={<SkeletonRows columns={[240, 176, 168, 176]} rows={6} />}>
+            {(rows) => <Table<EvidenceSummary> label="Your evidence bundles" columns={BUNDLE_COLUMNS} rows={rows}
+                                               rowKey={(b) => b.bundle_id}
+                                               onOpen={(b) => nav(`/evidence/${encodeURIComponent(b.bundle_id)}`)} />}
+          </ViewStateView>
+        </div>
+      </Section>
       <section className="panel panel-body prose">
-        <p>Evidence bundles are built for confirmed domains. Open one from a domain's detail (Live queue, then a confirmed row), or enter a bundle id.</p>
+        <p>Evidence bundles are built for confirmed domains. Open one from the list above, from a domain's detail (Live queue, then a confirmed row), or enter a bundle id.</p>
         <form style={{ display: "flex", gap: 8, marginTop: 16 }} onSubmit={(e) => { e.preventDefault(); if (id.trim()) nav(`/evidence/${encodeURIComponent(id.trim())}`); }}>
           <label htmlFor="bundle-id" className="sr-only">Bundle id</label>
           <input id="bundle-id" className="input mono" style={{ flex: 1 }} placeholder="Bundle id" value={id} onChange={(e) => setId(e.target.value)} />
