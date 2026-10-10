@@ -78,16 +78,24 @@ def process_due(c: sa.Connection, ledger, limit: int = 50) -> int:
     return done
 
 
+def run_once(ledger) -> int:
+    try:
+        with engine().begin() as c:
+            return process_due(c, ledger)
+    except Exception as e:  # database blip: never crash the worker
+        print(f"anchor worker: {type(e).__name__}: {e}", flush=True)
+        # A connection that dropped mid-batch left every later loop failing with "Can't reconnect until invalid
+        # transaction is rolled back" until a restart (2026-10-10). Start again from fresh connections, as a restart
+        # would; items already on chain are recognised as such on the retry.
+        engine().dispose()
+        return 0
+
+
 def main() -> None:
     from services.api.ledger_service import Ledger
     ledger = Ledger.from_settings(SETTINGS)
     while True:
-        try:
-            with engine().begin() as c:
-                n = process_due(c, ledger)
-        except Exception as e:  # database blip: never crash the worker
-            print(f"anchor worker: {type(e).__name__}: {e}", flush=True)
-            n = 0
+        n = run_once(ledger)
         time.sleep(0.5 if n else 2.0)
 
 
