@@ -802,3 +802,21 @@ Format: **AI did** · **Owner decided** · **Verified by** · **Rulings** (AI ju
   hash finds Bank One's report (hashes and counts only). Screenshots at desktop and phone width.
 - **CI:** the offline e2e first failed at the ledger step: its "Kit hash" and "Look up" locators were not exact and
   now also matched the new kit-hash list. Made exact; green on 433f820 (console, python, e2e, contracts).
+
+## A kit per sector; demo chain renewed; anchor worker recovery (2026-10-10)
+
+- **Owner asked:** an e-commerce organisation's demo campaign must not appear in a bank's kit-hash lookup.
+- **AI did (tests first):** the seed page carries a sector-specific block of tags, so each sector's seeded campaigns
+  share one kit and no two sectors share one; banking keeps the original kit (c9c69097…, already on the ledger);
+  `scripts/evaluate.py` keeps measuring the original kit. Tests: banking unchanged, eight distinct sector kits, a
+  seeded e-commerce campaign carries its sector's kit and is still confirmed on two strong signals.
+- **Live data:** amazon's old campaign was on the demo chain under the banking kit and chain records cannot change,
+  so the demo chain was renewed: checked first that no live (non-seed) evidence was anchored (0 of 580 bundles), then
+  the documented `scripts.demo up` path (fresh chain, contracts, organisation accounts, demo reset, publish).
+- **Found on the way:** the anchor worker stalled twice. A connection dropped mid-batch ("SAVEPOINT" failed) left
+  every later loop failing with "Can't reconnect until invalid transaction is rolled back" until a restart. Fixed:
+  after a database error the worker disposes its pool and continues on fresh connections (test with stand-ins).
+- **Verified:** Python test_sector_kits 3 and test_anchor_recovery 2 (each failed first), seed / reset / evaluate /
+  superadmin / ledger 49/49; CI green on 8a77285 and 95f55d2; `scripts.demo up` READY; through the API with each
+  organisation's read-only key: Bank Two's kit lookup finds only Bank One's report (470 domains), amazon's finds only
+  its own (60 domains); the public site reaches the API through the tunnel.
